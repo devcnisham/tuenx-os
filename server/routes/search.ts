@@ -11,7 +11,7 @@ export interface SearchHit {
   title: string
   /** Secondary line — client name, role, assignee, whatever identifies it. */
   detail: string | null
-  kind: 'task' | 'contact' | 'member' | 'product' | 'project' | 'invoice'
+  kind: 'task' | 'contact' | 'member' | 'product' | 'project' | 'invoice' | 'doc'
   /** Hash route that opens the record's module. */
   route: string
 }
@@ -52,7 +52,7 @@ searchRouter.get(
       { contact: { company: { contains: term } } },
     ]
 
-    const [tasks, contacts, members, products, projects, invoices] = await Promise.all([
+    const [tasks, contacts, members, products, projects, invoices, docs] = await Promise.all([
       prisma.task.findMany({
         where: byTitleOrTag('title'),
         take: LIMIT_PER_KIND,
@@ -94,6 +94,20 @@ searchRouter.get(
         take: LIMIT_PER_KIND,
         include: { contact: { select: { name: true, company: true } } },
         orderBy: { issueDate: 'desc' },
+      }),
+      // Docs match on their body too — a knowledge base you can only search by
+      // title is a filing cabinet, not a knowledge base.
+      prisma.doc.findMany({
+        where: {
+          OR: [
+            { title: { contains: term } },
+            { body: { contains: term } },
+            { tag: { contains: term.toUpperCase() } },
+          ],
+        },
+        take: LIMIT_PER_KIND,
+        select: { id: true, tag: true, title: true, category: true },
+        orderBy: { updatedAt: 'desc' },
       }),
     ])
 
@@ -137,6 +151,14 @@ searchRouter.get(
         detail: p.contact.company ?? p.contact.name,
         kind: 'project' as const,
         route: '#/projects',
+      })),
+      ...docs.map((d) => ({
+        id: d.id,
+        tag: d.tag,
+        title: d.title,
+        detail: d.category,
+        kind: 'doc' as const,
+        route: '#/docs',
       })),
       ...invoices.map((i) => ({
         id: i.id,

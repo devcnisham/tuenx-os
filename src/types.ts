@@ -48,6 +48,21 @@ export const TAG_TYPE = {
   invoice: 'I',
   // Phase 4.
   fund: 'F',
+  // Phase 5.
+  doc: 'D',
+  objective: 'O',
+  keyResult: 'K',
+  // Phase 6. `H` for hire (C is contact), `N` for vendor (V is release),
+  // `G` for campaign, `A` for agreement (C is taken).
+  candidate: 'H',
+  leave: 'L',
+  vendor: 'N',
+  campaign: 'G',
+  contract: 'A',
+  // Phase 7. `S` for support, `E` for metric (M is member), `U` for customer.
+  ticket: 'S',
+  metric: 'E',
+  customer: 'U',
 } as const
 export type TagType = (typeof TAG_TYPE)[keyof typeof TAG_TYPE]
 
@@ -120,6 +135,24 @@ export const INVOICE_STATUS_LABEL: Record<InvoiceStatus, string> = {
   paid: 'Paid',
   overdue: 'Overdue',
 }
+
+// ---------------------------------------------------------------------------
+// Phase 5 — Docs
+// ---------------------------------------------------------------------------
+
+/**
+ * Suggested categories. Not an enum on the model — a knowledge base that
+ * rejects a category nobody anticipated stops getting written in, which is the
+ * failure mode PRD §9 flags for Docs. The field is free text; these just
+ * prefill the picker.
+ */
+export const DOC_CATEGORIES = [
+  'SOP',
+  'Playbook',
+  'Onboarding',
+  'Policy',
+  'Reference',
+] as const
 
 // ---------------------------------------------------------------------------
 // Phase 4 — Tuenx treasury
@@ -238,6 +271,17 @@ export interface Invoice {
   createdAt: string
 }
 
+export interface Doc {
+  id: string
+  tag: string
+  title: string
+  division: Division
+  category: string
+  body: string
+  updatedAt: string
+  createdAt: string
+}
+
 export interface FundEntry {
   id: string
   tag: string
@@ -333,7 +377,7 @@ export interface SearchHit {
   tag: string
   title: string
   detail: string | null
-  kind: 'task' | 'contact' | 'member' | 'product' | 'project' | 'invoice'
+  kind: 'task' | 'contact' | 'member' | 'product' | 'project' | 'invoice' | 'doc'
   route: string
 }
 

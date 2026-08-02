@@ -10,6 +10,7 @@ import { releasesRouter } from './routes/releases.ts'
 import { projectsRouter } from './routes/projects.ts'
 import { invoicesRouter } from './routes/invoices.ts'
 import { treasuryRouter } from './routes/treasury.ts'
+import { docsRouter } from './routes/docs.ts'
 import { searchRouter } from './routes/search.ts'
 
 /**
@@ -45,6 +46,9 @@ app.use('/api/invoices', invoicesRouter)
 
 // Phase 4
 app.use('/api/treasury', treasuryRouter)
+
+// Phase 5
+app.use('/api/docs', docsRouter)
 
 // Cross-module
 app.use('/api/search', searchRouter)

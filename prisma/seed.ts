@@ -34,6 +34,7 @@ async function main() {
   await prisma.project.deleteMany()
   await prisma.contact.deleteMany()
   await prisma.teamMember.deleteMany()
+  await prisma.doc.deleteMany()
   await prisma.fundEntry.deleteMany()
   await prisma.tagCounter.deleteMany()
 
@@ -250,6 +251,124 @@ async function main() {
       })
     }
 
+    // -- Docs (Phase 5) -----------------------------------------------------
+    const docs: { title: string; division: Division; category: string; body: string }[] = [
+      {
+        title: 'How we tag records',
+        division: 'tuenx',
+        category: 'Reference',
+        body: `Every record in Tuenx OS carries a division-coded tag: AGY-T003, GPH-C012.
+
+Format is <DIVISION>-<TYPE><SEQ>.
+
+  Divisions   TNX Tuenx / AGY Agency / GPH Gaphatch
+  Types       T task, C contact, M member, P product, R roadmap item,
+              V release, J project, I invoice, F fund entry, D doc
+
+The sequence counts per division per type, so AGY-T001 and GPH-T001 are
+different records.
+
+Tags are never reissued or renumbered. If someone moves from Agency to
+Gaphatch they keep AGY-M004 — the tag is identity, not a category label.
+
+You can search any tag from the box in the top bar. Typing AGY- lists
+everything Agency.`,
+      },
+      {
+        title: 'New client onboarding',
+        division: 'agency',
+        category: 'SOP',
+        body: `Run this the day a proposal is signed.
+
+1. Move the CRM contact to Active and fill in the contract terms — type,
+   value, start and end date.
+2. Create a Project against that client. It inherits their division.
+3. Raise the first invoice against the project. Terms are 30 days unless the
+   contract says otherwise.
+4. Create the kickoff task and assign it. Link it to the project so it shows
+   on the project card.
+5. Add the client to the shared drive and send the welcome note.
+
+If the client is a retainer rather than a project, set the contract type
+accordingly — the value field then means per cycle, not total.`,
+      },
+      {
+        title: 'Chasing an overdue invoice',
+        division: 'agency',
+        category: 'Playbook',
+        body: `Invoices flip to Overdue automatically when the Invoices page is opened
+after their due date. Nobody has to remember.
+
+Day 1 overdue    Short, friendly email to the billing contact. Attach the
+                 invoice again — most of the time it was simply missed.
+Day 7            Email the main contact directly, not billing. Ask whether
+                 anything is blocking it.
+Day 14           Call. Put a note on the invoice recording what was said.
+Day 30           Escalate to Maya before doing anything further. Do not stop
+                 work without that conversation.
+
+Log every contact in the invoice notes. The next person to pick it up needs
+to know what has already been tried.`,
+      },
+      {
+        title: 'Shipping a Gaphatch release',
+        division: 'gaphatch',
+        category: 'SOP',
+        body: `1. Move every roadmap item that made it into the build to Shipped.
+2. Log the release on the product page — version, date, and notes written the
+   way you would tell a customer, not the way you would tell an engineer.
+3. Check error monitoring for an hour after deploy.
+4. If anything is rolled back, edit the release rather than deleting it. The
+   log is a record of what happened, not of what we wish had happened.`,
+      },
+      {
+        title: 'First week at Tuenx',
+        division: 'tuenx',
+        category: 'Onboarding',
+        body: `Day one
+  - Accounts: email, shared drive, Tuenx OS.
+  - Add yourself to Team with your role and division. If you work across both
+    arms, your division is Tuenx.
+  - Read "How we tag records". It explains the ID on every screen.
+
+First week
+  - Sit in on one Agency client call and one Gaphatch product session,
+    whichever arm you are not in.
+  - Find the doc for the thing you will do most, and fix whatever is out of
+    date in it. That is the fastest way to learn it.
+
+Ask Aria for anything not covered here.`,
+      },
+      {
+        title: 'Expense and spend policy',
+        division: 'tuenx',
+        category: 'Policy',
+        body: `Anything under 200 USD that is clearly for work: just buy it, then log it in
+Treasury against your division with a category.
+
+200 to 1,000 USD: check with Dev first.
+
+Over 1,000 USD, or anything recurring: check with Nisham. Recurring spend also
+needs a Vendor record so renewals do not surprise us.
+
+Capital moved from Tuenx into a division is an allocation, not spend. It is
+tracked separately and does not count against runway.`,
+      },
+    ]
+
+    for (const doc of docs) {
+      const tag = await allocateTag(tx, doc.division, TAG_TYPE.doc)
+      await tx.doc.create({
+        data: {
+          tag,
+          title: doc.title,
+          division: doc.division,
+          category: doc.category,
+          body: doc.body,
+        },
+      })
+    }
+
     // -- Treasury (Phase 4) -------------------------------------------------
     const fundEntries: {
       division: Division
@@ -373,15 +492,16 @@ async function main() {
     }
   })
 
-  const [team, tasks, contacts, products] = await Promise.all([
+  const [team, tasks, contacts, products, docCount] = await Promise.all([
     prisma.teamMember.count(),
     prisma.task.count(),
     prisma.contact.count(),
     prisma.product.count(),
+    prisma.doc.count(),
   ])
 
   console.log(
-    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products.`,
+    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs.`,
   )
 }
 

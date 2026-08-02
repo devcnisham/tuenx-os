@@ -14,6 +14,7 @@ import { Crm } from './modules/Crm.tsx'
 import { Projects } from './modules/Projects.tsx'
 import { Invoices } from './modules/Invoices.tsx'
 import { Treasury } from './modules/Treasury.tsx'
+import { Docs } from './modules/Docs.tsx'
 import { Team } from './modules/Team.tsx'
 import { Products } from './modules/Products.tsx'
 
@@ -35,6 +36,7 @@ const NAV: {
       { id: 'crm', label: 'CRM', owner: 'tuenx', icon: 'crm' },
       { id: 'team', label: 'Team', owner: 'tuenx', icon: 'team' },
       { id: 'treasury', label: 'Treasury', owner: 'tuenx', icon: 'treasury' },
+      { id: 'docs', label: 'Docs', owner: 'tuenx', icon: 'docs' },
     ],
   },
   {
@@ -160,6 +162,7 @@ export function App() {
             {route.module === 'projects' && <Projects />}
             {route.module === 'invoices' && <Invoices />}
             {route.module === 'treasury' && <Treasury />}
+            {route.module === 'docs' && <Docs />}
             {route.module === 'team' && <Team />}
             {route.module === 'products' && <Products productId={route.productId} />}
           </div>

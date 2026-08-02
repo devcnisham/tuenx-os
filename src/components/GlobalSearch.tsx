@@ -11,6 +11,7 @@ const KIND_LABEL: Record<SearchHit['kind'], string> = {
   product: 'Product',
   project: 'Project',
   invoice: 'Invoice',
+  doc: 'Doc',
 }
 
 /**

@@ -17,7 +17,9 @@ import {
   type TaskStatus,
   type TeamMember,
 } from '../types.ts'
+import { useRecordLayout } from '../lib/recordLayout.ts'
 import { PageHeader, Toolbar } from '../components/PageHeader.tsx'
+import { LayoutSwitch } from '../components/LayoutSwitch.tsx'
 import { Button, ErrorState, Panel, Pill, Skeleton, type PillTone } from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextField } from '../components/Field.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
@@ -52,6 +54,7 @@ export function Tasks() {
   const [dueBefore, setDueBefore] = useState('')
   const [projectId, setProjectId] = useState('')
   const [editing, setEditing] = useState<Task | 'new' | null>(null)
+  const [layout, setLayout] = useRecordLayout('tasks', 'board')
 
   const tasks = useResource<Task[]>(
     () => api.get('/tasks', { division, priority, assigneeId, dueBefore, projectId }),
@@ -170,13 +173,14 @@ export function Tasks() {
         <span className="ml-auto font-mono text-[10px] text-faint">
           {pluralise(tasks.data?.length ?? 0, 'task')}
         </span>
+        <LayoutSwitch value={layout} onChange={setLayout} />
       </Toolbar>
 
       {tasks.error ? (
         <ErrorState message={tasks.error} onRetry={tasks.reload} />
       ) : tasks.loading ? (
         <Skeleton rows={5} />
-      ) : (
+      ) : layout === 'board' ? (
         <div className="grid gap-4 lg:grid-cols-3">
           {columns.map(({ status, items }) => (
             <Column
@@ -192,6 +196,32 @@ export function Tasks() {
             />
           ))}
         </div>
+      ) : layout === 'grid' ? (
+        // Grid drops the status columns, so each card states its own status.
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {(tasks.data ?? []).map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              showStatus
+              onMove={moveTask}
+              onEdit={() => setEditing(task)}
+            />
+          ))}
+        </div>
+      ) : (
+        <Panel bodyClassName="p-0">
+          <ul className="divide-y divide-rule">
+            {(tasks.data ?? []).map((task) => (
+              <TaskRow
+                key={task.id}
+                task={task}
+                onMove={moveTask}
+                onEdit={() => setEditing(task)}
+              />
+            ))}
+          </ul>
+        </Panel>
       )}
 
       {editing && (
@@ -265,10 +295,13 @@ function Column({
 
 function TaskCard({
   task,
+  showStatus = false,
   onMove,
   onEdit,
 }: {
   task: Task
+  /** Grid view has no status columns, so the card has to say it itself. */
+  showStatus?: boolean
   onMove: (task: Task, status: TaskStatus) => void
   onEdit: () => void
 }) {
@@ -281,7 +314,7 @@ function TaskCard({
       onDragStart={(e) => e.dataTransfer.setData('text/plain', task.id)}
       className="group relative overflow-hidden rounded-[3px] border border-rule bg-paper py-2 pr-2 pl-3 transition-colors hover:border-ink"
     >
-      {/* Division marker — the same fill/hatch/dot encoding as the tag. */}
+      {/* Division marker — the same colour encoding as the tag. */}
       <span
         className="absolute inset-y-0 left-0 w-[3px]"
         style={mark(task.division).fill}
@@ -290,7 +323,10 @@ function TaskCard({
 
       <div className="flex items-start justify-between gap-2">
         <Tag tag={task.tag} />
-        <Pill tone={PRIORITY_TONE[task.priority]}>{TASK_PRIORITY_LABEL[task.priority]}</Pill>
+        <span className="flex items-center gap-1">
+          {showStatus && <Pill>{TASK_STATUS_LABEL[task.status]}</Pill>}
+          <Pill tone={PRIORITY_TONE[task.priority]}>{TASK_PRIORITY_LABEL[task.priority]}</Pill>
+        </span>
       </div>
 
       <button
@@ -348,6 +384,76 @@ function TaskCard({
         </span>
       </div>
     </article>
+  )
+}
+
+/** Dense one-line form of a task, for list layout. */
+function TaskRow({
+  task,
+  onMove,
+  onEdit,
+}: {
+  task: Task
+  onMove: (task: Task, status: TaskStatus) => void
+  onEdit: () => void
+}) {
+  const index = TASK_STATUSES.indexOf(task.status)
+  const due = task.dueDate ? dueLabel(task.dueDate) : null
+
+  return (
+    <li className="relative flex flex-wrap items-center gap-x-3 gap-y-1 py-2 pr-3 pl-4">
+      <span
+        className="absolute inset-y-0 left-0 w-[3px]"
+        style={mark(task.division).fill}
+        aria-hidden
+      />
+
+      <Tag tag={task.tag} />
+
+      <button
+        type="button"
+        onClick={onEdit}
+        className="min-w-0 flex-1 basis-64 truncate text-left text-[13px] text-ink underline-offset-2 hover:underline"
+      >
+        {task.title}
+      </button>
+
+      <span className="w-28 shrink-0 truncate font-mono text-[10px] text-faint">
+        {task.assignee?.name ?? 'Unassigned'}
+      </span>
+
+      <span
+        className={`w-20 shrink-0 font-mono text-[10px] ${
+          due?.tone === 'overdue'
+            ? 'text-alert'
+            : due?.tone === 'soon'
+              ? 'text-ink'
+              : 'text-faint'
+        }`}
+      >
+        {due?.text ?? '—'}
+      </span>
+
+      <Pill tone={PRIORITY_TONE[task.priority]}>{TASK_PRIORITY_LABEL[task.priority]}</Pill>
+      <Pill>{TASK_STATUS_LABEL[task.status]}</Pill>
+
+      <span className="flex shrink-0 gap-1 font-mono text-[10px]">
+        <MoveButton
+          label={`Move ${task.tag} back`}
+          disabled={index === 0}
+          onClick={() => onMove(task, TASK_STATUSES[index - 1]!)}
+        >
+          ←
+        </MoveButton>
+        <MoveButton
+          label={`Move ${task.tag} forward`}
+          disabled={index === TASK_STATUSES.length - 1}
+          onClick={() => onMove(task, TASK_STATUSES[index + 1]!)}
+        >
+          →
+        </MoveButton>
+      </span>
+    </li>
   )
 }
 

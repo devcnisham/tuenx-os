@@ -1,0 +1,143 @@
+// Tuenx OS — data model.
+//
+// Maps 1:1 onto TRD §2 (Phase 1) and TRD §3 Phase 2. See
+// docs/adr/0001-sqlite-from-phase-1.md for why this is SQLite rather than the
+// artifact key-value store in TRD §4, and for the list of divergences.
+//
+// Swapping to Postgres/Supabase (TRD Phase 9) is a two-line change here:
+//   provider = "postgresql"  +  a new DATABASE_URL.
+// Nothing in this schema uses a SQLite-only feature. Enum-typed fields from the
+// TRD are `String` because Prisma has no native enum on SQLite; the allowed
+// values live in src/types.ts and are shared by client and server.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 1 — Overview, Tasks, CRM, Team
+// ---------------------------------------------------------------------------
+
+/// TRD §2 Task. `assignee` is a relation rather than the TRD's untyped field —
+/// see ADR-0001. Nullable, so an unassigned task is still valid.
+model Task {
+  id         String      @id @default(cuid())
+  tag        String      @unique
+  title      String
+  division   String // tuenx | agency | gaphatch
+  status     String // todo | in_progress | done
+  priority   String // low | medium | high
+  assigneeId String?
+  assignee   TeamMember? @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  dueDate    DateTime?
+  createdAt  DateTime    @default(now())
+
+  @@index([division])
+  @@index([status])
+  @@index([assigneeId])
+}
+
+/// TRD §2 Contact (CRM). Phase 3 adds contractType / contractValue /
+/// startDate / endDate to this model — additive, no restructuring.
+model Contact {
+  id        String   @id @default(cuid())
+  tag       String   @unique
+  name      String
+  company   String?
+  division  String // tuenx | agency | gaphatch
+  stage     String // lead | proposal | active | closed
+  value     Float    @default(0)
+  email     String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([division])
+  @@index([stage])
+}
+
+/// TRD §2 TeamMember. `tag` is an ADR-0001 addition (TRD omits it; the build
+/// brief requires a division-coded tag on every record).
+model TeamMember {
+  id        String   @id @default(cuid())
+  tag       String   @unique
+  name      String
+  role      String
+  division  String // tuenx | agency | gaphatch
+  email     String?
+  createdAt DateTime @default(now())
+
+  tasks Task[]
+
+  @@index([division])
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2 — Gaphatch Products
+// ---------------------------------------------------------------------------
+
+/// TRD §3 Phase 2 Product. No `division` column: products are Gaphatch-only per
+/// the master plan module map, so every product tag is GPH-P###.
+model Product {
+  id          String   @id @default(cuid())
+  tag         String   @unique
+  name        String
+  status      String // planning | building | live
+  description String?
+  createdAt   DateTime @default(now())
+
+  roadmapItems RoadmapItem[]
+  releases     Release[]
+
+  @@index([status])
+}
+
+/// TRD §3 Phase 2 RoadmapItem.
+model RoadmapItem {
+  id        String   @id @default(cuid())
+  tag       String   @unique
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  title     String
+  status    String // backlog | building | shipped
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([status])
+}
+
+/// TRD §3 Phase 2 Release. The TRD gives this a `date` and no `createdAt`;
+/// kept as specified.
+model Release {
+  id        String   @id @default(cuid())
+  tag       String   @unique
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  version   String
+  notes     String?
+  date      DateTime
+
+  @@index([productId])
+}
+
+// ---------------------------------------------------------------------------
+// Infrastructure
+// ---------------------------------------------------------------------------
+
+/// Backs the division-coded ID tags (AGY-T003, GPH-C012).
+///
+/// One row per (division, type) pair, holding the next unissued sequence
+/// number. Allocation happens inside a transaction in server/tags.ts, so two
+/// concurrent creates cannot be handed the same tag — this closes the
+/// client-generated-ID collision risk noted in TRD §4 ahead of Phase 9.
+model TagCounter {
+  division String // TNX | AGY | GPH
+  type     String // T | C | M | P | R | V
+  next     Int    @default(1)
+
+  @@id([division, type])
+}

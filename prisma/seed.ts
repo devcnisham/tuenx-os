@@ -25,14 +25,16 @@ const daysOut = (n: number) => {
 
 async function main() {
   console.log('Clearing existing data…')
-  // Order matters: children before parents, and tasks before the members they
-  // reference.
+  // Order matters: children before parents.
   await prisma.roadmapItem.deleteMany()
   await prisma.release.deleteMany()
   await prisma.product.deleteMany()
+  await prisma.invoice.deleteMany()
   await prisma.task.deleteMany()
+  await prisma.project.deleteMany()
   await prisma.contact.deleteMany()
   await prisma.teamMember.deleteMany()
+  await prisma.fundEntry.deleteMany()
   await prisma.tagCounter.deleteMany()
 
   await prisma.$transaction(async (tx) => {
@@ -107,13 +109,17 @@ async function main() {
       value: number
       email: string
       notes?: string
+      contractType?: string
+      contractValue?: number
+      startDate?: Date
+      endDate?: Date
     }[] = [
-      { name: 'Helen Marsh', company: 'Northwind Studio', division: 'agency', stage: 'active', value: 48000, email: 'helen@northwind.co', notes: 'Rebrand + site. Retainer conversation in September.' },
-      { name: 'Owen Baptiste', company: 'Brightline Health', division: 'agency', stage: 'active', value: 36000, email: 'owen@brightline.io' },
+      { name: 'Helen Marsh', company: 'Northwind Studio', division: 'agency', stage: 'active', value: 48000, email: 'helen@northwind.co', notes: 'Rebrand + site. Retainer conversation in September.', contractType: 'project', contractValue: 48000, startDate: daysOut(-60), endDate: daysOut(34) },
+      { name: 'Owen Baptiste', company: 'Brightline Health', division: 'agency', stage: 'active', value: 36000, email: 'owen@brightline.io', contractType: 'retainer', contractValue: 12000, startDate: daysOut(-70), endDate: daysOut(110) },
       { name: 'Ravi Chandra', company: 'Halcyon Labs', division: 'agency', stage: 'proposal', value: 60000, email: 'ravi@halcyonlabs.com', notes: 'Proposal out this week. Wants a 6-month retainer.' },
       { name: 'Dana Whitlock', company: 'Ferrous & Co', division: 'agency', stage: 'proposal', value: 22000, email: 'dana@ferrous.co' },
       { name: 'Ines Duarte', company: 'Cartel Coffee', division: 'agency', stage: 'lead', value: 15000, email: 'ines@cartelcoffee.pt' },
-      { name: 'Marcus Bell', company: 'Odeon Group', division: 'agency', stage: 'closed', value: 41000, email: 'marcus@odeongroup.com', notes: 'Closed won, delivered in Q1.' },
+      { name: 'Marcus Bell', company: 'Odeon Group', division: 'agency', stage: 'closed', value: 41000, email: 'marcus@odeongroup.com', notes: 'Closed won, delivered in Q1.', contractType: 'project', contractValue: 41000, startDate: daysOut(-190), endDate: daysOut(-120) },
 
       { name: 'Prof. Amara Diallo', company: 'Ashfield College', division: 'gaphatch', stage: 'proposal', value: 12000, email: 'a.diallo@ashfield.edu', notes: 'Scholr pilot — 400 seats, first institutional deal.' },
       { name: 'Jonah Krieg', company: 'Lattice Tutoring', division: 'gaphatch', stage: 'lead', value: 7500, email: 'jonah@latticetutoring.com' },
@@ -121,9 +127,10 @@ async function main() {
       { name: 'Sofia Renner', company: 'Renner Capital', division: 'tuenx', stage: 'lead', value: 0, email: 'sofia@rennercap.com', notes: 'Banking relationship, not a sales deal. Tracked for context.' },
     ]
 
+    const contactIds: Record<string, string> = {}
     for (const contact of contacts) {
       const tag = await allocateTag(tx, contact.division, TAG_TYPE.contact)
-      await tx.contact.create({
+      const created = await tx.contact.create({
         data: {
           tag,
           name: contact.name,
@@ -133,6 +140,155 @@ async function main() {
           value: contact.value,
           email: contact.email,
           notes: contact.notes ?? null,
+          contractType: contact.contractType ?? null,
+          contractValue: contact.contractValue ?? null,
+          startDate: contact.startDate ?? null,
+          endDate: contact.endDate ?? null,
+        },
+      })
+      contactIds[contact.company] = created.id
+    }
+
+    // -- Projects and invoices (Phase 3, Agency) ----------------------------
+    const projectSpecs: {
+      company: string
+      title: string
+      status: string
+      dueDate?: Date
+      invoices: { amount: number; status: string; issue: Date; due: Date; notes?: string }[]
+    }[] = [
+      {
+        company: 'Northwind Studio',
+        title: 'Northwind rebrand + site build',
+        status: 'active',
+        dueDate: daysOut(34),
+        invoices: [
+          { amount: 24000, status: 'paid', issue: daysOut(-52), due: daysOut(-22), notes: 'Phase 1 — discovery and identity.' },
+          { amount: 12000, status: 'sent', issue: daysOut(-12), due: daysOut(18), notes: 'Phase 2 — site build, first half.' },
+        ],
+      },
+      {
+        company: 'Brightline Health',
+        title: 'Brightline retainer — Q3',
+        status: 'active',
+        dueDate: daysOut(58),
+        invoices: [
+          { amount: 12000, status: 'paid', issue: daysOut(-63), due: daysOut(-33) },
+          { amount: 12000, status: 'overdue', issue: daysOut(-40), due: daysOut(-10), notes: 'Chased once. Follow up again this week.' },
+          { amount: 12000, status: 'draft', issue: daysOut(0), due: daysOut(30) },
+        ],
+      },
+      {
+        company: 'Odeon Group',
+        title: 'Odeon campaign — delivered',
+        status: 'delivered',
+        invoices: [
+          { amount: 41000, status: 'paid', issue: daysOut(-140), due: daysOut(-110) },
+        ],
+      },
+      {
+        company: 'Ferrous & Co',
+        title: 'Ferrous website refresh',
+        status: 'on_hold',
+        dueDate: daysOut(75),
+        invoices: [],
+      },
+      {
+        company: 'Halcyon Labs',
+        title: 'Halcyon retainer — pending signature',
+        status: 'planning',
+        dueDate: daysOut(20),
+        invoices: [],
+      },
+    ]
+
+    const projectIds: Record<string, string> = {}
+    for (const spec of projectSpecs) {
+      const contactId = contactIds[spec.company]!
+      const contact = await tx.contact.findUniqueOrThrow({
+        where: { id: contactId },
+        select: { division: true },
+      })
+
+      const tag = await allocateTag(tx, contact.division as Division, TAG_TYPE.project)
+      const project = await tx.project.create({
+        data: {
+          tag,
+          contactId,
+          title: spec.title,
+          status: spec.status,
+          dueDate: spec.dueDate ?? null,
+        },
+      })
+      projectIds[spec.title] = project.id
+
+      for (const invoice of spec.invoices) {
+        const invoiceTag = await allocateTag(tx, contact.division as Division, TAG_TYPE.invoice)
+        await tx.invoice.create({
+          data: {
+            tag: invoiceTag,
+            contactId,
+            projectId: project.id,
+            amount: invoice.amount,
+            status: invoice.status,
+            issueDate: invoice.issue,
+            dueDate: invoice.due,
+            notes: invoice.notes ?? null,
+          },
+        })
+      }
+    }
+
+    // Link the Agency tasks that belong to a project.
+    for (const [taskTitle, projectTitle] of [
+      ['Northwind rebrand — second concept round', 'Northwind rebrand + site build'],
+      ['Onboard Brightline to the shared drive', 'Brightline retainer — Q3'],
+    ] as const) {
+      await tx.task.updateMany({
+        where: { title: taskTitle },
+        data: { projectId: projectIds[projectTitle] },
+      })
+    }
+
+    // -- Treasury (Phase 4) -------------------------------------------------
+    const fundEntries: {
+      division: Division
+      type: string
+      amount: number
+      category: string
+      date: Date
+      notes?: string
+    }[] = [
+      { division: 'tuenx', type: 'income', amount: 120000, category: 'Founder capital', date: daysOut(-210), notes: 'Opening capital into the group.' },
+      { division: 'agency', type: 'income', amount: 41000, category: 'Client revenue', date: daysOut(-140) },
+      { division: 'agency', type: 'income', amount: 24000, category: 'Client revenue', date: daysOut(-52) },
+      { division: 'agency', type: 'income', amount: 12000, category: 'Client revenue', date: daysOut(-63) },
+      { division: 'agency', type: 'income', amount: 12000, category: 'Client revenue', date: daysOut(-33) },
+
+      { division: 'tuenx', type: 'expense', amount: 4200, category: 'Legal & accounting', date: daysOut(-180) },
+      { division: 'tuenx', type: 'expense', amount: 2600, category: 'Software & tools', date: daysOut(-90) },
+      { division: 'tuenx', type: 'expense', amount: 2600, category: 'Software & tools', date: daysOut(-30) },
+      { division: 'agency', type: 'expense', amount: 31000, category: 'Contractor fees', date: daysOut(-120) },
+      { division: 'agency', type: 'expense', amount: 18500, category: 'Contractor fees', date: daysOut(-45) },
+      { division: 'gaphatch', type: 'expense', amount: 26000, category: 'Product build', date: daysOut(-100), notes: 'Scholr build, first block.' },
+      { division: 'gaphatch', type: 'expense', amount: 21000, category: 'Product build', date: daysOut(-40) },
+      { division: 'gaphatch', type: 'expense', amount: 1800, category: 'Infrastructure', date: daysOut(-15) },
+
+      { division: 'gaphatch', type: 'allocation', amount: 60000, category: 'Capital into Gaphatch', date: daysOut(-150), notes: 'Funds Scholr through beta.' },
+      { division: 'agency', type: 'allocation', amount: 25000, category: 'Capital into Agency', date: daysOut(-150), notes: 'Working capital for contractor float.' },
+    ]
+
+    for (const entry of fundEntries) {
+      const tag = await allocateTag(tx, entry.division, TAG_TYPE.fund)
+      await tx.fundEntry.create({
+        data: {
+          tag,
+          division: entry.division,
+          type: entry.type,
+          amount: entry.amount,
+          category: entry.category,
+          date: entry.date,
+          notes: entry.notes ?? null,
         },
       })
     }

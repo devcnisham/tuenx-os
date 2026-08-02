@@ -16,6 +16,7 @@ export type ModuleId =
   | 'treasury'
   | 'docs'
   | 'okrs'
+  | 'calendar'
   | 'team'
   | 'products'
 
@@ -39,6 +40,7 @@ const MODULES: ModuleId[] = [
   'treasury',
   'docs',
   'okrs',
+  'calendar',
   'team',
   'products',
 ]

@@ -16,6 +16,7 @@ import { Invoices } from './modules/Invoices.tsx'
 import { Treasury } from './modules/Treasury.tsx'
 import { Docs } from './modules/Docs.tsx'
 import { Okrs } from './modules/Okrs.tsx'
+import { Calendar } from './modules/Calendar.tsx'
 import { Team } from './modules/Team.tsx'
 import { Products } from './modules/Products.tsx'
 
@@ -39,6 +40,7 @@ const NAV: {
       { id: 'treasury', label: 'Treasury', owner: 'tuenx', icon: 'treasury' },
       { id: 'docs', label: 'Docs', owner: 'tuenx', icon: 'docs' },
       { id: 'okrs', label: 'OKRs', owner: 'tuenx', icon: 'okrs' },
+      { id: 'calendar', label: 'Calendar', owner: 'tuenx', icon: 'calendar' },
     ],
   },
   {
@@ -166,6 +168,7 @@ export function App() {
             {route.module === 'treasury' && <Treasury />}
             {route.module === 'docs' && <Docs />}
             {route.module === 'okrs' && <Okrs />}
+            {route.module === 'calendar' && <Calendar />}
             {route.module === 'team' && <Team />}
             {route.module === 'products' && <Products productId={route.productId} />}
           </div>

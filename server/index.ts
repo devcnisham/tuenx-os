@@ -12,6 +12,7 @@ import { invoicesRouter } from './routes/invoices.ts'
 import { treasuryRouter } from './routes/treasury.ts'
 import { docsRouter } from './routes/docs.ts'
 import { okrsRouter } from './routes/okrs.ts'
+import { calendarRouter } from './routes/calendar.ts'
 import { searchRouter } from './routes/search.ts'
 
 /**
@@ -51,6 +52,9 @@ app.use('/api/treasury', treasuryRouter)
 // Phase 5
 app.use('/api/docs', docsRouter)
 app.use('/api/okrs', okrsRouter)
+
+// Cross-module
+app.use('/api/calendar', calendarRouter)
 
 // Cross-module
 app.use('/api/search', searchRouter)

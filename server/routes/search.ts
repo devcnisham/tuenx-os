@@ -42,6 +42,16 @@ searchRouter.get(
       OR: [{ [titleField]: { contains: term } }, { tag: { contains: term.toUpperCase() } }],
     })
 
+    /**
+     * Client-owned records also match on the client. Searching "northwind"
+     * should surface their contact, projects, and invoices — not just the one
+     * record that happens to carry the word in its own title.
+     */
+    const viaClient = [
+      { contact: { name: { contains: term } } },
+      { contact: { company: { contains: term } } },
+    ]
+
     const [tasks, contacts, members, products, projects, invoices] = await Promise.all([
       prisma.task.findMany({
         where: byTitleOrTag('title'),
@@ -49,8 +59,15 @@ searchRouter.get(
         include: { assignee: { select: { name: true } } },
         orderBy: { createdAt: 'desc' },
       }),
+      // A contact matches on their own name, their company, or their tag.
       prisma.contact.findMany({
-        where: byTitleOrTag('name'),
+        where: {
+          OR: [
+            { name: { contains: term } },
+            { company: { contains: term } },
+            { tag: { contains: term.toUpperCase() } },
+          ],
+        },
         take: LIMIT_PER_KIND,
         orderBy: { createdAt: 'desc' },
       }),
@@ -65,15 +82,17 @@ searchRouter.get(
         orderBy: { createdAt: 'asc' },
       }),
       prisma.project.findMany({
-        where: byTitleOrTag('title'),
+        where: { OR: [...byTitleOrTag('title').OR, ...viaClient] },
         take: LIMIT_PER_KIND,
-        include: { contact: { select: { name: true } } },
+        include: { contact: { select: { name: true, company: true } } },
         orderBy: { createdAt: 'desc' },
       }),
+      // Invoices have no title of their own, so they match on tag, or on the
+      // client's name — "northwind" should surface their invoices too.
       prisma.invoice.findMany({
-        where: { tag: { contains: term.toUpperCase() } },
+        where: { OR: [{ tag: { contains: term.toUpperCase() } }, ...viaClient] },
         take: LIMIT_PER_KIND,
-        include: { contact: { select: { name: true } } },
+        include: { contact: { select: { name: true, company: true } } },
         orderBy: { issueDate: 'desc' },
       }),
     ])
@@ -115,15 +134,21 @@ searchRouter.get(
         id: p.id,
         tag: p.tag,
         title: p.title,
-        detail: p.contact.name,
+        detail: p.contact.company ?? p.contact.name,
         kind: 'project' as const,
         route: '#/projects',
       })),
       ...invoices.map((i) => ({
         id: i.id,
         tag: i.tag,
-        title: `${i.contact.name} · ${i.status}`,
-        detail: i.tag,
+        // Amount first — it is what identifies an invoice at a glance. The tag
+        // is already rendered beside this, so repeating it here wastes the row.
+        title: `${i.amount.toLocaleString('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          maximumFractionDigits: 0,
+        })} · ${i.contact.company ?? i.contact.name}`,
+        detail: i.status,
         kind: 'invoice' as const,
         route: '#/invoices',
       })),

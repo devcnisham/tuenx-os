@@ -1,22 +1,29 @@
 import { useCallback, useEffect, useState } from 'react'
 
-export type ViewMode = 'side' | 'full'
+export const VIEW_MODES = ['center', 'side', 'full'] as const
+export type ViewMode = (typeof VIEW_MODES)[number]
 
 const STORAGE_KEY = 'tuenx-os:record-view'
 const EVENT = 'tuenx-os:record-view-change'
 
+/** Centre is the default — it's where a click on a card is expected to land. */
+const DEFAULT: ViewMode = 'center'
+
 function read(): ViewMode {
   try {
-    return localStorage.getItem(STORAGE_KEY) === 'full' ? 'full' : 'side'
+    const stored = localStorage.getItem(STORAGE_KEY)
+    return (VIEW_MODES as readonly string[]).includes(stored ?? '')
+      ? (stored as ViewMode)
+      : DEFAULT
   } catch {
-    // Private browsing, or storage disabled. Side is the better default anyway.
-    return 'side'
+    // Private browsing, or storage disabled.
+    return DEFAULT
   }
 }
 
 /**
- * How a record opens: a slide-over panel beside the board, or a full-page
- * takeover.
+ * How a record opens: centred over the page, as a panel beside the board, or
+ * as a full-page takeover.
  *
  * The choice is a preference rather than per-record state, so it persists
  * across sessions and applies everywhere at once. A custom event keeps every

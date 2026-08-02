@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { href, useRoute, type ModuleId } from './lib/router.ts'
+import { useLayout } from './lib/layout.ts'
 import { mark } from './lib/divisions.ts'
 import { DIVISION_CODE, type Division } from './types.ts'
 import { TagLegend } from './components/Tag.tsx'
-import { GlobalSearch } from './components/GlobalSearch.tsx'
+import { TopBar } from './components/shell/TopBar.tsx'
+import { RightRail } from './components/shell/RightRail.tsx'
+import { StatusBar } from './components/shell/StatusBar.tsx'
 import { Overview } from './modules/Overview.tsx'
 import { Tasks } from './modules/Tasks.tsx'
 import { Crm } from './modules/Crm.tsx'
@@ -42,19 +45,6 @@ const NAV: { group: string; items: { id: ModuleId; label: string; owner: Divisio
     items: [{ id: 'products', label: 'Products', owner: 'gaphatch' }],
   },
 ]
-
-function Wordmark() {
-  return (
-    <a href={href('overview')} className="inline-flex items-baseline gap-1.5">
-      <span className="font-display text-lg leading-none font-semibold tracking-tight text-ink">
-        TUENX
-      </span>
-      <span className="rounded-[2px] bg-ink px-1 py-px font-mono text-[10px] font-medium text-paper">
-        OS
-      </span>
-    </a>
-  )
-}
 
 function NavList({ active, onNavigate }: { active: ModuleId; onNavigate?: () => void }) {
   return (
@@ -96,81 +86,76 @@ function NavList({ active, onNavigate }: { active: ModuleId; onNavigate?: () => 
 }
 
 /**
- * TRD §6: the sidebar collapses to a top bar below `lg`. The drawer reuses the
- * same nav list rather than being a second implementation of it.
+ * Four-panel shell: top bar (always), left nav, right attention rail, bottom
+ * status bar. The last three hide and unhide from the top bar, and the choice
+ * persists.
+ *
+ * Below `lg` the left nav collapses into a drawer and the right rail drops out
+ * entirely — on a phone it would cost more room than the digest is worth
+ * (TRD §6).
  */
 export function App() {
   const route = useRoute()
+  const [layout, toggle] = useLayout()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   // Close the drawer on navigation, so tapping a link doesn't leave it hanging.
   useEffect(() => setDrawerOpen(false), [route.module, route.productId])
 
   return (
-    <div className="min-h-dvh lg:flex">
-      {/* Desktop rail */}
-      <aside className="hidden w-56 shrink-0 border-r border-rule lg:flex lg:flex-col">
-        <div className="space-y-3 border-b border-ink px-4 py-4">
-          <Wordmark />
-          <GlobalSearch />
-        </div>
+    <div className="flex min-h-dvh flex-col">
+      <TopBar
+        module={route.module}
+        layout={layout}
+        onToggle={toggle}
+        onOpenMobileNav={() => setDrawerOpen((open) => !open)}
+        mobileNavOpen={drawerOpen}
+      />
 
-        <div className="flex-1 overflow-y-auto py-3">
-          <NavList active={route.module} />
-        </div>
-
-        <div className="space-y-3 border-t border-rule px-4 py-4">
-          <div>
+      {drawerOpen && (
+        <div className="border-b border-rule py-2 lg:hidden">
+          <NavList active={route.module} onNavigate={() => setDrawerOpen(false)} />
+          <div className="mt-3 border-t border-rule px-4 pt-3">
             <p className="label-mono mb-2">Tag key</p>
             <TagLegend />
           </div>
-          <p className="border-t border-rule pt-3 font-mono text-[10px] leading-relaxed text-faint">
-            Phases 1–4. No sign-in yet —<br />
-            accounts arrive in Phase 9.
-          </p>
         </div>
-      </aside>
+      )}
 
-      {/* Mobile top bar */}
-      <header className="sticky top-0 z-40 border-b border-ink bg-paper lg:hidden">
-        <div className="flex items-center justify-between gap-3 px-4 py-3">
-          <Wordmark />
-          <button
-            type="button"
-            onClick={() => setDrawerOpen((open) => !open)}
-            aria-expanded={drawerOpen}
-            aria-label="Toggle navigation"
-            className="rounded-[3px] border border-rule px-2 py-1 font-mono text-[11px] text-ink"
-          >
-            {drawerOpen ? 'Close' : 'Menu'}
-          </button>
-        </div>
-        <div className="px-4 pb-3">
-          <GlobalSearch />
-        </div>
-        {drawerOpen && (
-          <div className="border-t border-rule py-2">
-            <NavList active={route.module} onNavigate={() => setDrawerOpen(false)} />
-            <div className="mt-3 border-t border-rule px-4 pt-3">
+      <div className="flex min-h-0 flex-1">
+        {layout.left && (
+          <aside className="hidden w-56 shrink-0 flex-col overflow-y-auto border-r border-rule lg:flex">
+            <div className="flex-1 py-3">
+              <NavList active={route.module} />
+            </div>
+            <div className="border-t border-rule px-4 py-4">
               <p className="label-mono mb-2">Tag key</p>
               <TagLegend />
+              <p className="mt-3 border-t border-rule pt-3 font-mono text-[10px] leading-relaxed text-faint">
+                Phases 1–4. No sign-in yet —<br />
+                accounts arrive in Phase 9.
+              </p>
             </div>
-          </div>
+          </aside>
         )}
-      </header>
 
-      <main className="min-w-0 flex-1">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
-          {route.module === 'overview' && <Overview />}
-          {route.module === 'tasks' && <Tasks />}
-          {route.module === 'crm' && <Crm />}
-          {route.module === 'projects' && <Projects />}
-          {route.module === 'invoices' && <Invoices />}
-          {route.module === 'treasury' && <Treasury />}
-          {route.module === 'team' && <Team />}
-          {route.module === 'products' && <Products productId={route.productId} />}
-        </div>
-      </main>
+        <main className="min-w-0 flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+            {route.module === 'overview' && <Overview />}
+            {route.module === 'tasks' && <Tasks />}
+            {route.module === 'crm' && <Crm />}
+            {route.module === 'projects' && <Projects />}
+            {route.module === 'invoices' && <Invoices />}
+            {route.module === 'treasury' && <Treasury />}
+            {route.module === 'team' && <Team />}
+            {route.module === 'products' && <Products productId={route.productId} />}
+          </div>
+        </main>
+
+        {layout.right && <RightRail />}
+      </div>
+
+      {layout.bottom && <StatusBar />}
     </div>
   )
 }

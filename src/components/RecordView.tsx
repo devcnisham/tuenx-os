@@ -2,15 +2,16 @@ import { useEffect, type ReactNode } from 'react'
 import { useViewMode, type ViewMode } from '../lib/viewMode.ts'
 
 /**
- * How a record opens, in two shapes:
+ * How a record opens, in three shapes:
  *
- *   side  a panel from the right, board still visible behind it — for quick
- *         edits where the surrounding context is the point
- *   full  a page takeover with room to breathe — for reading and longer forms
+ *   center  centred over the page — the default, and where a click on a card
+ *           is expected to land
+ *   side    a panel from the right, board still visible behind it — for quick
+ *           edits where the surrounding context is the point
+ *   full    a page takeover with room to breathe — for reading and long forms
  *
- * Same props as the old Modal it replaces, so every form is a tag swap. The
- * mode is a persisted preference (see useViewMode), toggled from the header
- * here, so a person picks once rather than per record.
+ * The mode is a persisted preference (see useViewMode), toggled from the
+ * header here, so a person picks once rather than per record.
  */
 export function RecordView({
   title,
@@ -72,20 +73,38 @@ export function RecordView({
     )
   }
 
+  // Only the backdrop dismisses — a drag that ends outside the panel shouldn't
+  // throw away a half-filled form.
+  const dismissOnBackdrop = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) onClose()
+  }
+
+  if (mode === 'side') {
+    return (
+      <div className="fixed inset-0 z-50 flex justify-end bg-ink/20" onMouseDown={dismissOnBackdrop}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+          className="flex h-dvh w-full max-w-md flex-col overflow-y-auto border-l border-ink bg-paper"
+        >
+          {header}
+          {children}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-ink/20"
-      onMouseDown={(e) => {
-        // Only the backdrop dismisses — a drag that ends outside the panel
-        // shouldn't throw away a half-filled form.
-        if (e.target === e.currentTarget) onClose()
-      }}
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/25 p-4 sm:items-center"
+      onMouseDown={dismissOnBackdrop}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="flex h-dvh w-full max-w-md flex-col overflow-y-auto border-l border-ink bg-paper"
+        className="my-auto flex w-full max-w-xl flex-col rounded-[3px] border border-ink bg-paper"
       >
         {header}
         {children}
@@ -109,6 +128,7 @@ function ViewToggle({
     >
       {(
         [
+          ['center', 'Centre', 'Open records centred over the page'],
           ['side', 'Side', 'Open records in a panel beside the board'],
           ['full', 'Full', 'Open records as a full page'],
         ] as const

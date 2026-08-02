@@ -155,6 +155,28 @@ export const DOC_CATEGORIES = [
 ] as const
 
 // ---------------------------------------------------------------------------
+// Phase 5 — OKRs
+// ---------------------------------------------------------------------------
+
+/**
+ * TRD §3 types Objective.scope as "division | productId" — one overloaded
+ * string. Split into a kind plus a real foreign key here, because a single
+ * column would mean sniffing a cuid to tell "gaphatch" from an id.
+ */
+export const OBJECTIVE_SCOPES = ['division', 'product'] as const
+export type ObjectiveScope = (typeof OBJECTIVE_SCOPES)[number]
+
+export const KEY_RESULT_STATUSES = ['on_track', 'at_risk', 'off_track', 'done'] as const
+export type KeyResultStatus = (typeof KEY_RESULT_STATUSES)[number]
+
+export const KEY_RESULT_STATUS_LABEL: Record<KeyResultStatus, string> = {
+  on_track: 'On track',
+  at_risk: 'At risk',
+  off_track: 'Off track',
+  done: 'Done',
+}
+
+// ---------------------------------------------------------------------------
 // Phase 4 — Tuenx treasury
 // ---------------------------------------------------------------------------
 
@@ -282,6 +304,34 @@ export interface Doc {
   createdAt: string
 }
 
+export interface KeyResult {
+  id: string
+  tag: string
+  objectiveId: string
+  title: string
+  targetValue: number
+  currentValue: number
+  unit: string | null
+  status: KeyResultStatus
+  createdAt: string
+}
+
+export interface Objective {
+  id: string
+  tag: string
+  scopeKind: ObjectiveScope
+  division: Division
+  productId: string | null
+  product: Pick<Product, 'id' | 'tag' | 'name'> | null
+  title: string
+  period: string
+  owner: string | null
+  createdAt: string
+  keyResults: KeyResult[]
+  /** 0–1, averaged across key results. Derived, never stored. */
+  progress: number
+}
+
 export interface FundEntry {
   id: string
   tag: string
@@ -400,3 +450,5 @@ export const isContractType = oneOf(CONTRACT_TYPES)
 export const isProjectStatus = oneOf(PROJECT_STATUSES)
 export const isInvoiceStatus = oneOf(INVOICE_STATUSES)
 export const isFundType = oneOf(FUND_TYPES)
+export const isObjectiveScope = oneOf(OBJECTIVE_SCOPES)
+export const isKeyResultStatus = oneOf(KEY_RESULT_STATUSES)

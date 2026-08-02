@@ -34,6 +34,8 @@ async function main() {
   await prisma.project.deleteMany()
   await prisma.contact.deleteMany()
   await prisma.teamMember.deleteMany()
+  await prisma.keyResult.deleteMany()
+  await prisma.objective.deleteMany()
   await prisma.doc.deleteMany()
   await prisma.fundEntry.deleteMany()
   await prisma.tagCounter.deleteMany()
@@ -459,6 +461,7 @@ tracked separately and does not count against runway.`,
       },
     ]
 
+    const productIds: Record<string, string> = {}
     for (const spec of productSpecs) {
       const productTag = await allocateTag(tx, 'gaphatch', TAG_TYPE.product)
       const product = await tx.product.create({
@@ -469,6 +472,8 @@ tracked separately and does not count against runway.`,
           description: spec.description,
         },
       })
+
+      productIds[spec.name] = product.id
 
       for (const item of spec.roadmap) {
         const tag = await allocateTag(tx, 'gaphatch', TAG_TYPE.roadmap)
@@ -490,6 +495,87 @@ tracked separately and does not count against runway.`,
         })
       }
     }
+
+    // -- OKRs (Phase 5) -----------------------------------------------------
+    const objectives: {
+      title: string
+      scopeKind: string
+      division: Division
+      product?: string
+      period: string
+      owner: string
+      keyResults: { title: string; target: number; current: number; unit?: string; status: string }[]
+    }[] = [
+      {
+        title: 'Get Scholr to a paid launch',
+        scopeKind: 'product',
+        division: 'gaphatch',
+        product: 'Scholr',
+        period: '2026-Q3',
+        owner: 'Kenji Mori',
+        keyResults: [
+          { title: 'Close every beta blocker', target: 12, current: 9, status: 'on_track' },
+          { title: 'First paying institution signed', target: 1, current: 0, status: 'at_risk' },
+          { title: 'Error rate under target before launch', target: 100, current: 40, unit: '%', status: 'off_track' },
+        ],
+      },
+      {
+        title: 'Agency revenue predictable enough to plan against',
+        scopeKind: 'division',
+        division: 'agency',
+        period: '2026-Q3',
+        owner: 'Maya Iqbal',
+        keyResults: [
+          { title: 'Clients on a retainer rather than project work', target: 3, current: 1, status: 'at_risk' },
+          { title: 'Days sales outstanding', target: 30, current: 21, unit: 'd', status: 'on_track' },
+          { title: 'Signed contract value for next quarter', target: 120000, current: 96000, unit: '$', status: 'on_track' },
+        ],
+      },
+      {
+        title: 'The group runs on Tuenx OS, not on memory',
+        scopeKind: 'division',
+        division: 'tuenx',
+        period: '2026-Q3',
+        owner: 'Nisham',
+        keyResults: [
+          { title: 'Core SOPs written down', target: 10, current: 6, status: 'on_track' },
+          { title: 'Records with no owner or division', target: 0, current: 0, status: 'done' },
+          { title: 'Months of runway held', target: 18, current: 32, unit: 'mo', status: 'done' },
+        ],
+      },
+    ]
+
+    for (const objective of objectives) {
+      const productId = objective.product ? productIds[objective.product] ?? null : null
+      const tag = await allocateTag(tx, objective.division, TAG_TYPE.objective)
+      const created = await tx.objective.create({
+        data: {
+          tag,
+          scopeKind: objective.scopeKind,
+          division: objective.division,
+          productId,
+          title: objective.title,
+          period: objective.period,
+          owner: objective.owner,
+        },
+      })
+
+      for (const kr of objective.keyResults) {
+        const krTag = await allocateTag(tx, objective.division, TAG_TYPE.keyResult)
+        await tx.keyResult.create({
+          data: {
+            tag: krTag,
+            objectiveId: created.id,
+            title: kr.title,
+            targetValue: kr.target,
+            currentValue: kr.current,
+            unit: kr.unit ?? null,
+            status: kr.status,
+          },
+        })
+      }
+    }
+
   })
 
   const [team, tasks, contacts, products, docCount] = await Promise.all([

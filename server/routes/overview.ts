@@ -16,8 +16,17 @@ export const overviewRouter = Router()
 overviewRouter.get(
   '/',
   route(async (_req, res) => {
-    const [openTasksByDivision, pipelineByDivision, activeDealsByDivision, headcountByDivision, productCounts, needsAttention] =
-      await Promise.all([
+    const [
+      openTasksByDivision,
+      pipelineByDivision,
+      activeDealsByDivision,
+      headcountByDivision,
+      productCounts,
+      needsAttention,
+      outstandingInvoices,
+      overdueInvoices,
+      fundTotals,
+    ] = await Promise.all([
         // Open = anything not done. Master plan treats "done" as closed work.
         prisma.task.groupBy({
           by: ['division'],
@@ -46,9 +55,25 @@ overviewRouter.get(
         }),
         prisma.task.findMany({
           where: { priority: 'high', status: { not: 'done' } },
-          include: { assignee: { select: { id: true, tag: true, name: true, division: true } } },
+          include: {
+            assignee: { select: { id: true, tag: true, name: true, division: true } },
+            project: { select: { id: true, tag: true, title: true } },
+          },
           orderBy: [{ dueDate: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
           take: 8,
+        }),
+        // Phase 3 — money billed but not yet collected.
+        prisma.invoice.aggregate({
+          where: { status: { in: ['sent', 'overdue'] } },
+          _sum: { amount: true },
+        }),
+        prisma.invoice.count({ where: { status: 'overdue' } }),
+        // Phase 4 — allocations excluded: an internal transfer inside one
+        // group is not income or spend, and counting it would double-count.
+        prisma.fundEntry.groupBy({
+          by: ['type'],
+          where: { type: { in: ['income', 'expense'] } },
+          _sum: { amount: true },
         }),
       ])
 
@@ -84,6 +109,9 @@ overviewRouter.get(
     const sum = (key: 'openTasks' | 'pipelineValue' | 'activeDeals' | 'headcount') =>
       divisions.reduce((total, d) => total + d[key], 0)
 
+    const fundTotal = (type: string) =>
+      fundTotals.find((f) => f.type === type)?._sum.amount ?? 0
+
     res.json({
       divisions,
       totals: {
@@ -93,6 +121,9 @@ overviewRouter.get(
         headcount: sum('headcount'),
         productsBuilding: productsWith('building'),
         productsLive: productsWith('live'),
+        outstandingInvoiced: outstandingInvoices._sum.amount ?? 0,
+        overdueInvoices,
+        treasuryBalance: fundTotal('income') - fundTotal('expense'),
       },
       needsAttention,
     })

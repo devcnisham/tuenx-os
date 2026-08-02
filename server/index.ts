@@ -7,6 +7,10 @@ import { teamRouter } from './routes/team.ts'
 import { productsRouter } from './routes/products.ts'
 import { roadmapRouter } from './routes/roadmap.ts'
 import { releasesRouter } from './routes/releases.ts'
+import { projectsRouter } from './routes/projects.ts'
+import { invoicesRouter } from './routes/invoices.ts'
+import { treasuryRouter } from './routes/treasury.ts'
+import { searchRouter } from './routes/search.ts'
 
 /**
  * Tuenx OS API.
@@ -34,6 +38,16 @@ app.use('/api/team', teamRouter)
 app.use('/api/products', productsRouter)
 app.use('/api/roadmap', roadmapRouter)
 app.use('/api/releases', releasesRouter)
+
+// Phase 3
+app.use('/api/projects', projectsRouter)
+app.use('/api/invoices', invoicesRouter)
+
+// Phase 4
+app.use('/api/treasury', treasuryRouter)
+
+// Cross-module
+app.use('/api/search', searchRouter)
 
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'Unknown endpoint' })

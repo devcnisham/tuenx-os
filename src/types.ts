@@ -59,10 +59,16 @@ export const TAG_TYPE = {
   vendor: 'N',
   campaign: 'G',
   contract: 'A',
-  // Phase 7. `S` for support, `E` for metric (M is member), `U` for customer.
+  // Phase 7. `S` for support, `Z` for metric snapshot (M is member, E is
+  // event), `U` for customer.
   ticket: 'S',
-  metric: 'E',
+  metric: 'Z',
   customer: 'U',
+  // Planning and calendar. `B` for brainstorm idea, `Q` for a quarter plan
+  // item, `E` for a calendar entry.
+  idea: 'B',
+  planItem: 'Q',
+  entry: 'E',
 } as const
 export type TagType = (typeof TAG_TYPE)[keyof typeof TAG_TYPE]
 
@@ -175,6 +181,80 @@ export const KEY_RESULT_STATUS_LABEL: Record<KeyResultStatus, string> = {
   off_track: 'Off track',
   done: 'Done',
 }
+
+// ---------------------------------------------------------------------------
+// Planning — brainstorms and the quarter planner
+// ---------------------------------------------------------------------------
+
+/**
+ * Ideas stay separate from plan items on purpose. Mixing "someone mentioned
+ * this once" with "we are doing this in Q3" is what makes planning boards
+ * untrustworthy — people stop writing ideas down because writing one down
+ * starts to look like a commitment.
+ */
+export const IDEA_STATUSES = ['raw', 'shortlisted', 'parked', 'promoted'] as const
+export type IdeaStatus = (typeof IDEA_STATUSES)[number]
+
+export const IDEA_STATUS_LABEL: Record<IdeaStatus, string> = {
+  raw: 'Raw',
+  shortlisted: 'Shortlisted',
+  parked: 'Parked',
+  promoted: 'Promoted',
+}
+
+export const PLAN_STATUSES = [
+  'planned',
+  'committed',
+  'in_progress',
+  'done',
+  'dropped',
+] as const
+export type PlanStatus = (typeof PLAN_STATUSES)[number]
+
+export const PLAN_STATUS_LABEL: Record<PlanStatus, string> = {
+  planned: 'Planned',
+  committed: 'Committed',
+  in_progress: 'In progress',
+  done: 'Done',
+  dropped: 'Dropped',
+}
+
+/** Rough size, not an estimate in hours. Hours imply a precision nobody has. */
+export const PLAN_EFFORTS = ['s', 'm', 'l'] as const
+export type PlanEffort = (typeof PLAN_EFFORTS)[number]
+
+export const PLAN_EFFORT_LABEL: Record<PlanEffort, string> = {
+  s: 'Small',
+  m: 'Medium',
+  l: 'Large',
+}
+
+/** Weight used for the per-quarter load bar. Relative, not absolute. */
+export const PLAN_EFFORT_WEIGHT: Record<PlanEffort, number> = { s: 1, m: 3, l: 8 }
+
+// ---------------------------------------------------------------------------
+// Calendar entries
+// ---------------------------------------------------------------------------
+
+export const ENTRY_KINDS = ['event', 'meeting', 'reminder', 'holiday'] as const
+export type EntryKind = (typeof ENTRY_KINDS)[number]
+
+export const ENTRY_KIND_LABEL: Record<EntryKind, string> = {
+  event: 'Event',
+  meeting: 'Meeting',
+  reminder: 'Reminder',
+  holiday: 'Holiday',
+}
+
+/** Offsets offered for a reminder, in minutes before the start. */
+export const REMINDER_OPTIONS = [
+  { value: '', label: 'No reminder' },
+  { value: '0', label: 'At start' },
+  { value: '15', label: '15 minutes before' },
+  { value: '60', label: '1 hour before' },
+  { value: '1440', label: '1 day before' },
+  { value: '10080', label: '1 week before' },
+] as const
 
 // ---------------------------------------------------------------------------
 // Phase 4 — Tuenx treasury
@@ -332,6 +412,54 @@ export interface Objective {
   progress: number
 }
 
+export interface Idea {
+  id: string
+  tag: string
+  title: string
+  body: string | null
+  division: Division
+  status: IdeaStatus
+  author: string | null
+  votes: number
+  createdAt: string
+  planItem: Pick<PlanItem, 'id' | 'tag' | 'period'> | null
+}
+
+export interface PlanItem {
+  id: string
+  tag: string
+  title: string
+  division: Division
+  period: string
+  status: PlanStatus
+  effort: PlanEffort
+  owner: string | null
+  notes: string | null
+  objectiveId: string | null
+  objective: Pick<Objective, 'id' | 'tag' | 'title'> | null
+  productId: string | null
+  product: Pick<Product, 'id' | 'tag' | 'name'> | null
+  ideaId: string | null
+  createdAt: string
+}
+
+export interface CalendarEntry {
+  id: string
+  tag: string
+  title: string
+  notes: string | null
+  division: Division
+  kind: EntryKind
+  date: string
+  endDate: string | null
+  allDay: boolean
+  startTime: string | null
+  endTime: string | null
+  attendees: string | null
+  remindMinutesBefore: number | null
+  createdAt: string
+}
+
 export interface FundEntry {
   id: string
   tag: string
@@ -452,3 +580,7 @@ export const isInvoiceStatus = oneOf(INVOICE_STATUSES)
 export const isFundType = oneOf(FUND_TYPES)
 export const isObjectiveScope = oneOf(OBJECTIVE_SCOPES)
 export const isKeyResultStatus = oneOf(KEY_RESULT_STATUSES)
+export const isIdeaStatus = oneOf(IDEA_STATUSES)
+export const isPlanStatus = oneOf(PLAN_STATUSES)
+export const isPlanEffort = oneOf(PLAN_EFFORTS)
+export const isEntryKind = oneOf(ENTRY_KINDS)

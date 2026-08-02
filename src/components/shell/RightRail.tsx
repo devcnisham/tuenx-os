@@ -54,6 +54,7 @@ export function RightRail() {
               tag={invoice.tag}
               title={money(invoice.amount)}
               detail={invoice.contact.company ?? invoice.contact.name}
+              route={href('invoices')}
               pill={{ tone: 'alert', text: `due ${shortDate(invoice.dueDate)}` }}
             />
           ))}
@@ -68,6 +69,7 @@ export function RightRail() {
               tag={project.tag}
               title={project.title}
               detail={project.contact.company ?? project.contact.name}
+              route={href('projects')}
               pill={{ tone: 'alert', text: dueLabel(project.dueDate!).text }}
             />
           ))}
@@ -84,6 +86,7 @@ export function RightRail() {
                 tag={task.tag}
                 title={task.title}
                 detail={task.assignee?.name ?? 'Unassigned'}
+                route={href('tasks')}
                 pill={
                   due
                     ? {
@@ -130,21 +133,24 @@ function Row({
   tag,
   title,
   detail,
+  route,
   pill,
 }: {
   tag: string
   title: string
   detail: string
+  /** Every row goes somewhere — a digest you can't act from is just a poster. */
+  route: string
   pill?: { tone: 'alert' | 'pending'; text: string }
 }) {
   return (
-    <div className="px-4 py-2">
+    <a href={route} className="block px-4 py-2 transition-colors hover:bg-surface">
       <div className="flex items-center gap-1.5">
         <Tag tag={tag} />
         {pill && <Pill tone={pill.tone}>{pill.text}</Pill>}
       </div>
       <p className="mt-1 line-clamp-2 text-[12px] leading-snug text-ink">{title}</p>
       <p className="mt-0.5 truncate font-mono text-[10px] text-faint">{detail}</p>
-    </div>
+    </a>
   )
 }

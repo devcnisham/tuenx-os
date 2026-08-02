@@ -159,6 +159,7 @@ model Product {
   tickets      Ticket[]
   metrics      MetricSnapshot[]
   customers    Customer[]
+  planItems    PlanItem[]
 
   @@index([status])
 }
@@ -239,6 +240,7 @@ model Objective {
   createdAt DateTime @default(now())
 
   keyResults KeyResult[]
+  planItems  PlanItem[]
 
   @@index([division])
   @@index([period])
@@ -275,6 +277,106 @@ model Doc {
 
   @@index([division])
   @@index([category])
+}
+
+// ---------------------------------------------------------------------------
+// Calendar — entries people create, alongside the derived deadlines
+// ---------------------------------------------------------------------------
+
+/// An event or reminder someone put on the calendar themselves.
+///
+/// The calendar also projects deadlines out of tasks, projects, invoices,
+/// releases, and contracts — those are derived and read-only. This model is
+/// only for entries that have no other home: a meeting, a holiday, a "chase
+/// this" reminder.
+///
+/// Times are stored as `HH:mm` strings rather than as part of the timestamp.
+/// The group is in one place and these are wall-clock times; storing an
+/// instant would invite timezone conversion on a 10am standup that is 10am
+/// wherever you read it.
+model CalendarEntry {
+  id       String   @id @default(cuid())
+  tag      String   @unique
+  title    String
+  notes    String?
+  division String // tuenx | agency | gaphatch
+  kind     String // event | reminder | meeting | holiday
+  date     DateTime
+  /// Optional end date, for entries that span days. Null means single-day.
+  endDate  DateTime?
+  allDay   Boolean  @default(true)
+  startTime String? // HH:mm, ignored when allDay
+  endTime   String? // HH:mm, ignored when allDay
+  /// Free text — there are no per-person accounts until Phase 9.
+  attendees String?
+  /// Minutes before the start to surface it. Null means no reminder.
+  remindMinutesBefore Int?
+  createdAt DateTime @default(now())
+
+  @@index([division])
+  @@index([date])
+}
+
+// ---------------------------------------------------------------------------
+// Planning — brainstorms and the quarter planner
+// ---------------------------------------------------------------------------
+
+/// A raw idea, before anyone has committed to it.
+///
+/// Deliberately separate from PlanItem. Mixing "someone mentioned this once"
+/// with "we are doing this in Q3" is what makes planning boards untrustworthy —
+/// people stop writing ideas down because writing one down looks like a
+/// commitment. An idea graduates by being promoted, which creates a PlanItem
+/// and links back here.
+model Idea {
+  id        String   @id @default(cuid())
+  tag       String   @unique
+  title     String
+  body      String?
+  division  String // tuenx | agency | gaphatch
+  status    String // raw | shortlisted | parked | promoted
+  author    String?
+  /// Rough interest signal. Not a vote count per person — there are no
+  /// per-person accounts until Phase 9.
+  votes     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  planItem PlanItem?
+
+  @@index([division])
+  @@index([status])
+}
+
+/// Something planned into a period. The unit the planner moves around.
+model PlanItem {
+  id       String @id @default(cuid())
+  tag      String @unique
+  title    String
+  division String // tuenx | agency | gaphatch
+  /// Free text, matching Objective.period — 2026-Q3, 2026-H2, whatever the
+  /// group actually runs.
+  period   String
+  status   String // planned | committed | in_progress | done | dropped
+  /// Rough size, not an estimate in hours. s | m | l
+  effort   String
+  owner    String?
+  notes    String?
+
+  /// Optional links to what this plan item serves.
+  objectiveId String?
+  objective   Objective? @relation(fields: [objectiveId], references: [id], onDelete: SetNull)
+  productId   String?
+  product     Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  /// Set when promoted from a brainstorm, so provenance survives.
+  ideaId String? @unique
+  idea   Idea?   @relation(fields: [ideaId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([division])
+  @@index([period])
+  @@index([status])
 }
 
 // ---------------------------------------------------------------------------

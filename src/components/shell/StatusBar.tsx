@@ -1,6 +1,7 @@
 import { api } from '../../lib/api.ts'
 import { useResource } from '../../lib/useResource.ts'
 import { moneyShort, pluralise } from '../../lib/format.ts'
+import { href } from '../../lib/router.ts'
 import type { Overview } from '../../types.ts'
 
 /**
@@ -29,17 +30,18 @@ export function StatusBar() {
       {t && (
         <>
           <Divider />
-          <Reading label="Open" value={pluralise(t.openTasks, 'task')} />
+          <Reading label="Open" value={pluralise(t.openTasks, 'task')} to={href('tasks')} />
           <Divider />
-          <Reading label="Pipeline" value={moneyShort(t.pipelineValue)} />
+          <Reading label="Pipeline" value={moneyShort(t.pipelineValue)} to={href('crm')} />
           <Divider />
           <Reading
             label="Overdue"
             value={String(t.overdueInvoices)}
             tone={t.overdueInvoices > 0 ? 'text-alert' : undefined}
+            to={href('invoices')}
           />
           <Divider />
-          <Reading label="Treasury" value={moneyShort(t.treasuryBalance)} />
+          <Reading label="Treasury" value={moneyShort(t.treasuryBalance)} to={href('treasury')} />
         </>
       )}
 
@@ -57,19 +59,29 @@ const Divider = () => (
   </span>
 )
 
+/**
+ * Each reading links to the module it came from — a number you can see but
+ * can't get behind is a poster, not a status bar.
+ */
 function Reading({
   label,
   value,
   tone,
+  to,
 }: {
   label: string
   value: string
   tone?: string
+  to: string
 }) {
   return (
-    <span className="shrink-0">
+    <a
+      href={to}
+      className="shrink-0 rounded-xs px-1 py-0.5 transition-colors hover:bg-surface"
+      title={`Open ${label.toLowerCase()}`}
+    >
       <span className="text-faint">{label} </span>
       <span className={tone ?? 'text-ink'}>{value}</span>
-    </span>
+    </a>
   )
 }

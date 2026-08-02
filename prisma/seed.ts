@@ -34,6 +34,9 @@ async function main() {
   await prisma.project.deleteMany()
   await prisma.contact.deleteMany()
   await prisma.teamMember.deleteMany()
+  await prisma.planItem.deleteMany()
+  await prisma.idea.deleteMany()
+  await prisma.calendarEntry.deleteMany()
   await prisma.keyResult.deleteMany()
   await prisma.objective.deleteMany()
   await prisma.doc.deleteMany()
@@ -496,6 +499,98 @@ tracked separately and does not count against runway.`,
       }
     }
 
+
+    // -- Brainstorms, planner, calendar entries -----------------------------
+    const quarter = (offset: number) => {
+      const now = new Date()
+      let year = now.getFullYear()
+      let q = Math.floor(now.getMonth() / 3) + 1 + offset
+      while (q > 4) { q -= 4; year += 1 }
+      return `${year}-Q${q}`
+    }
+
+    const ideas: { title: string; body: string; division: Division; status: string; author: string; votes: number }[] = [
+      { title: 'Self-serve signup for Scholr', body: 'Institutions are slow. A student-paid tier could prove demand without waiting on procurement.', division: 'gaphatch', status: 'shortlisted', author: 'Kenji Mori', votes: 5 },
+      { title: 'Productise the rebrand process', body: 'We have run the same discovery three times. Package it as a fixed-scope offer.', division: 'agency', status: 'shortlisted', author: 'Maya Iqbal', votes: 4 },
+      { title: 'Publish the Agency name story when we pick it', body: 'The naming decision is interesting. Could be the first real marketing we do.', division: 'agency', status: 'raw', author: 'Priya Nair', votes: 2 },
+      { title: 'Weekly written update instead of a standup', body: 'Half the team is across two divisions. Writing scales better than a meeting nobody can all attend.', division: 'tuenx', status: 'raw', author: 'Aria Sen', votes: 3 },
+      { title: 'Buy rather than build the helpdesk', body: 'Phase 7 has us building support. Worth pricing an off-the-shelf tool first.', division: 'gaphatch', status: 'parked', author: 'Sara Okoye', votes: 1 },
+      { title: 'Retainer-only from next year', body: 'Project work is lumpy. Painful transition, much better cash flow.', division: 'agency', status: 'raw', author: 'Nisham', votes: 2 },
+    ]
+
+    const ideaIds: Record<string, string> = {}
+    for (const idea of ideas) {
+      const tag = await allocateTag(tx, idea.division, TAG_TYPE.idea)
+      const created = await tx.idea.create({
+        data: { tag, title: idea.title, body: idea.body, division: idea.division, status: idea.status, author: idea.author, votes: idea.votes },
+      })
+      ideaIds[idea.title] = created.id
+    }
+
+    const planItems: { title: string; division: Division; period: string; status: string; effort: string; owner: string; notes?: string; fromIdea?: string }[] = [
+      { title: 'Scholr paid launch', division: 'gaphatch', period: quarter(0), status: 'committed', effort: 'l', owner: 'Kenji Mori', notes: 'Blocked on the beta list and error monitoring.' },
+      { title: 'Close the first institutional deal', division: 'gaphatch', period: quarter(0), status: 'in_progress', effort: 'm', owner: 'Kenji Mori' },
+      { title: 'Finalise and register the Agency name', division: 'tuenx', period: quarter(0), status: 'in_progress', effort: 's', owner: 'Nisham' },
+      { title: 'Move three clients onto retainers', division: 'agency', period: quarter(0), status: 'committed', effort: 'm', owner: 'Maya Iqbal' },
+      { title: 'Write the remaining core SOPs', division: 'tuenx', period: quarter(0), status: 'planned', effort: 's', owner: 'Aria Sen' },
+
+      { title: 'Vespor first build sprint', division: 'gaphatch', period: quarter(1), status: 'planned', effort: 'l', owner: 'Kenji Mori' },
+      { title: 'Fixed-scope rebrand offer', division: 'agency', period: quarter(1), status: 'planned', effort: 'm', owner: 'Maya Iqbal', fromIdea: 'Productise the rebrand process' },
+      { title: 'Hire a second Agency designer', division: 'agency', period: quarter(1), status: 'planned', effort: 'm', owner: 'Maya Iqbal' },
+
+      { title: 'Scholr self-serve tier', division: 'gaphatch', period: quarter(2), status: 'planned', effort: 'l', owner: 'Sara Okoye', fromIdea: 'Self-serve signup for Scholr' },
+      { title: 'Decide on the helpdesk approach', division: 'gaphatch', period: quarter(2), status: 'planned', effort: 's', owner: 'Sara Okoye' },
+    ]
+
+    for (const item of planItems) {
+      const tag = await allocateTag(tx, item.division, TAG_TYPE.planItem)
+      const ideaId = item.fromIdea ? ideaIds[item.fromIdea] ?? null : null
+      await tx.planItem.create({
+        data: {
+          tag,
+          title: item.title,
+          division: item.division,
+          period: item.period,
+          status: item.status,
+          effort: item.effort,
+          owner: item.owner,
+          notes: item.notes ?? null,
+          ideaId,
+        },
+      })
+      if (ideaId) await tx.idea.update({ where: { id: ideaId }, data: { status: 'promoted' } })
+    }
+
+    const entries: { title: string; division: Division; kind: string; date: Date; endDate?: Date; allDay: boolean; startTime?: string; endTime?: string; attendees?: string; remind?: number; notes?: string }[] = [
+      { title: 'Weekly group sync', division: 'tuenx', kind: 'meeting', date: daysOut(1), allDay: false, startTime: '10:00', endTime: '10:30', attendees: 'Everyone', remind: 15 },
+      { title: 'Northwind concept presentation', division: 'agency', kind: 'meeting', date: daysOut(2), allDay: false, startTime: '14:00', endTime: '15:00', attendees: 'Priya Nair, Helen Marsh', remind: 60 },
+      { title: 'Scholr go/no-go on launch date', division: 'gaphatch', kind: 'meeting', date: daysOut(5), allDay: false, startTime: '11:00', endTime: '12:00', attendees: 'Kenji Mori, Sara Okoye, Luis Ferrer', remind: 1440 },
+      { title: 'Chase Brightline on the overdue invoice', division: 'agency', kind: 'reminder', date: daysOut(1), allDay: true, remind: 0, notes: 'Second chase. Call rather than email this time.' },
+      { title: 'Quarter planning session', division: 'tuenx', kind: 'meeting', date: daysOut(12), allDay: false, startTime: '09:30', endTime: '12:30', attendees: 'Leads', remind: 1440 },
+      { title: 'Aria on leave', division: 'tuenx', kind: 'holiday', date: daysOut(15), endDate: daysOut(19), allDay: true },
+      { title: 'Renew the design tooling subscription', division: 'tuenx', kind: 'reminder', date: daysOut(9), allDay: true, remind: 10080 },
+    ]
+
+    for (const entry of entries) {
+      const tag = await allocateTag(tx, entry.division, TAG_TYPE.entry)
+      await tx.calendarEntry.create({
+        data: {
+          tag,
+          title: entry.title,
+          division: entry.division,
+          kind: entry.kind,
+          date: entry.date,
+          endDate: entry.endDate ?? null,
+          allDay: entry.allDay,
+          startTime: entry.startTime ?? null,
+          endTime: entry.endTime ?? null,
+          attendees: entry.attendees ?? null,
+          remindMinutesBefore: entry.remind ?? null,
+          notes: entry.notes ?? null,
+        },
+      })
+    }
+
     // -- OKRs (Phase 5) -----------------------------------------------------
     const objectives: {
       title: string
@@ -578,16 +673,19 @@ tracked separately and does not count against runway.`,
 
   })
 
-  const [team, tasks, contacts, products, docCount] = await Promise.all([
+  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount] = await Promise.all([
     prisma.teamMember.count(),
     prisma.task.count(),
     prisma.contact.count(),
     prisma.product.count(),
     prisma.doc.count(),
+    prisma.planItem.count(),
+    prisma.idea.count(),
+    prisma.calendarEntry.count(),
   ])
 
   console.log(
-    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs.`,
+    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries.`,
   )
 }
 

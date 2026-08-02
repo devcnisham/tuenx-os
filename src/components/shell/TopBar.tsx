@@ -18,6 +18,8 @@ const MODULE_TITLE: Record<ModuleId, string> = {
   docs: 'Docs',
   okrs: 'OKRs',
   calendar: 'Calendar',
+  planner: 'Planner',
+  brainstorms: 'Brainstorms',
   team: 'Team',
   products: 'Products',
 }

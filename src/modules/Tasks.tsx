@@ -24,6 +24,7 @@ import { Button, ErrorState, Panel, Pill, Skeleton, type PillTone } from '../com
 import { FilterSelect, SelectField, TextField } from '../components/Field.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
+import { LinkedRecords } from '../components/LinkedRecords.tsx'
 
 const DIVISION_OPTIONS = DIVISIONS.map((d) => ({ value: d, label: DIVISION_LABEL[d] }))
 const PRIORITY_OPTIONS = TASK_PRIORITIES.map((p) => ({ value: p, label: TASK_PRIORITY_LABEL[p] }))
@@ -584,6 +585,8 @@ function TaskForm({
           />
 
           <TextField label="Due date" type="date" value={dueDate} onChange={setDueDate} />
+
+          {task && <LinkedRecords type="task" id={task.id} />}
 
           {error && <p className="text-sm text-alert">{error}</p>}
         </div>

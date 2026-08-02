@@ -539,6 +539,39 @@ model Customer {
 }
 
 // ---------------------------------------------------------------------------
+// Cross-record links
+// ---------------------------------------------------------------------------
+
+/// A link between any two records — a meeting to its agenda doc, a task to the
+/// objective it serves, a project to the SOP that governs it.
+///
+/// Polymorphic rather than a foreign key per pair. There are already a dozen
+/// record types; a dedicated column for every combination would be over a
+/// hundred, and every new type would mean touching all of them. The cost is
+/// that the database cannot enforce the target exists, so the API resolves and
+/// validates both ends on write, and reads skip anything that has since been
+/// deleted.
+///
+/// Links are undirected in meaning but stored with a direction, so the UI can
+/// say "agenda for" rather than only "related to". Both ends are queried, so a
+/// link shows up on both records regardless of which side created it.
+model RecordLink {
+  id       String @id @default(cuid())
+  fromType String // task | contact | member | product | project | invoice | doc | objective | entry | plan | idea
+  fromId   String
+  toType   String
+  toId     String
+  /// Optional label for what the link means — "agenda", "blocks", "supersedes".
+  note     String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([fromType, fromId, toType, toId])
+  @@index([fromType, fromId])
+  @@index([toType, toId])
+}
+
+// ---------------------------------------------------------------------------
 // Infrastructure
 // ---------------------------------------------------------------------------
 

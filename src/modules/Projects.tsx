@@ -18,6 +18,7 @@ import { Button, ErrorState, Panel, Pill, Skeleton } from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextField } from '../components/Field.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
+import { LinkedRecords } from '../components/LinkedRecords.tsx'
 import { MoveButton } from './Tasks.tsx'
 
 const DIVISION_OPTIONS = DIVISIONS.map((d) => ({ value: d, label: DIVISION_LABEL[d] }))
@@ -361,6 +362,8 @@ function ProjectForm({
             />
             <TextField label="Due date" type="date" value={dueDate} onChange={setDueDate} />
           </div>
+
+          {project && <LinkedRecords type="project" id={project.id} />}
 
           {error && <p className="text-sm text-alert">{error}</p>}
         </div>

@@ -30,6 +30,7 @@ import {
 import { FilterSelect, SelectField, TextAreaField, TextField } from '../components/Field.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
+import { LinkedRecords } from '../components/LinkedRecords.tsx'
 
 const DIVISION_OPTIONS = DIVISIONS.map((d) => ({ value: d, label: DIVISION_LABEL[d] }))
 const STATUS_OPTIONS = PLAN_STATUSES.map((s) => ({ value: s, label: PLAN_STATUS_LABEL[s] }))
@@ -460,6 +461,8 @@ function PlanItemForm({
           </div>
 
           <TextAreaField label="Notes" value={notes} onChange={setNotes} rows={4} />
+
+          {item && <LinkedRecords type="plan" id={item.id} />}
 
           {error && <p className="text-sm text-alert">{error}</p>}
         </div>

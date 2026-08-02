@@ -20,6 +20,7 @@ import { Button, ErrorState, Panel, Pill, Skeleton } from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextAreaField, TextField } from '../components/Field.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
+import { LinkedRecords } from '../components/LinkedRecords.tsx'
 import { MoveButton } from './Tasks.tsx'
 
 const DIVISION_OPTIONS = DIVISIONS.map((d) => ({ value: d, label: DIVISION_LABEL[d] }))
@@ -405,6 +406,8 @@ function ContactForm({
               )}
             </div>
           </fieldset>
+
+          {contact && <LinkedRecords type="contact" id={contact.id} />}
 
           {error && <p className="text-sm text-alert">{error}</p>}
         </div>

@@ -14,6 +14,7 @@ import { docsRouter } from './routes/docs.ts'
 import { okrsRouter } from './routes/okrs.ts'
 import { calendarRouter } from './routes/calendar.ts'
 import { plannerRouter } from './routes/planner.ts'
+import { linksRouter } from './routes/links.ts'
 import { searchRouter } from './routes/search.ts'
 
 /**
@@ -57,6 +58,7 @@ app.use('/api/okrs', okrsRouter)
 // Cross-module
 app.use('/api/calendar', calendarRouter)
 app.use('/api/planner', plannerRouter)
+app.use('/api/links', linksRouter)
 
 // Cross-module
 app.use('/api/search', searchRouter)

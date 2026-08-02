@@ -29,6 +29,7 @@ import {
 import { FilterSelect, SelectField, TextField } from '../components/Field.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
+import { LinkedRecords } from '../components/LinkedRecords.tsx'
 import { Icon } from '../components/Icon.tsx'
 
 const DIVISION_OPTIONS = DIVISIONS.map((d) => ({ value: d, label: DIVISION_LABEL[d] }))
@@ -460,6 +461,8 @@ function ObjectiveForm({
           )}
 
           <TextField label="Owner" value={owner} onChange={setOwner} placeholder="Who carries it" />
+
+          {objective && <LinkedRecords type="objective" id={objective.id} />}
 
           {error && <p className="text-sm text-alert">{error}</p>}
         </div>

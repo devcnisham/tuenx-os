@@ -17,6 +17,7 @@ import { Button, EmptyState, ErrorState, Panel, Pill, Skeleton } from '../compon
 import { FilterSelect, SelectField, TextAreaField, TextField } from '../components/Field.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
+import { LinkedRecords } from '../components/LinkedRecords.tsx'
 import { Icon } from '../components/Icon.tsx'
 
 const DIVISION_OPTIONS = DIVISIONS.map((d) => ({ value: d, label: DIVISION_LABEL[d] }))
@@ -392,6 +393,8 @@ function DocForm({
             rows={16}
             placeholder="Write it the way you would explain it to someone on their first day."
           />
+
+          {doc && <LinkedRecords type="doc" id={doc.id} />}
 
           {error && <p className="text-sm text-alert">{error}</p>}
         </div>

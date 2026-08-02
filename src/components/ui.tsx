@@ -147,7 +147,9 @@ const PILL_TONES = {
   neutral: 'border-rule bg-wash text-graphite',
   alert: 'border-alert/40 bg-alert/8 text-alert',
   ready: 'border-ready/40 bg-ready/8 text-ready',
-  pending: 'border-pending/40 bg-pending/10 text-pending',
+  // Amber belongs to Tuenx, so "pending" is a solid ink outline instead — it
+  // still reads as louder than neutral without impersonating a division.
+  pending: 'border-ink bg-paper text-ink',
 } as const
 
 export type PillTone = keyof typeof PILL_TONES

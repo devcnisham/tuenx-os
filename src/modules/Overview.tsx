@@ -171,7 +171,7 @@ function DivisionLedger({ divisions }: { divisions: DivisionSummary[] }) {
                     <div key={d.division}>
                       <p
                         className={`font-display text-2xl leading-none font-semibold tabular-nums ${
-                          value === 0 ? 'text-faint' : 'text-ink'
+                          value === 0 ? 'text-faint' : mark(d.division).text
                         }`}
                       >
                         {row.render(value)}

@@ -2,51 +2,50 @@ import type { CSSProperties } from 'react'
 import type { Division } from '../types.ts'
 
 /**
- * Division encoding — typographic and tonal, never hue.
+ * Division encoding — hue on the bars and markers, hue plus a typographic
+ * treatment on the tags.
  *
- * Colour in this interface means status and nothing else, so the three
- * divisions are told apart by how their ID tag is *set*:
+ *   Tuenx     amber   · filled block      — the parent, a seal
+ *   Agency    orange  · outlined frame    — a stamped border
+ *   Gaphatch  teal    · underscored       — an underlined code
  *
- *   Tuenx     filled ink block, paper knockout   — the holding company, a seal
- *   Agency    outlined frame, ink rule           — a stamped border
- *   Gaphatch  no box, letter-spaced underscore   — an underlined code
+ * Bars and markers are a flat fill in the division hue. Textures (hatch, dot)
+ * were tried and removed: at 6px they read as visual noise rather than as an
+ * encoding, and the hue already does that job.
  *
- * The same three ideas carry to the card markers as fill / hatch / dot, so a
- * card's division is readable at a glance from across the desk, and stays
- * readable in greyscale or to a colour-blind reader.
+ * The tag treatments stay, so a tag is still identifiable when the colour is
+ * gone — greyscale print, a bad projector, a colour-blind reader.
+ *
+ * Status colour is red and green only. Amber belongs to Tuenx.
  */
 export interface DivisionMark {
-  /** Classes for the ID tag chip. */
+  /** Classes for the ID tag chip — tint, coloured text, and treatment. */
   tag: string
+  /** Accent text colour, for figures that belong to one division. */
+  text: string
   /** Fill for the marker strip on a card and the bars in the ledger. */
   fill: CSSProperties
   /** One-word description of the treatment, used in the legend. */
   treatment: string
 }
 
-const INK = 'var(--color-ink)'
-
 export const DIVISION_MARK: Record<Division, DivisionMark> = {
   tuenx: {
-    tag: 'bg-ink text-paper',
-    fill: { background: INK },
+    tag: 'bg-tuenx/15 text-tuenx-ink ring-1 ring-inset ring-tuenx/40 font-semibold',
+    text: 'text-tuenx-ink',
+    fill: { background: 'var(--color-tuenx)' },
     treatment: 'Filled',
   },
   agency: {
-    tag: 'border border-ink text-ink',
-    // Fine hatch. Kept at 1px-on-2px so it reads as a texture at any height —
-    // a coarser stripe turns into "two rules" on a 6px bar.
-    fill: {
-      backgroundImage: `repeating-linear-gradient(0deg, ${INK} 0 1px, transparent 1px 2px)`,
-    },
+    tag: 'border border-agency-ink/50 bg-agency/10 text-agency-ink',
+    text: 'text-agency-ink',
+    fill: { background: 'var(--color-agency)' },
     treatment: 'Outlined',
   },
   gaphatch: {
-    tag: 'border-b border-ink text-ink tracking-[0.2em]',
-    fill: {
-      backgroundImage: `radial-gradient(circle, ${INK} 1px, transparent 1px)`,
-      backgroundSize: '4px 4px',
-    },
+    tag: 'border-b-2 border-gaphatch-ink bg-gaphatch/10 text-gaphatch-ink tracking-[0.18em]',
+    text: 'text-gaphatch-ink',
+    fill: { background: 'var(--color-gaphatch)' },
     treatment: 'Underscored',
   },
 }

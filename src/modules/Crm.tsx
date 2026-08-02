@@ -218,7 +218,9 @@ function ContactCard({
 
       <div className="flex items-start justify-between gap-2">
         <Tag tag={contact.tag} />
-        <span className="font-display text-sm font-semibold tabular-nums text-ink">
+        <span
+          className={`font-display text-sm font-semibold tabular-nums ${mark(contact.division).text}`}
+        >
           {moneyShort(contact.value)}
         </span>
       </div>

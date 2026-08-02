@@ -7,11 +7,15 @@
  * with a cool undertone, hairline rules, and a hard left alignment spine that
  * every element hangs off.
  *
- * The one rule that shapes everything: DIVISION IS TYPOGRAPHIC, COLOUR IS
- * STATUS. Tuenx, Agency, and Gaphatch are told apart by how their ID tag is
- * set — filled block, outlined frame, letter-spaced underscore — never by hue.
- * That frees colour to mean exactly one thing: alert, ready, or pending. It
- * also means the whole interface stays legible to a colour-blind reader.
+ * Divisions carry BOTH a hue and a typographic treatment: Tuenx amber and a
+ * filled block, Agency orange and an outlined frame, Gaphatch teal and a
+ * letter-spaced underscore. The hue is what you read across a room; the
+ * treatment is what still works in greyscale, on a bad projector, or for a
+ * colour-blind reader. Neither is load-bearing alone.
+ *
+ * Status keeps red and green — alert and ready — but not amber, which belongs
+ * to Tuenx. "Pending" is a neutral outline instead, so no status can be
+ * mistaken for a division.
  *
  * Type is one superfamily in three roles, so the system reads as one voice:
  *   Condensed  headings and figures — technical, tight, drawn
@@ -39,10 +43,23 @@
   --color-graphite: #464e5c;
   --color-faint: #6d7480;
 
-  /* Status — the only colour in the system. All three clear AA on paper. */
+  /*
+   * Division hues. Each `-ink` is the text-safe cut (all ≥4.9:1 on paper); the
+   * plain token is the saturated fill used for bars, markers, and chip tints.
+   */
+  --color-tuenx: #f59e0b;
+  --color-tuenx-ink: #b45309;
+  --color-agency: #f97316;
+  --color-agency-ink: #c2410c;
+  --color-gaphatch: #14b8a6;
+  --color-gaphatch-ink: #0f766e;
+
+  /*
+   * Status. Red and green only — amber is Tuenx, so "pending" reads as a
+   * neutral outline rather than competing with a division.
+   */
   --color-alert: #c8322b;
   --color-ready: #1f7a4d;
-  --color-pending: #8a5a12;
 }
 
 @layer base {

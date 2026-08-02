@@ -217,7 +217,7 @@ function DivisionBook({ byDivision }: { byDivision: TreasuryData['byDivision'] }
               <span className="font-display text-sm text-ink">{DIVISION_LABEL[d.division]}</span>
               <span
                 className={`ml-auto font-mono text-xs tabular-nums ${
-                  d.net < 0 ? 'text-alert' : 'text-ink'
+                  d.net < 0 ? 'text-alert' : mark(d.division).text
                 }`}
               >
                 {d.net >= 0 ? '+' : ''}

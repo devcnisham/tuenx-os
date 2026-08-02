@@ -1,0 +1,116 @@
+@import 'tailwindcss';
+
+/**
+ * Tuenx OS design system — "datasheet".
+ *
+ * Light, printed-instrument feel: a warm-neutral paper ground, near-black ink
+ * with a cool undertone, hairline rules, and a hard left alignment spine that
+ * every element hangs off.
+ *
+ * The one rule that shapes everything: DIVISION IS TYPOGRAPHIC, COLOUR IS
+ * STATUS. Tuenx, Agency, and Gaphatch are told apart by how their ID tag is
+ * set — filled block, outlined frame, letter-spaced underscore — never by hue.
+ * That frees colour to mean exactly one thing: alert, ready, or pending. It
+ * also means the whole interface stays legible to a colour-blind reader.
+ *
+ * Type is one superfamily in three roles, so the system reads as one voice:
+ *   Condensed  headings and figures — technical, tight, drawn
+ *   Mono       tags, labels, and all data
+ *   Sans       body copy only
+ */
+
+@theme {
+  --font-display: 'IBM Plex Sans Condensed', 'IBM Plex Sans', ui-sans-serif, sans-serif;
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Surfaces. Warm-neutral, deliberately not cream. */
+  --color-paper: #fcfcfa;
+  --color-wash: #f2f3ef;
+  --color-rule: #e3e4e0;
+
+  /*
+   * Ink. Cool-black, not brown. Three tonal steps do the work hue used to.
+   * Every step clears WCAG AA against paper, because the smallest text in this
+   * interface is 10px mono and it all sits on `faint`:
+   *   ink 17:1 · graphite 8.3:1 · faint 4.6:1
+   */
+  --color-ink: #101418;
+  --color-graphite: #464e5c;
+  --color-faint: #6d7480;
+
+  /* Status — the only colour in the system. All three clear AA on paper. */
+  --color-alert: #c8322b;
+  --color-ready: #1f7a4d;
+  --color-pending: #8a5a12;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-paper font-sans text-ink antialiased;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-faint) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-faint;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Focus is ink, not a colour — colour is reserved for status. */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ink;
+  }
+
+  input[type='date']::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.5;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Small uppercase mono label. The workhorse of the whole interface. */
+@utility label-mono {
+  @apply font-mono text-[10px] font-medium tracking-[0.16em] text-graphite uppercase;
+}
+
+/**
+ * Dot leader, as used on a spec sheet: label ....... value.
+ * The dots are generated, so the row stays readable at any width.
+ */
+@utility leader {
+  @apply flex items-baseline gap-2;
+
+  &::after {
+    content: '';
+    @apply order-1 h-px flex-1 self-end mb-[0.35em];
+    background-image: radial-gradient(circle, var(--color-faint) 0.5px, transparent 0.5px);
+    background-size: 4px 1px;
+    background-repeat: repeat-x;
+  }
+}

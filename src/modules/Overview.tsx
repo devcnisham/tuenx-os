@@ -73,6 +73,35 @@ export function Overview() {
         />
       </div>
 
+      {/* Phase 3 and 4 roll-ups. Money owed and money held, side by side. */}
+      <div className="mb-8 grid grid-cols-2 gap-x-6 gap-y-6 border-t border-rule pt-6 sm:grid-cols-4">
+        <Stat
+          label="Outstanding"
+          value={moneyShort(totals.outstandingInvoiced)}
+          hint="billed, not collected"
+        />
+        <Stat
+          label="Overdue"
+          value={totals.overdueInvoices}
+          tone={totals.overdueInvoices > 0 ? 'text-alert' : 'text-faint'}
+          hint={totals.overdueInvoices > 0 ? 'chase these' : 'none past due'}
+        />
+        <Stat
+          label="Treasury"
+          value={moneyShort(totals.treasuryBalance)}
+          tone={totals.treasuryBalance < 0 ? 'text-alert' : 'text-ink'}
+          hint="group balance"
+        />
+        <div className="flex items-end">
+          <a
+            href={href('treasury')}
+            className="font-mono text-[10px] text-graphite underline-offset-2 transition-colors hover:text-ink hover:underline"
+          >
+            Open treasury →
+          </a>
+        </div>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
         <DivisionLedger divisions={divisions} />
         <NeedsAttention tasks={needsAttention} />

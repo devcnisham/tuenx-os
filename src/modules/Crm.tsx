@@ -2,18 +2,21 @@ import { useMemo, useState } from 'react'
 import { api } from '../lib/api.ts'
 import { useResource } from '../lib/useResource.ts'
 import { mark } from '../lib/divisions.ts'
-import { money, moneyShort, pluralise } from '../lib/format.ts'
+import { dateInputValue, money, moneyShort, pluralise } from '../lib/format.ts'
 import {
   CONTACT_STAGES,
   CONTACT_STAGE_LABEL,
+  CONTRACT_TYPES,
+  CONTRACT_TYPE_LABEL,
   DIVISIONS,
   DIVISION_LABEL,
   type Contact,
   type ContactStage,
+  type ContractType,
   type Division,
 } from '../types.ts'
 import { PageHeader, Toolbar } from '../components/PageHeader.tsx'
-import { Button, ErrorState, Panel, Skeleton } from '../components/ui.tsx'
+import { Button, ErrorState, Panel, Pill, Skeleton } from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextAreaField, TextField } from '../components/Field.tsx'
 import { Modal, ModalFooter } from '../components/Modal.tsx'
 import { Tag } from '../components/Tag.tsx'
@@ -21,6 +24,7 @@ import { MoveButton } from './Tasks.tsx'
 
 const DIVISION_OPTIONS = DIVISIONS.map((d) => ({ value: d, label: DIVISION_LABEL[d] }))
 const STAGE_OPTIONS = CONTACT_STAGES.map((s) => ({ value: s, label: CONTACT_STAGE_LABEL[s] }))
+const CONTRACT_OPTIONS = CONTRACT_TYPES.map((t) => ({ value: t, label: CONTRACT_TYPE_LABEL[t] }))
 
 /**
  * PRD §6 Phase 1: pipeline by stage, filterable by division, with deal value.
@@ -227,6 +231,15 @@ function ContactCard({
         {contact.name}
       </button>
 
+      {contact.contractType && (
+        <p className="mt-1.5">
+          <Pill>
+            {CONTRACT_TYPE_LABEL[contact.contractType]}
+            {contact.contractValue ? ` · ${moneyShort(contact.contractValue)}` : ''}
+          </Pill>
+        </p>
+      )}
+
       <div className="mt-1 flex items-center gap-2 font-mono text-[10px] text-faint">
         <span className="truncate">{contact.company ?? '—'}</span>
         <span className="ml-auto flex shrink-0 gap-1">
@@ -266,6 +279,10 @@ function ContactForm({
   const [value, setValue] = useState(String(contact?.value ?? ''))
   const [email, setEmail] = useState(contact?.email ?? '')
   const [notes, setNotes] = useState(contact?.notes ?? '')
+  const [contractType, setContractType] = useState<ContractType | ''>(contact?.contractType ?? '')
+  const [contractValue, setContractValue] = useState(String(contact?.contractValue ?? ''))
+  const [startDate, setStartDate] = useState(dateInputValue(contact?.startDate ?? null))
+  const [endDate, setEndDate] = useState(dateInputValue(contact?.endDate ?? null))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -282,6 +299,12 @@ function ContactForm({
         value: value === '' ? 0 : Number(value),
         email,
         notes,
+        // Sent as a unit — clearing the type clears the terms with it, rather
+        // than leaving orphan dates on a contact with no contract.
+        contractType,
+        contractValue: contractType === '' ? '' : contractValue,
+        startDate: contractType === '' ? '' : startDate,
+        endDate: contractType === '' ? '' : endDate,
       }
       if (contact) await api.patch(`/contacts/${contact.id}`, body)
       else await api.post('/contacts', body)
@@ -343,6 +366,43 @@ function ContactForm({
           </div>
 
           <TextAreaField label="Notes" value={notes} onChange={setNotes} rows={3} />
+
+          {/* Phase 3 contract terms. Optional — a lead has no contract yet. */}
+          <fieldset className="border-t border-rule pt-4">
+            <legend className="label-mono mb-3">Contract</legend>
+
+            <div className="space-y-4">
+              <SelectField
+                label="Type"
+                value={contractType}
+                placeholder="No contract"
+                options={CONTRACT_OPTIONS}
+                onChange={(v) => setContractType(v)}
+                hint="A retainer bills on a cycle; a project bills against a fixed scope."
+              />
+
+              {contractType !== '' && (
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <TextField
+                    label={contractType === 'retainer' ? 'Per cycle' : 'Total value'}
+                    type="number"
+                    min={0}
+                    step={100}
+                    value={contractValue}
+                    onChange={setContractValue}
+                    placeholder="0"
+                  />
+                  <TextField
+                    label="Starts"
+                    type="date"
+                    value={startDate}
+                    onChange={setStartDate}
+                  />
+                  <TextField label="Ends" type="date" value={endDate} onChange={setEndDate} />
+                </div>
+              )}
+            </div>
+          </fieldset>
 
           {error && <p className="text-sm text-alert">{error}</p>}
         </div>

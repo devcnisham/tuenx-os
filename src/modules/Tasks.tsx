@@ -11,6 +11,7 @@ import {
   TASK_STATUSES,
   TASK_STATUS_LABEL,
   type Division,
+  type Project,
   type Task,
   type TaskPriority,
   type TaskStatus,
@@ -49,16 +50,18 @@ export function Tasks() {
   const [priority, setPriority] = useState<TaskPriority | ''>('')
   const [assigneeId, setAssigneeId] = useState('')
   const [dueBefore, setDueBefore] = useState('')
+  const [projectId, setProjectId] = useState('')
   const [editing, setEditing] = useState<Task | 'new' | null>(null)
 
   const tasks = useResource<Task[]>(
-    () => api.get('/tasks', { division, priority, assigneeId, dueBefore }),
-    [division, priority, assigneeId, dueBefore],
+    () => api.get('/tasks', { division, priority, assigneeId, dueBefore, projectId }),
+    [division, priority, assigneeId, dueBefore, projectId],
   )
 
-  // Loaded independently of the board — a failure here leaves the filter
+  // Loaded independently of the board — a failure here leaves the filters
   // without names but doesn't break the tasks themselves (TRD §6).
   const team = useResource<TeamMember[]>(() => api.get('/team'), [])
+  const projects = useResource<Project[]>(() => api.get('/projects'), [])
 
   const assigneeOptions = useMemo(
     () => [
@@ -77,7 +80,7 @@ export function Tasks() {
     [tasks.data],
   )
 
-  const filtersActive = Boolean(division || priority || assigneeId || dueBefore)
+  const filtersActive = Boolean(division || priority || assigneeId || dueBefore || projectId)
 
   /** Optimistic: the card moves immediately, and reverts if the API says no. */
   const moveTask = async (task: Task, status: TaskStatus) => {
@@ -125,6 +128,16 @@ export function Tasks() {
           options={assigneeOptions}
           onChange={(v) => setAssigneeId(v)}
         />
+        <FilterSelect
+          ariaLabel="Filter by project"
+          placeholder="Any project"
+          value={projectId}
+          options={(projects.data ?? []).map((p) => ({
+            value: p.id,
+            label: `${p.title} · ${p.tag}`,
+          }))}
+          onChange={(v) => setProjectId(v)}
+        />
         <label
           className={`flex items-center gap-2 rounded-[3px] border px-2 py-1 transition-colors ${
             dueBefore ? 'border-ink' : 'border-rule'
@@ -147,6 +160,7 @@ export function Tasks() {
               setPriority('')
               setAssigneeId('')
               setDueBefore('')
+              setProjectId('')
             }}
           >
             Clear
@@ -184,6 +198,7 @@ export function Tasks() {
         <TaskForm
           task={editing === 'new' ? null : editing}
           team={team.data ?? []}
+          projects={projects.data ?? []}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null)
@@ -286,6 +301,13 @@ function TaskCard({
         {task.title}
       </button>
 
+      {task.project && (
+        <p className="mt-1 flex items-center gap-1 truncate font-mono text-[10px] text-faint">
+          <Tag tag={task.project.tag} />
+          <span className="truncate">{task.project.title}</span>
+        </p>
+      )}
+
       <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 font-mono text-[10px] text-faint">
         <span className={task.assignee ? '' : 'italic'}>
           {task.assignee?.name ?? 'Unassigned'}
@@ -356,11 +378,13 @@ export function MoveButton({
 function TaskForm({
   task,
   team,
+  projects,
   onClose,
   onSaved,
 }: {
   task: Task | null
   team: TeamMember[]
+  projects: Project[]
   onClose: () => void
   onSaved: () => void
 }) {
@@ -369,6 +393,7 @@ function TaskForm({
   const [status, setStatus] = useState<TaskStatus | ''>(task?.status ?? 'todo')
   const [priority, setPriority] = useState<TaskPriority | ''>(task?.priority ?? 'medium')
   const [assigneeId, setAssigneeId] = useState(task?.assigneeId ?? '')
+  const [projectId, setProjectId] = useState(task?.projectId ?? '')
   const [dueDate, setDueDate] = useState(dateInputValue(task?.dueDate ?? null))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -378,7 +403,7 @@ function TaskForm({
     setSaving(true)
     setError(null)
     try {
-      const body = { title, division, status, priority, assigneeId, dueDate }
+      const body = { title, division, status, priority, assigneeId, projectId, dueDate }
       if (task) await api.patch(`/tasks/${task.id}`, body)
       else await api.post('/tasks', body)
       onSaved()
@@ -439,6 +464,18 @@ function TaskForm({
               onChange={(v) => setAssigneeId(v)}
             />
           </div>
+
+          <SelectField
+            label="Project"
+            value={projectId}
+            placeholder="Not part of a project"
+            options={projects.map((p) => ({
+              value: p.id,
+              label: `${p.title} · ${p.tag}`,
+            }))}
+            onChange={(v) => setProjectId(v)}
+            hint="Agency client work. Tuenx and Gaphatch tasks usually stand alone."
+          />
 
           <TextField label="Due date" type="date" value={dueDate} onChange={setDueDate} />
 

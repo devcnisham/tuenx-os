@@ -3,23 +3,44 @@ import { href, useRoute, type ModuleId } from './lib/router.ts'
 import { mark } from './lib/divisions.ts'
 import { DIVISION_CODE, type Division } from './types.ts'
 import { TagLegend } from './components/Tag.tsx'
+import { GlobalSearch } from './components/GlobalSearch.tsx'
 import { Overview } from './modules/Overview.tsx'
 import { Tasks } from './modules/Tasks.tsx'
 import { Crm } from './modules/Crm.tsx'
+import { Projects } from './modules/Projects.tsx'
+import { Invoices } from './modules/Invoices.tsx'
+import { Treasury } from './modules/Treasury.tsx'
 import { Team } from './modules/Team.tsx'
 import { Products } from './modules/Products.tsx'
 
 /**
- * Nav, in build-phase order. `owner` is the division that owns the module per
- * the master plan module map, shown as that division's tag treatment — so the
- * rail teaches the encoding at the same time as it navigates.
+ * Nav, grouped by which part of the company a module serves. `owner` is the
+ * division that owns it per the master plan module map, shown as that
+ * division's tag treatment — so the rail teaches the encoding while it
+ * navigates.
  */
-const NAV: { id: ModuleId; label: string; owner: Division }[] = [
-  { id: 'overview', label: 'Overview', owner: 'tuenx' },
-  { id: 'tasks', label: 'Tasks', owner: 'tuenx' },
-  { id: 'crm', label: 'CRM', owner: 'tuenx' },
-  { id: 'team', label: 'Team', owner: 'tuenx' },
-  { id: 'products', label: 'Products', owner: 'gaphatch' },
+const NAV: { group: string; items: { id: ModuleId; label: string; owner: Division }[] }[] = [
+  {
+    group: 'Group',
+    items: [
+      { id: 'overview', label: 'Overview', owner: 'tuenx' },
+      { id: 'tasks', label: 'Tasks', owner: 'tuenx' },
+      { id: 'crm', label: 'CRM', owner: 'tuenx' },
+      { id: 'team', label: 'Team', owner: 'tuenx' },
+      { id: 'treasury', label: 'Treasury', owner: 'tuenx' },
+    ],
+  },
+  {
+    group: 'Agency',
+    items: [
+      { id: 'projects', label: 'Projects', owner: 'agency' },
+      { id: 'invoices', label: 'Invoices', owner: 'agency' },
+    ],
+  },
+  {
+    group: 'Gaphatch',
+    items: [{ id: 'products', label: 'Products', owner: 'gaphatch' }],
+  },
 ]
 
 function Wordmark() {
@@ -37,36 +58,39 @@ function Wordmark() {
 
 function NavList({ active, onNavigate }: { active: ModuleId; onNavigate?: () => void }) {
   return (
-    <nav>
-      {NAV.map((item) => {
-        const isActive = item.id === active
-        return (
-          <a
-            key={item.id}
-            href={href(item.id)}
-            onClick={onNavigate}
-            aria-current={isActive ? 'page' : undefined}
-            className={`group flex items-center justify-between gap-2 border-l-2 py-1.5 pr-2 pl-3 transition-colors ${
-              isActive
-                ? 'border-ink bg-wash text-ink'
-                : 'border-transparent text-graphite hover:border-rule hover:text-ink'
-            }`}
-          >
-            <span
-              className={`font-display text-sm ${isActive ? 'font-semibold' : 'font-normal'}`}
-            >
-              {item.label}
-            </span>
-            <span
-              className={`shrink-0 rounded-[2px] px-1 py-px font-mono text-[9px] font-medium transition-opacity ${
-                mark(item.owner).tag
-              } ${isActive ? 'opacity-100' : 'opacity-45 group-hover:opacity-100'}`}
-            >
-              {DIVISION_CODE[item.owner]}
-            </span>
-          </a>
-        )
-      })}
+    <nav className="space-y-4">
+      {NAV.map(({ group, items }) => (
+        <div key={group}>
+          <p className="label-mono mb-1 px-3">{group}</p>
+          {items.map((item) => {
+            const isActive = item.id === active
+            return (
+              <a
+                key={item.id}
+                href={href(item.id)}
+                onClick={onNavigate}
+                aria-current={isActive ? 'page' : undefined}
+                className={`group flex items-center justify-between gap-2 border-l-2 py-1.5 pr-2 pl-3 transition-colors ${
+                  isActive
+                    ? 'border-ink bg-wash text-ink'
+                    : 'border-transparent text-graphite hover:border-rule hover:text-ink'
+                }`}
+              >
+                <span className={`font-display text-sm ${isActive ? 'font-semibold' : ''}`}>
+                  {item.label}
+                </span>
+                <span
+                  className={`shrink-0 rounded-[2px] px-1 py-px font-mono text-[9px] font-medium transition-opacity ${
+                    mark(item.owner).tag
+                  } ${isActive ? 'opacity-100' : 'opacity-45 group-hover:opacity-100'}`}
+                >
+                  {DIVISION_CODE[item.owner]}
+                </span>
+              </a>
+            )
+          })}
+        </div>
+      ))}
     </nav>
   )
 }
@@ -86,8 +110,9 @@ export function App() {
     <div className="min-h-dvh lg:flex">
       {/* Desktop rail */}
       <aside className="hidden w-56 shrink-0 border-r border-rule lg:flex lg:flex-col">
-        <div className="border-b border-ink px-4 py-4">
+        <div className="space-y-3 border-b border-ink px-4 py-4">
           <Wordmark />
+          <GlobalSearch />
         </div>
 
         <div className="flex-1 overflow-y-auto py-3">
@@ -100,7 +125,7 @@ export function App() {
             <TagLegend />
           </div>
           <p className="border-t border-rule pt-3 font-mono text-[10px] leading-relaxed text-faint">
-            Phase 1–2. No sign-in yet —<br />
+            Phases 1–4. No sign-in yet —<br />
             accounts arrive in Phase 9.
           </p>
         </div>
@@ -108,7 +133,7 @@ export function App() {
 
       {/* Mobile top bar */}
       <header className="sticky top-0 z-40 border-b border-ink bg-paper lg:hidden">
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
           <Wordmark />
           <button
             type="button"
@@ -119,6 +144,9 @@ export function App() {
           >
             {drawerOpen ? 'Close' : 'Menu'}
           </button>
+        </div>
+        <div className="px-4 pb-3">
+          <GlobalSearch />
         </div>
         {drawerOpen && (
           <div className="border-t border-rule py-2">
@@ -136,6 +164,9 @@ export function App() {
           {route.module === 'overview' && <Overview />}
           {route.module === 'tasks' && <Tasks />}
           {route.module === 'crm' && <Crm />}
+          {route.module === 'projects' && <Projects />}
+          {route.module === 'invoices' && <Invoices />}
+          {route.module === 'treasury' && <Treasury />}
           {route.module === 'team' && <Team />}
           {route.module === 'products' && <Products productId={route.productId} />}
         </div>

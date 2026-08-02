@@ -43,6 +43,11 @@ export const TAG_TYPE = {
   product: 'P',
   roadmap: 'R',
   release: 'V',
+  // Phase 3. `J` for project because `P` is already the product.
+  project: 'J',
+  invoice: 'I',
+  // Phase 4.
+  fund: 'F',
 } as const
 export type TagType = (typeof TAG_TYPE)[keyof typeof TAG_TYPE]
 
@@ -76,6 +81,57 @@ export const CONTACT_STAGE_LABEL: Record<ContactStage, string> = {
   proposal: 'Proposal',
   active: 'Active',
   closed: 'Closed',
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3 — Agency operations
+// ---------------------------------------------------------------------------
+
+export const CONTRACT_TYPES = ['retainer', 'project'] as const
+export type ContractType = (typeof CONTRACT_TYPES)[number]
+
+export const CONTRACT_TYPE_LABEL: Record<ContractType, string> = {
+  retainer: 'Retainer',
+  project: 'Project',
+}
+
+/**
+ * Not enumerated anywhere in the TRD or PRD — chosen here. See ADR-0002.
+ * `on_hold` earns its place because Agency work stalls on client sign-off far
+ * more often than it fails outright, and that is worth telling apart from
+ * active.
+ */
+export const PROJECT_STATUSES = ['planning', 'active', 'on_hold', 'delivered'] as const
+export type ProjectStatus = (typeof PROJECT_STATUSES)[number]
+
+export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
+  planning: 'Planning',
+  active: 'Active',
+  on_hold: 'On hold',
+  delivered: 'Delivered',
+}
+
+export const INVOICE_STATUSES = ['draft', 'sent', 'paid', 'overdue'] as const
+export type InvoiceStatus = (typeof INVOICE_STATUSES)[number]
+
+export const INVOICE_STATUS_LABEL: Record<InvoiceStatus, string> = {
+  draft: 'Draft',
+  sent: 'Sent',
+  paid: 'Paid',
+  overdue: 'Overdue',
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4 — Tuenx treasury
+// ---------------------------------------------------------------------------
+
+export const FUND_TYPES = ['income', 'expense', 'allocation'] as const
+export type FundType = (typeof FUND_TYPES)[number]
+
+export const FUND_TYPE_LABEL: Record<FundType, string> = {
+  income: 'Income',
+  expense: 'Expense',
+  allocation: 'Allocation',
 }
 
 // ---------------------------------------------------------------------------
@@ -126,6 +182,8 @@ export interface Task {
   priority: TaskPriority
   assigneeId: string | null
   assignee: Pick<TeamMember, 'id' | 'tag' | 'name' | 'division'> | null
+  projectId: string | null
+  project: Pick<Project, 'id' | 'tag' | 'title'> | null
   dueDate: string | null
   createdAt: string
 }
@@ -140,7 +198,74 @@ export interface Contact {
   value: number
   email: string | null
   notes: string | null
+  contractType: ContractType | null
+  contractValue: number | null
+  startDate: string | null
+  endDate: string | null
   createdAt: string
+}
+
+export interface Project {
+  id: string
+  tag: string
+  contactId: string
+  contact: Pick<Contact, 'id' | 'tag' | 'name' | 'company' | 'division'>
+  title: string
+  status: ProjectStatus
+  dueDate: string | null
+  createdAt: string
+  counts: {
+    tasks: number
+    openTasks: number
+    invoices: number
+  }
+  /** Sum of every invoice on this project, regardless of status. */
+  invoicedTotal: number
+}
+
+export interface Invoice {
+  id: string
+  tag: string
+  contactId: string
+  contact: Pick<Contact, 'id' | 'tag' | 'name' | 'company' | 'division'>
+  projectId: string | null
+  project: Pick<Project, 'id' | 'tag' | 'title'> | null
+  amount: number
+  status: InvoiceStatus
+  issueDate: string
+  dueDate: string
+  notes: string | null
+  createdAt: string
+}
+
+export interface FundEntry {
+  id: string
+  tag: string
+  division: Division
+  type: FundType
+  amount: number
+  category: string
+  date: string
+  notes: string | null
+}
+
+/** Computed treasury view — PRD §6 Phase 4. */
+export interface Treasury {
+  balance: number
+  income: number
+  expenses: number
+  /** Average monthly net burn over the trailing window. Null when not burning. */
+  monthlyBurn: number | null
+  /** Months of runway at that burn. Null when income covers expenses. */
+  runwayMonths: number | null
+  byDivision: {
+    division: Division
+    income: number
+    expenses: number
+    allocated: number
+    net: number
+  }[]
+  entries: FundEntry[]
 }
 
 export interface Product {
@@ -193,8 +318,23 @@ export interface Overview {
     headcount: number
     productsBuilding: number
     productsLive: number
+    /** Phase 3 — billed but not collected (sent + overdue). */
+    outstandingInvoiced: number
+    overdueInvoices: number
+    /** Phase 4 — income minus expenses; allocations excluded as internal. */
+    treasuryBalance: number
   }
   needsAttention: Task[]
+}
+
+/** Cross-module search hit — mirrors the server's SearchHit. */
+export interface SearchHit {
+  id: string
+  tag: string
+  title: string
+  detail: string | null
+  kind: 'task' | 'contact' | 'member' | 'product' | 'project' | 'invoice'
+  route: string
 }
 
 // ---------------------------------------------------------------------------
@@ -212,3 +352,7 @@ export const isTaskPriority = oneOf(TASK_PRIORITIES)
 export const isContactStage = oneOf(CONTACT_STAGES)
 export const isProductStatus = oneOf(PRODUCT_STATUSES)
 export const isRoadmapStatus = oneOf(ROADMAP_STATUSES)
+export const isContractType = oneOf(CONTRACT_TYPES)
+export const isProjectStatus = oneOf(PROJECT_STATUSES)
+export const isInvoiceStatus = oneOf(INVOICE_STATUSES)
+export const isFundType = oneOf(FUND_TYPES)

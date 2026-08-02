@@ -34,30 +34,90 @@ model Task {
   priority   String // low | medium | high
   assigneeId String?
   assignee   TeamMember? @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  // Phase 3. Nullable: most tasks are standalone, and Tuenx/Gaphatch tasks
+  // never belong to an Agency project. Set null on project delete so the work
+  // survives the container.
+  projectId  String?
+  project    Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
   dueDate    DateTime?
   createdAt  DateTime    @default(now())
 
   @@index([division])
   @@index([status])
   @@index([assigneeId])
+  @@index([projectId])
 }
 
-/// TRD §2 Contact (CRM). Phase 3 adds contractType / contractValue /
-/// startDate / endDate to this model — additive, no restructuring.
+/// TRD §2 Contact (CRM), plus the Phase 3 contract fields from TRD §3.
+/// The Phase 3 additions were pure field additions, exactly as the TRD
+/// sequencing promised — no restructuring of anything above.
 model Contact {
-  id        String   @id @default(cuid())
-  tag       String   @unique
-  name      String
-  company   String?
-  division  String // tuenx | agency | gaphatch
-  stage     String // lead | proposal | active | closed
-  value     Float    @default(0)
-  email     String?
-  notes     String?
+  id      String  @id @default(cuid())
+  tag     String  @unique
+  name    String
+  company String?
+  division String // tuenx | agency | gaphatch
+  stage   String // lead | proposal | active | closed
+  value   Float   @default(0)
+  email   String?
+  notes   String?
+
+  // Phase 3 — contract terms
+  contractType  String? // retainer | project
+  contractValue Float?
+  startDate     DateTime?
+  endDate       DateTime?
+
   createdAt DateTime @default(now())
+
+  projects Project[]
+  invoices Invoice[]
 
   @@index([division])
   @@index([stage])
+}
+
+/// TRD §3 Phase 3 Project — wraps a client, a contract, and tasks into one
+/// trackable unit (PRD §6). Division is inherited from the contact rather
+/// than stored again, so a project can never disagree with its client.
+model Project {
+  id        String    @id @default(cuid())
+  tag       String    @unique
+  contactId String
+  contact   Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  title     String
+  status    String // planning | active | on_hold | delivered
+  dueDate   DateTime?
+  createdAt DateTime  @default(now())
+
+  tasks    Task[]
+  invoices Invoice[]
+
+  @@index([contactId])
+  @@index([status])
+}
+
+/// TRD §3 Phase 3 Invoice. `projectId` is an addition — the TRD hangs invoices
+/// off the contact only, but PRD §7 has an invoice attached to a project, and
+/// an Agency client can run several projects at once. Nullable, so a
+/// contact-level invoice is still valid.
+model Invoice {
+  id        String   @id @default(cuid())
+  tag       String   @unique
+  contactId String
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  amount    Float
+  status    String // draft | sent | paid | overdue
+  issueDate DateTime
+  dueDate   DateTime
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([contactId])
+  @@index([projectId])
+  @@index([status])
 }
 
 /// TRD §2 TeamMember. `tag` is an ADR-0001 addition (TRD omits it; the build
@@ -125,6 +185,31 @@ model Release {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 4 — Tuenx treasury
+// ---------------------------------------------------------------------------
+
+/// TRD §3 Phase 4 FundEntry.
+///
+/// Tuenx is the parent/holding entity, so this is where group money is
+/// recorded: income and expense per division, plus `allocation` — capital
+/// moved from the Tuenx level into a division. Runway is computed from these,
+/// not stored.
+model FundEntry {
+  id       String   @id @default(cuid())
+  tag      String   @unique
+  division String // tuenx | agency | gaphatch
+  type     String // income | expense | allocation
+  amount   Float
+  category String
+  date     DateTime
+  notes    String?
+
+  @@index([division])
+  @@index([type])
+  @@index([date])
+}
+
+// ---------------------------------------------------------------------------
 // Infrastructure
 // ---------------------------------------------------------------------------
 
@@ -136,7 +221,7 @@ model Release {
 /// client-generated-ID collision risk noted in TRD §4 ahead of Phase 9.
 model TagCounter {
   division String // TNX | AGY | GPH
-  type     String // T | C | M | P | R | V
+  type     String // T C M P R V J I F
   next     Int    @default(1)
 
   @@id([division, type])

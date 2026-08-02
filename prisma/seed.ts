@@ -34,6 +34,10 @@ async function main() {
   await prisma.project.deleteMany()
   await prisma.contact.deleteMany()
   await prisma.teamMember.deleteMany()
+  await prisma.message.deleteMany()
+  await prisma.channelMember.deleteMany()
+  await prisma.channel.deleteMany()
+  await prisma.recordLink.deleteMany()
   await prisma.planItem.deleteMany()
   await prisma.idea.deleteMany()
   await prisma.calendarEntry.deleteMany()
@@ -500,6 +504,71 @@ tracked separately and does not count against runway.`,
     }
 
 
+
+    // -- Messaging ----------------------------------------------------------
+    const channels: { name: string; purpose: string; division: Division; kind: string; members: string[]; messages: { author: string; body: string; minutesAgo: number }[] }[] = [
+      {
+        name: 'group', purpose: 'Anything the whole group needs to see.', division: 'tuenx', kind: 'channel',
+        members: ['Nisham', 'Aria Sen', 'Dev Rao', 'Maya Iqbal', 'Kenji Mori'],
+        messages: [
+          { author: 'Nisham', body: 'Quarter planning is on the calendar for the 12th. Bring what you want committed, not a wishlist.', minutesAgo: 2880 },
+          { author: 'Aria Sen', body: 'Six of the ten core SOPs are written. The remaining four are all Agency delivery — Maya, can I get 30 minutes with you this week?', minutesAgo: 1400 },
+          { author: 'Maya Iqbal', body: 'Thursday afternoon works.', minutesAgo: 1380 },
+        ],
+      },
+      {
+        name: 'agency-delivery', purpose: 'Client work in flight. Not for new business.', division: 'agency', kind: 'channel',
+        members: ['Maya Iqbal', 'Tomas Lund', 'Priya Nair'],
+        messages: [
+          { author: 'Priya Nair', body: 'Second concept round for Northwind goes over tomorrow at 2. Helen has seen the direction already so it should be quick.', minutesAgo: 600 },
+          { author: 'Tomas Lund', body: 'Brightline still has not paid the June invoice. Second chase went out, no reply. Calling tomorrow.', minutesAgo: 420 },
+          { author: 'Maya Iqbal', body: 'If the call gets nowhere, escalate to me before doing anything about the work itself.', minutesAgo: 410 },
+        ],
+      },
+      {
+        name: 'scholr-launch', purpose: 'Everything blocking the paid launch.', division: 'gaphatch', kind: 'channel',
+        members: ['Kenji Mori', 'Sara Okoye', 'Luis Ferrer'],
+        messages: [
+          { author: 'Sara Okoye', body: 'Nine of twelve beta blockers closed. The three left are all in calendar sync.', minutesAgo: 300 },
+          { author: 'Luis Ferrer', body: 'Error monitoring is half done. I would not want to launch without it.', minutesAgo: 240 },
+          { author: 'Kenji Mori', body: 'Agreed — monitoring is a hard gate. Go/no-go is on the 7th.', minutesAgo: 200 },
+        ],
+      },
+      {
+        name: 'Maya & Tomas', purpose: '', division: 'agency', kind: 'dm',
+        members: ['Maya Iqbal', 'Tomas Lund'],
+        messages: [
+          { author: 'Maya Iqbal', body: 'How did Ferrous take the pause?', minutesAgo: 180 },
+          { author: 'Tomas Lund', body: 'Fine. They asked us to hold until their board meets. I moved the project to on hold.', minutesAgo: 170 },
+        ],
+      },
+    ]
+
+    for (const channel of channels) {
+      const tag = await allocateTag(tx, channel.division, TAG_TYPE.channel)
+      const created = await tx.channel.create({
+        data: {
+          tag,
+          name: channel.name,
+          purpose: channel.purpose || null,
+          division: channel.division,
+          kind: channel.kind,
+          members: { create: channel.members.map((n) => ({ memberId: members[n]! })) },
+        },
+      })
+
+      for (const message of channel.messages) {
+        await tx.message.create({
+          data: {
+            channelId: created.id,
+            authorId: members[message.author] ?? null,
+            body: message.body,
+            createdAt: new Date(Date.now() - message.minutesAgo * 60_000),
+          },
+        })
+      }
+    }
+
     // -- Brainstorms, planner, calendar entries -----------------------------
     const quarter = (offset: number) => {
       const now = new Date()
@@ -673,7 +742,7 @@ tracked separately and does not count against runway.`,
 
   })
 
-  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount] = await Promise.all([
+  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount, msgCount] = await Promise.all([
     prisma.teamMember.count(),
     prisma.task.count(),
     prisma.contact.count(),
@@ -682,10 +751,11 @@ tracked separately and does not count against runway.`,
     prisma.planItem.count(),
     prisma.idea.count(),
     prisma.calendarEntry.count(),
+    prisma.message.count(),
   ])
 
   console.log(
-    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries.`,
+    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries, ${msgCount} messages.`,
   )
 }
 

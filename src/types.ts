@@ -69,6 +69,9 @@ export const TAG_TYPE = {
   idea: 'B',
   planItem: 'Q',
   entry: 'E',
+  // Messaging. `X` for channel — C, M, G, and H were already taken by
+  // contact, member, campaign, and hire.
+  channel: 'X',
 } as const
 export type TagType = (typeof TAG_TYPE)[keyof typeof TAG_TYPE]
 
@@ -231,6 +234,23 @@ export const PLAN_EFFORT_LABEL: Record<PlanEffort, string> = {
 
 /** Weight used for the per-quarter load bar. Relative, not absolute. */
 export const PLAN_EFFORT_WEIGHT: Record<PlanEffort, number> = { s: 1, m: 3, l: 8 }
+
+// ---------------------------------------------------------------------------
+// Messaging
+//
+// Was an explicit non-goal until the founder reversed it — see master plan §7.
+// The reversal earns its place through `record` channels: a conversation bound
+// to the record it is about.
+// ---------------------------------------------------------------------------
+
+export const CHANNEL_KINDS = ['channel', 'dm', 'record'] as const
+export type ChannelKind = (typeof CHANNEL_KINDS)[number]
+
+export const CHANNEL_KIND_LABEL: Record<ChannelKind, string> = {
+  channel: 'Channel',
+  dm: 'Direct',
+  record: 'On a record',
+}
 
 // ---------------------------------------------------------------------------
 // Calendar entries
@@ -460,6 +480,32 @@ export interface CalendarEntry {
   createdAt: string
 }
 
+export interface Message {
+  id: string
+  channelId: string
+  authorId: string | null
+  author: Pick<TeamMember, 'id' | 'tag' | 'name' | 'division'> | null
+  body: string
+  editedAt: string | null
+  createdAt: string
+}
+
+export interface Channel {
+  id: string
+  tag: string
+  name: string
+  purpose: string | null
+  division: Division
+  kind: ChannelKind
+  archived: boolean
+  recordType: string | null
+  recordId: string | null
+  createdAt: string
+  members: Pick<TeamMember, 'id' | 'tag' | 'name' | 'division'>[]
+  messageCount: number
+  lastMessage: Message | null
+}
+
 export interface FundEntry {
   id: string
   tag: string
@@ -584,3 +630,4 @@ export const isIdeaStatus = oneOf(IDEA_STATUSES)
 export const isPlanStatus = oneOf(PLAN_STATUSES)
 export const isPlanEffort = oneOf(PLAN_EFFORTS)
 export const isEntryKind = oneOf(ENTRY_KINDS)
+export const isChannelKind = oneOf(CHANNEL_KINDS)

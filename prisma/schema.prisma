@@ -131,9 +131,11 @@ model TeamMember {
   email     String?
   createdAt DateTime @default(now())
 
-  tasks         Task[]
-  leaveRequests LeaveRequest[]
-  ownedVendors  Vendor[]
+  tasks           Task[]
+  leaveRequests   LeaveRequest[]
+  ownedVendors    Vendor[]
+  channelMembers  ChannelMember[]
+  messages        Message[]
 
   @@index([division])
 }
@@ -536,6 +538,75 @@ model Customer {
 
   @@index([productId])
   @@index([subscriptionStatus])
+}
+
+// ---------------------------------------------------------------------------
+// Messaging
+//
+// Originally an explicit non-goal (master plan §4, PRD §4) on the grounds that
+// Slack covers chat. Reversed by the founder on 2026-08-02 — see master plan
+// §7. The reasoning for the reversal: Slack cannot attach a conversation to a
+// record. A thread about AGY-I004 belongs on the invoice, not in a channel
+// where it is lost a week later.
+// ---------------------------------------------------------------------------
+
+/// A channel, or a direct message between two people.
+///
+/// `recordType`/`recordId` optionally bind a channel to one record, which is
+/// the whole reason this exists rather than deferring to Slack. Polymorphic for
+/// the same reason RecordLink is — see the note there.
+model Channel {
+  id       String  @id @default(cuid())
+  tag      String  @unique
+  name     String
+  purpose  String?
+  division String // tuenx | agency | gaphatch
+  kind     String // channel | dm | record
+  archived Boolean @default(false)
+
+  /// Set when the channel is the conversation about one specific record.
+  recordType String?
+  recordId   String?
+
+  createdAt DateTime @default(now())
+
+  members  ChannelMember[]
+  messages Message[]
+
+  @@index([division])
+  @@index([kind])
+  @@index([recordType, recordId])
+}
+
+/// Who is in a channel. Without per-person accounts (Phase 9) this is
+/// membership for display and DM addressing, not access control.
+model ChannelMember {
+  id        String     @id @default(cuid())
+  channelId String
+  channel   Channel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  memberId  String
+  member    TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  /// Last time this person opened the channel, for the unread count.
+  lastReadAt DateTime?
+
+  @@unique([channelId, memberId])
+  @@index([memberId])
+}
+
+/// One message. No tag: tags are for records a person refers to by name, and
+/// nobody says "see TNX-X001 message 47".
+model Message {
+  id        String      @id @default(cuid())
+  channelId String
+  channel   Channel     @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    TeamMember? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  body      String
+  /// Set when edited, so the UI can say so rather than silently rewriting.
+  editedAt  DateTime?
+  createdAt DateTime    @default(now())
+
+  @@index([channelId, createdAt])
 }
 
 // ---------------------------------------------------------------------------

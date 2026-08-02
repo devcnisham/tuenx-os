@@ -23,7 +23,7 @@ Tuenx OS is the internal operating system for Tuenx Technologies — a single pl
 
 - **Not a generic product.** This stays Tuenx-internal; no multi-tenant support for other companies.
 - **Not payroll or tax/compliance software.** Integrate with a real provider later; don't build regulated financial infrastructure from scratch.
-- **Not a messaging tool.** No chat/DM module — existing tools cover that.
+- ~~**Not a messaging tool.** No chat/DM module — existing tools cover that.~~ **Reversed 2026-08-02** — messaging is in scope. See master plan §7. Channels and DMs, with conversations attachable to records.
 - **Not (yet) a client-facing portal.** All views in this PRD are internal-only.
 
 ## 5. Users

@@ -67,7 +67,13 @@ Team: 6–15 people. Mixed model — some people are dedicated to one division, 
 - **Internal only.** Tuenx OS is not being built as a product for other companies. Architecture stays hardcoded to Tuenx/Agency/Gaphatch rather than generic/multi-tenant.
 - **Fund is internal-only.** No external LPs, no outside portfolio companies. It's treasury + capital allocation between Agency and Gaphatch.
 - **Not building payroll or tax filing.** Regulated territory — integrate with a real provider (Gusto, Deel, etc.) later rather than build it natively.
-- **Not building a messaging/chat module.** Existing tools (Slack etc.) cover this.
+- ~~**Not building a messaging/chat module.** Existing tools (Slack etc.) cover this.~~
+  **Reversed 2026-08-02 by the founder.** Messaging is now in scope: channels
+  and direct messages inside Tuenx OS. The original reasoning still stands on
+  its own terms — Slack does cover chat — so this is a deliberate trade, not a
+  correction. What Tuenx OS adds that Slack cannot is that a conversation can
+  be attached to the record it is about: a thread on `AGY-I004` lives on the
+  invoice. See §7.
 
 ## 5. Open items still to decide
 
@@ -78,3 +84,18 @@ Team: 6–15 people. Mixed model — some people are dedicated to one division, 
 ## 6. Status log
 
 - **v1 shipped:** Overview, Tasks (kanban by status, filterable by division), CRM (pipeline by stage, filterable by division), Team roster. Built as a single-file React artifact using shared `window.storage` — anyone with the artifact link reads/writes the same data.
+
+## 7. Scope reversals
+
+Decisions recorded here changed after the plan was locked. Keeping both the
+original and the reversal, rather than editing history, so the reasoning stays
+auditable.
+
+| Date | Decision | Was | Now | Why |
+|---|---|---|---|---|
+| 2026-08-02 | Messaging | Out of scope — Slack covers it | In scope — channels + DMs | Slack cannot attach a conversation to a record. A thread about `AGY-I004` belongs on the invoice, not in a channel where it is lost a week later. |
+| 2026-08-02 | Phase 3 gate | Stop and review Phases 1–2 first | Lifted | Founder chose to keep building rather than review at the gate. |
+| 2026-08-02 | Design system | Dark "ops console", slate + amber/orange/teal | Light, warm canvas with white cards; divisions keep amber/orange/teal | Founder rejected the dark system on sight, then rejected a typography-only division encoding, then asked for more depth and space. Current state is the third pass. |
+
+**Still out of scope, unchanged:** payroll, tax filing, multi-tenancy, and
+making the division model configurable.

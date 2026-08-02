@@ -19,6 +19,7 @@ export type ModuleId =
   | 'calendar'
   | 'planner'
   | 'brainstorms'
+  | 'messages'
   | 'team'
   | 'products'
 
@@ -45,6 +46,7 @@ const MODULES: ModuleId[] = [
   'calendar',
   'planner',
   'brainstorms',
+  'messages',
   'team',
   'products',
 ]

@@ -20,6 +20,7 @@ const MODULE_TITLE: Record<ModuleId, string> = {
   calendar: 'Calendar',
   planner: 'Planner',
   brainstorms: 'Brainstorms',
+  messages: 'Messages',
   team: 'Team',
   products: 'Products',
 }

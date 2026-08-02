@@ -25,10 +25,29 @@ import {
 
 export const tasksRouter = Router()
 
-/** Assignee summary embedded in every task response. */
+/** Relations embedded in every task response. */
 const ASSIGNEE_SELECT = {
   select: { id: true, tag: true, name: true, division: true },
 } satisfies Prisma.Task$assigneeArgs
+
+const PROJECT_SELECT = {
+  select: { id: true, tag: true, title: true },
+} satisfies Prisma.Task$projectArgs
+
+const WITH_RELATIONS = {
+  assignee: ASSIGNEE_SELECT,
+  project: PROJECT_SELECT,
+} satisfies Prisma.TaskInclude
+
+/** Rejects a projectId that doesn't resolve, rather than storing a dangling FK. */
+async function assertProjectExists(projectId: string | null) {
+  if (projectId === null) return
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { id: true },
+  })
+  if (!project) throw badRequest('`projectId` does not match a project')
+}
 
 /** Rejects an assigneeId that doesn't resolve, rather than storing a dangling FK. */
 async function assertAssigneeExists(assigneeId: string | null) {
@@ -47,7 +66,7 @@ async function assertAssigneeExists(assigneeId: string | null) {
 tasksRouter.get(
   '/',
   route(async (req, res) => {
-    const { division, status, priority, assigneeId, dueBefore } = req.query
+    const { division, status, priority, assigneeId, dueBefore, projectId, q } = req.query
 
     const where: Prisma.TaskWhereInput = {}
     if (isDivision(division)) where.division = division
@@ -56,14 +75,20 @@ tasksRouter.get(
     if (typeof assigneeId === 'string' && assigneeId !== '') {
       where.assigneeId = assigneeId === 'unassigned' ? null : assigneeId
     }
+    if (typeof projectId === 'string' && projectId !== '') where.projectId = projectId
     if (typeof dueBefore === 'string' && dueBefore !== '') {
       const d = new Date(dueBefore)
       if (!Number.isNaN(d.getTime())) where.dueDate = { lte: d }
     }
+    // Free-text search over title and tag, so `AGY-T003` finds the record too.
+    if (typeof q === 'string' && q.trim() !== '') {
+      const term = q.trim()
+      where.OR = [{ title: { contains: term } }, { tag: { contains: term.toUpperCase() } }]
+    }
 
     const tasks = await prisma.task.findMany({
       where,
-      include: { assignee: ASSIGNEE_SELECT },
+      include: WITH_RELATIONS,
       // Nulls last on dueDate so dated work leads and undated trails.
       orderBy: [{ dueDate: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
     })
@@ -78,7 +103,8 @@ tasksRouter.post(
     const body = asBody(req.body)
     const division = oneOf(body, 'division', isDivision, DIVISIONS)
     const assigneeId = optionalId(body, 'assigneeId')
-    await assertAssigneeExists(assigneeId)
+    const projectId = optionalId(body, 'projectId')
+    await Promise.all([assertAssigneeExists(assigneeId), assertProjectExists(projectId)])
 
     const task = await prisma.$transaction(async (tx) => {
       const tag = await allocateTag(tx, division, TAG_TYPE.task)
@@ -90,9 +116,10 @@ tasksRouter.post(
           status: oneOf(body, 'status', isTaskStatus, TASK_STATUSES),
           priority: oneOf(body, 'priority', isTaskPriority, TASK_PRIORITIES),
           assigneeId,
+          projectId,
           dueDate: optionalDate(body, 'dueDate'),
         },
-        include: { assignee: ASSIGNEE_SELECT },
+        include: WITH_RELATIONS,
       })
     })
 
@@ -111,6 +138,9 @@ tasksRouter.patch(
     if (sent(body, 'assigneeId')) {
       await assertAssigneeExists(optionalId(body, 'assigneeId'))
     }
+    if (sent(body, 'projectId')) {
+      await assertProjectExists(optionalId(body, 'projectId'))
+    }
 
     const task = await prisma.task.update({
       where: { id: req.params.id },
@@ -126,9 +156,10 @@ tasksRouter.patch(
           priority: oneOf(body, 'priority', isTaskPriority, TASK_PRIORITIES),
         }),
         ...(sent(body, 'assigneeId') && { assigneeId: optionalId(body, 'assigneeId') }),
+        ...(sent(body, 'projectId') && { projectId: optionalId(body, 'projectId') }),
         ...(sent(body, 'dueDate') && { dueDate: optionalDate(body, 'dueDate') }),
       },
-      include: { assignee: ASSIGNEE_SELECT },
+      include: WITH_RELATIONS,
     })
 
     res.json(task)

@@ -4,9 +4,11 @@ import { prisma } from '../db.ts'
 import { allocateTag } from '../tags.ts'
 import {
   asBody,
+  badRequest,
   notFound,
   num,
   oneOf,
+  optionalDate,
   optionalStr,
   route,
   sent,
@@ -14,11 +16,39 @@ import {
 } from '../http.ts'
 import {
   CONTACT_STAGES,
+  CONTRACT_TYPES,
   DIVISIONS,
   TAG_TYPE,
   isContactStage,
+  isContractType,
   isDivision,
 } from '../../src/types.ts'
+
+/**
+ * Phase 3 contract terms. All four are optional — a lead has no contract yet,
+ * and a Gaphatch contact may never have one.
+ */
+function contractFields(body: Record<string, unknown>) {
+  const contractType =
+    body.contractType === undefined || body.contractType === null || body.contractType === ''
+      ? null
+      : oneOf(body, 'contractType', isContractType, CONTRACT_TYPES)
+
+  const startDate = optionalDate(body, 'startDate')
+  const endDate = optionalDate(body, 'endDate')
+
+  if (startDate && endDate && endDate < startDate) {
+    throw badRequest('`endDate` cannot be before `startDate`')
+  }
+
+  const rawValue = body.contractValue
+  const contractValue =
+    rawValue === undefined || rawValue === null || rawValue === ''
+      ? null
+      : num(body, 'contractValue')
+
+  return { contractType, contractValue, startDate, endDate }
+}
 
 export const contactsRouter = Router()
 
@@ -64,6 +94,7 @@ contactsRouter.post(
           value: num(body, 'value'),
           email: optionalStr(body, 'email', 200),
           notes: optionalStr(body, 'notes'),
+          ...contractFields(body),
         },
       })
     })
@@ -94,6 +125,9 @@ contactsRouter.patch(
         ...(sent(body, 'value') && { value: num(body, 'value') }),
         ...(sent(body, 'email') && { email: optionalStr(body, 'email', 200) }),
         ...(sent(body, 'notes') && { notes: optionalStr(body, 'notes') }),
+        // Contract terms move together — the form always submits all four, so
+        // clearing the type clears the rest rather than leaving orphan dates.
+        ...(sent(body, 'contractType') && contractFields(body)),
       },
     })
 

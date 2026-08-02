@@ -15,8 +15,11 @@ Internal-only. Not multi-tenant, not a product for other companies. See [`docs/t
 |---|---|---|
 | 1 | Overview, Tasks, CRM, Team | ✅ Built |
 | 2 | Gaphatch Products, per-product roadmap, releases | ✅ Built |
-| 3 | Agency contracts, Projects, Invoicing | ⏸ Gated on founder review of 1–2 |
-| 4–9 | Treasury, OKRs/Docs, People/Ops, Support/Metrics, KPIs, Auth | Planned |
+| 3 | Agency contract terms, Projects, Invoicing | ✅ Built |
+| 4 | Tuenx Treasury — income, spend, allocation, runway | ✅ Built |
+| 5–9 | OKRs/Docs, People/Ops, Support/Metrics, KPIs, Auth | Planned |
+
+Cross-module search ships alongside these: one box, `/` to focus, matching any record by title, by client, or by tag.
 
 **No authentication.** Deliberate, per PRD §5 and TRD §5 — accounts and role-based permissions arrive in Phase 9. The API binds to `127.0.0.1`; don't expose it.
 
@@ -66,7 +69,9 @@ Every record carries a division-coded tag — `AGY-T003`, `GPH-C012`.
 | | |
 |---|---|
 | Divisions | `TNX` Tuenx · `AGY` Agency · `GPH` Gaphatch |
-| Types | `T` task · `C` contact · `M` member · `P` product · `R` roadmap item · `V` release |
+| Types | `T` task · `C` contact · `M` member · `P` product · `R` roadmap item · `V` release · `J` project · `I` invoice · `F` fund entry |
+
+`J` for project because `P` is already the product. Projects and invoices store no division of their own — they inherit the client's — but their tag still carries it.
 
 Allocation happens server-side inside a transaction ([`server/tags.ts`](server/tags.ts)), so two concurrent creates can never collide.
 
@@ -99,6 +104,14 @@ Moving to Postgres/Supabase (TRD Phase 9) is:
 Enum-typed TRD fields are `String` columns, because Prisma has no native enum on SQLite. The allowed values are enforced by TypeScript unions in `src/types.ts` and validated at the API boundary. On Postgres they can become native enums without touching application code.
 
 See [`docs/adr/0001-sqlite-from-phase-1.md`](docs/adr/0001-sqlite-from-phase-1.md) for why this is SQLite from Phase 1 rather than the artifact key-value store the TRD originally specified, and for every divergence from the TRD data model.
+
+## Treasury accounting
+
+One rule worth knowing before reading the numbers: **allocations are excluded from balance, burn, and runway.**
+
+An allocation is capital moved from the Tuenx level into a division. It is an internal transfer inside one group, so counting it as income or spend would double-count the same money. It is reported per division instead, because "where has capital been committed" is the question the parent entity actually asks — a division running a negative net while holding a large allocation is a funded product arm, not a problem.
+
+Burn is averaged over a trailing 6 months rather than all time, so a large founding expense doesn't drag the average forever. Runway is `null` when income covers spend, rather than reporting a misleading infinity.
 
 ## Known gaps
 

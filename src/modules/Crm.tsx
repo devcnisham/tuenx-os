@@ -18,7 +18,7 @@ import {
 import { PageHeader, Toolbar } from '../components/PageHeader.tsx'
 import { Button, ErrorState, Panel, Pill, Skeleton } from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextAreaField, TextField } from '../components/Field.tsx'
-import { Modal, ModalFooter } from '../components/Modal.tsx'
+import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
 import { MoveButton } from './Tasks.tsx'
 
@@ -330,7 +330,7 @@ function ContactForm({
   }
 
   return (
-    <Modal
+    <RecordView
       title={contact ? 'Edit contact' : 'New contact'}
       subtitle={
         contact ? (
@@ -409,7 +409,7 @@ function ContactForm({
           {error && <p className="text-sm text-alert">{error}</p>}
         </div>
 
-        <ModalFooter>
+        <RecordFooter>
           {contact && (
             <Button
               type="button"
@@ -427,8 +427,8 @@ function ContactForm({
           <Button type="submit" variant="primary" disabled={saving}>
             {saving ? 'Saving…' : contact ? 'Save changes' : 'Create contact'}
           </Button>
-        </ModalFooter>
+        </RecordFooter>
       </form>
-    </Modal>
+    </RecordView>
   )
 }

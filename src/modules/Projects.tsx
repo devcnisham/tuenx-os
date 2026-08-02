@@ -16,7 +16,7 @@ import {
 import { PageHeader, Toolbar } from '../components/PageHeader.tsx'
 import { Button, ErrorState, Panel, Pill, Skeleton } from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextField } from '../components/Field.tsx'
-import { Modal, ModalFooter } from '../components/Modal.tsx'
+import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
 import { MoveButton } from './Tasks.tsx'
 
@@ -326,7 +326,7 @@ function ProjectForm({
   }
 
   return (
-    <Modal
+    <RecordView
       title={project ? 'Edit project' : 'New project'}
       subtitle={
         project ? (
@@ -365,7 +365,7 @@ function ProjectForm({
           {error && <p className="text-sm text-alert">{error}</p>}
         </div>
 
-        <ModalFooter>
+        <RecordFooter>
           {project && (
             <Button
               type="button"
@@ -383,8 +383,8 @@ function ProjectForm({
           <Button type="submit" variant="primary" disabled={saving}>
             {saving ? 'Saving…' : project ? 'Save changes' : 'Create project'}
           </Button>
-        </ModalFooter>
+        </RecordFooter>
       </form>
-    </Modal>
+    </RecordView>
   )
 }

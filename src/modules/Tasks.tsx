@@ -20,7 +20,7 @@ import {
 import { PageHeader, Toolbar } from '../components/PageHeader.tsx'
 import { Button, ErrorState, Panel, Pill, Skeleton, type PillTone } from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextField } from '../components/Field.tsx'
-import { Modal, ModalFooter } from '../components/Modal.tsx'
+import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
 
 const DIVISION_OPTIONS = DIVISIONS.map((d) => ({ value: d, label: DIVISION_LABEL[d] }))
@@ -426,7 +426,7 @@ function TaskForm({
   }
 
   return (
-    <Modal
+    <RecordView
       title={task ? 'Edit task' : 'New task'}
       subtitle={
         task ? <Tag tag={task.tag} /> : <span className="font-mono text-[10px] text-faint">A tag is issued on save, e.g. AGY-T007</span>
@@ -482,7 +482,7 @@ function TaskForm({
           {error && <p className="text-sm text-alert">{error}</p>}
         </div>
 
-        <ModalFooter>
+        <RecordFooter>
           {task && (
             <Button
               type="button"
@@ -500,8 +500,8 @@ function TaskForm({
           <Button type="submit" variant="primary" disabled={saving}>
             {saving ? 'Saving…' : task ? 'Save changes' : 'Create task'}
           </Button>
-        </ModalFooter>
+        </RecordFooter>
       </form>
-    </Modal>
+    </RecordView>
   )
 }

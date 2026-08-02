@@ -131,7 +131,9 @@ model TeamMember {
   email     String?
   createdAt DateTime @default(now())
 
-  tasks Task[]
+  tasks         Task[]
+  leaveRequests LeaveRequest[]
+  ownedVendors  Vendor[]
 
   @@index([division])
 }
@@ -152,6 +154,11 @@ model Product {
 
   roadmapItems RoadmapItem[]
   releases     Release[]
+  objectives   Objective[]
+  campaigns    Campaign[]
+  tickets      Ticket[]
+  metrics      MetricSnapshot[]
+  customers    Customer[]
 
   @@index([status])
 }
@@ -210,6 +217,226 @@ model FundEntry {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 5 — OKRs and Docs
+// ---------------------------------------------------------------------------
+
+/// TRD §3 Phase 5 Objective.
+///
+/// `scope` is the TRD's union of a division or a productId. Stored as two
+/// columns instead of one overloaded string: `scopeKind` says which it is, and
+/// `productId` is a real foreign key when it is a product. A single column
+/// would have meant string-sniffing a cuid to tell "gaphatch" from an id.
+model Objective {
+  id        String   @id @default(cuid())
+  tag       String   @unique
+  scopeKind String // division | product
+  division  String // tuenx | agency | gaphatch — the owning arm either way
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  title     String
+  period    String // e.g. 2026-Q3
+  owner     String?
+  createdAt DateTime @default(now())
+
+  keyResults KeyResult[]
+
+  @@index([division])
+  @@index([period])
+  @@index([productId])
+}
+
+/// TRD §3 Phase 5 KeyResult. Progress is derived from current vs target, not
+/// stored, so the two can never disagree.
+model KeyResult {
+  id           String    @id @default(cuid())
+  tag          String    @unique
+  objectiveId  String
+  objective    Objective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  title        String
+  targetValue  Float
+  currentValue Float     @default(0)
+  unit         String? // %, users, $, …
+  status       String // on_track | at_risk | off_track | done
+  createdAt    DateTime  @default(now())
+
+  @@index([objectiveId])
+}
+
+/// TRD §3 Phase 5 Doc — SOPs, playbooks, onboarding, policies.
+model Doc {
+  id        String   @id @default(cuid())
+  tag       String   @unique
+  title     String
+  division  String // tuenx | agency | gaphatch
+  category  String
+  body      String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([division])
+  @@index([category])
+}
+
+// ---------------------------------------------------------------------------
+// Phase 6 — People, ops, marketing
+// ---------------------------------------------------------------------------
+
+/// TRD §3 Phase 6 Candidate. `division` is an addition — every other record in
+/// this system is division-tagged, and a hire is always for one arm.
+model Candidate {
+  id        String   @id @default(cuid())
+  tag       String   @unique
+  name      String
+  role      String
+  division  String // tuenx | agency | gaphatch
+  stage     String // applied | screening | interview | offer | hired | passed
+  source    String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([division])
+  @@index([stage])
+}
+
+/// TRD §3 Phase 6 LeaveRequest. Time-off tracking only — explicitly not
+/// payroll, per master plan §4.
+model LeaveRequest {
+  id        String     @id @default(cuid())
+  tag       String     @unique
+  memberId  String
+  member    TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  type      String // holiday | sick | unpaid | parental
+  startDate DateTime
+  endDate   DateTime
+  status    String // requested | approved | declined
+  notes     String?
+  createdAt DateTime   @default(now())
+
+  @@index([memberId])
+  @@index([status])
+}
+
+/// TRD §3 Phase 6 Vendor — what is paid for, when it renews, who owns it.
+model Vendor {
+  id          String      @id @default(cuid())
+  tag         String      @unique
+  name        String
+  division    String // tuenx | agency | gaphatch
+  monthlyCost Float       @default(0)
+  renewalDate DateTime?
+  ownerId     String?
+  owner       TeamMember? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  notes       String?
+  createdAt   DateTime    @default(now())
+
+  @@index([division])
+  @@index([ownerId])
+}
+
+/// TRD §3 Phase 6 Campaign. Same scope split as Objective — a campaign runs
+/// for a division or for one specific Gaphatch product.
+model Campaign {
+  id        String   @id @default(cuid())
+  tag       String   @unique
+  scopeKind String // division | product
+  division  String // tuenx | agency | gaphatch
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  title     String
+  channel   String
+  status    String // planned | live | done
+  date      DateTime
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([division])
+  @@index([status])
+  @@index([productId])
+}
+
+/// TRD §3 Phase 6 Contract — the company-wide repository, distinct from the
+/// per-client contract terms that live on Contact.
+///
+/// `fileRef` is a path or URL, not an upload. File storage is out of scope for
+/// this phase and pretending otherwise would be worse than a link.
+model Contract {
+  id        String    @id @default(cuid())
+  tag       String    @unique
+  party     String
+  division  String // tuenx | agency | gaphatch
+  type      String // client | vendor | employment | other
+  value     Float     @default(0)
+  startDate DateTime?
+  endDate   DateTime?
+  fileRef   String?
+  notes     String?
+  createdAt DateTime  @default(now())
+
+  @@index([division])
+  @@index([type])
+}
+
+// ---------------------------------------------------------------------------
+// Phase 7 — Gaphatch customer-facing
+// ---------------------------------------------------------------------------
+
+/// TRD §3 Phase 7 Ticket. Activates once a product is live (master plan §3).
+model Ticket {
+  id              String    @id @default(cuid())
+  tag             String    @unique
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  /// Free-text fallback for a reporter who isn't a tracked customer.
+  customerContact String?
+  subject         String
+  body            String?
+  status          String // open | pending | resolved
+  priority        String // low | medium | high
+  createdAt       DateTime  @default(now())
+
+  @@index([productId])
+  @@index([status])
+  @@index([customerId])
+}
+
+/// TRD §3 Phase 7 MetricSnapshot — a point-in-time reading per product, not a
+/// running total. Trends are derived by comparing snapshots.
+model MetricSnapshot {
+  id          String   @id @default(cuid())
+  tag         String   @unique
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  date        DateTime
+  mrr         Float    @default(0)
+  activeUsers Int      @default(0)
+  churnRate   Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  @@unique([productId, date])
+  @@index([productId])
+}
+
+/// TRD §3 Phase 7 Customer — the subscriber base, per product.
+model Customer {
+  id                 String   @id @default(cuid())
+  tag                String   @unique
+  productId          String
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name               String
+  email              String?
+  subscriptionStatus String // trial | active | churned
+  since              DateTime
+  createdAt          DateTime @default(now())
+
+  tickets Ticket[]
+
+  @@index([productId])
+  @@index([subscriptionStatus])
+}
+
+// ---------------------------------------------------------------------------
 // Infrastructure
 // ---------------------------------------------------------------------------
 
@@ -221,7 +448,8 @@ model FundEntry {
 /// client-generated-ID collision risk noted in TRD §4 ahead of Phase 9.
 model TagCounter {
   division String // TNX | AGY | GPH
-  type     String // T C M P R V J I F
+  /// One letter per record type — see TAG_TYPE in src/types.ts.
+  type     String
   next     Int    @default(1)
 
   @@id([division, type])

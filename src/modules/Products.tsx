@@ -19,7 +19,7 @@ import {
   type PillTone,
 } from '../components/ui.tsx'
 import { SelectField, TextAreaField, TextField } from '../components/Field.tsx'
-import { Modal, ModalFooter } from '../components/Modal.tsx'
+import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
 import { ProductDetail } from './ProductDetail.tsx'
 
@@ -192,7 +192,7 @@ export function ProductForm({
   }
 
   return (
-    <Modal
+    <RecordView
       title={product ? 'Edit product' : 'New product'}
       subtitle={
         product ? (
@@ -226,7 +226,7 @@ export function ProductForm({
           {error && <p className="text-sm text-alert">{error}</p>}
         </div>
 
-        <ModalFooter>
+        <RecordFooter>
           {product && onDeleted && (
             <Button
               type="button"
@@ -244,8 +244,8 @@ export function ProductForm({
           <Button type="submit" variant="primary" disabled={saving}>
             {saving ? 'Saving…' : product ? 'Save changes' : 'Create product'}
           </Button>
-        </ModalFooter>
+        </RecordFooter>
       </form>
-    </Modal>
+    </RecordView>
   )
 }

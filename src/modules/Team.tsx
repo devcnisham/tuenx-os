@@ -7,7 +7,7 @@ import { DIVISIONS, DIVISION_LABEL, type Division, type TeamMember } from '../ty
 import { PageHeader, Toolbar } from '../components/PageHeader.tsx'
 import { Button, EmptyState, ErrorState, Panel, Skeleton } from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextField } from '../components/Field.tsx'
-import { Modal, ModalFooter } from '../components/Modal.tsx'
+import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
 
 const DIVISION_OPTIONS = DIVISIONS.map((d) => ({ value: d, label: DIVISION_LABEL[d] }))
@@ -194,7 +194,7 @@ function MemberForm({
   }
 
   return (
-    <Modal
+    <RecordView
       title={member ? 'Edit person' : 'Add person'}
       subtitle={
         member ? (
@@ -229,7 +229,7 @@ function MemberForm({
           {error && <p className="text-sm text-alert">{error}</p>}
         </div>
 
-        <ModalFooter>
+        <RecordFooter>
           {member && (
             <Button
               type="button"
@@ -247,8 +247,8 @@ function MemberForm({
           <Button type="submit" variant="primary" disabled={saving}>
             {saving ? 'Saving…' : member ? 'Save changes' : 'Add person'}
           </Button>
-        </ModalFooter>
+        </RecordFooter>
       </form>
-    </Modal>
+    </RecordView>
   )
 }

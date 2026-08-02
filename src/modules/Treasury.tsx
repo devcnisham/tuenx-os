@@ -26,7 +26,7 @@ import {
   type PillTone,
 } from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextAreaField, TextField } from '../components/Field.tsx'
-import { Modal, ModalFooter } from '../components/Modal.tsx'
+import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
 
 const DIVISION_OPTIONS = DIVISIONS.map((d) => ({ value: d, label: DIVISION_LABEL[d] }))
@@ -363,7 +363,7 @@ function EntryForm({
   }
 
   return (
-    <Modal
+    <RecordView
       title={entry ? 'Edit entry' : 'New entry'}
       subtitle={
         entry ? (
@@ -422,7 +422,7 @@ function EntryForm({
           {error && <p className="text-sm text-alert">{error}</p>}
         </div>
 
-        <ModalFooter>
+        <RecordFooter>
           {entry && (
             <Button
               type="button"
@@ -440,8 +440,8 @@ function EntryForm({
           <Button type="submit" variant="primary" disabled={saving}>
             {saving ? 'Saving…' : entry ? 'Save changes' : 'Create entry'}
           </Button>
-        </ModalFooter>
+        </RecordFooter>
       </form>
-    </Modal>
+    </RecordView>
   )
 }

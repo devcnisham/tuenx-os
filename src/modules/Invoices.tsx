@@ -26,7 +26,7 @@ import {
   type PillTone,
 } from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextAreaField, TextField } from '../components/Field.tsx'
-import { Modal, ModalFooter } from '../components/Modal.tsx'
+import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
 
 const DIVISION_OPTIONS = DIVISIONS.map((d) => ({ value: d, label: DIVISION_LABEL[d] }))
@@ -357,7 +357,7 @@ function InvoiceForm({
   }
 
   return (
-    <Modal
+    <RecordView
       title={invoice ? 'Edit invoice' : 'New invoice'}
       subtitle={
         invoice ? (
@@ -440,7 +440,7 @@ function InvoiceForm({
           {error && <p className="text-sm text-alert">{error}</p>}
         </div>
 
-        <ModalFooter>
+        <RecordFooter>
           {invoice && (
             <Button
               type="button"
@@ -458,8 +458,8 @@ function InvoiceForm({
           <Button type="submit" variant="primary" disabled={saving}>
             {saving ? 'Saving…' : invoice ? 'Save changes' : 'Create invoice'}
           </Button>
-        </ModalFooter>
+        </RecordFooter>
       </form>
-    </Modal>
+    </RecordView>
   )
 }

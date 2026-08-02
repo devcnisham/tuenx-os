@@ -15,7 +15,7 @@ import {
 } from '../types.ts'
 import { Button, EmptyState, ErrorState, Panel, Pill, Skeleton } from '../components/ui.tsx'
 import { SelectField, TextAreaField, TextField } from '../components/Field.tsx'
-import { Modal, ModalFooter } from '../components/Modal.tsx'
+import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
 import { PRODUCT_STATUS_TONE, ProductForm } from './Products.tsx'
 import { MoveButton } from './Tasks.tsx'
@@ -377,7 +377,7 @@ function RoadmapItemForm({
   }
 
   return (
-    <Modal
+    <RecordView
       title={item ? 'Edit roadmap item' : 'New roadmap item'}
       subtitle={
         item ? (
@@ -397,7 +397,7 @@ function RoadmapItemForm({
           {error && <p className="text-sm text-alert">{error}</p>}
         </div>
 
-        <ModalFooter>
+        <RecordFooter>
           {item && (
             <Button
               type="button"
@@ -415,9 +415,9 @@ function RoadmapItemForm({
           <Button type="submit" variant="primary" disabled={saving}>
             {saving ? 'Saving…' : item ? 'Save changes' : 'Add item'}
           </Button>
-        </ModalFooter>
+        </RecordFooter>
       </form>
-    </Modal>
+    </RecordView>
   )
 }
 
@@ -465,7 +465,7 @@ function ReleaseForm({
   }
 
   return (
-    <Modal
+    <RecordView
       title={release ? 'Edit release' : 'Log release'}
       subtitle={
         release ? (
@@ -501,7 +501,7 @@ function ReleaseForm({
           {error && <p className="text-sm text-alert">{error}</p>}
         </div>
 
-        <ModalFooter>
+        <RecordFooter>
           {release && (
             <Button
               type="button"
@@ -519,8 +519,8 @@ function ReleaseForm({
           <Button type="submit" variant="primary" disabled={saving}>
             {saving ? 'Saving…' : release ? 'Save changes' : 'Log release'}
           </Button>
-        </ModalFooter>
+        </RecordFooter>
       </form>
-    </Modal>
+    </RecordView>
   )
 }

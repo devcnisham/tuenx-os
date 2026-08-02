@@ -142,7 +142,7 @@ export function Tasks() {
           onChange={(v) => setProjectId(v)}
         />
         <label
-          className={`flex items-center gap-2 rounded-[3px] border px-2 py-1 transition-colors ${
+          className={`flex items-center gap-2 rounded-sm border px-2 py-1 transition-colors ${
             dueBefore ? 'border-ink' : 'border-rule'
           }`}
         >
@@ -312,7 +312,7 @@ function TaskCard({
     <article
       draggable
       onDragStart={(e) => e.dataTransfer.setData('text/plain', task.id)}
-      className="group relative overflow-hidden rounded-[3px] border border-rule bg-paper py-2 pr-2 pl-3 transition-colors hover:border-ink"
+      className="group relative overflow-hidden rounded-sm border border-rule bg-surface py-2 pr-2 pl-3 transition-colors hover:border-ink"
     >
       {/* Division marker — the same colour encoding as the tag. */}
       <span
@@ -474,7 +474,7 @@ export function MoveButton({
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="rounded-[2px] border border-rule px-1.5 leading-4 text-graphite transition-colors enabled:hover:border-ink enabled:hover:text-ink disabled:opacity-25"
+      className="rounded-xs border border-rule px-1.5 leading-4 text-graphite transition-colors enabled:hover:border-ink enabled:hover:text-ink disabled:opacity-25"
     >
       {children}
     </button>

@@ -100,7 +100,7 @@ function ProductCard({ product }: { product: Product }) {
   return (
     <a
       href={href('products', product.id)}
-      className="group flex flex-col rounded-[3px] border border-rule bg-paper p-4 transition-colors hover:border-ink"
+      className="group flex flex-col rounded-sm border border-rule bg-surface p-4 transition-colors hover:border-ink"
     >
       <div className="flex items-start justify-between gap-2">
         <Tag tag={product.tag} size="md" />

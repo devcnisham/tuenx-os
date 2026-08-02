@@ -127,11 +127,11 @@ export function GlobalSearch() {
         onKeyDown={onKeyDown}
         placeholder="Search records…"
         aria-label="Search all records"
-        className="w-full rounded-[3px] border border-rule bg-paper py-1.5 pr-8 pl-2.5 font-mono text-[11px] text-ink placeholder:text-faint transition-colors hover:border-graphite focus:border-ink focus:outline-none"
+        className="w-full rounded-sm border border-rule bg-surface py-1.5 pr-8 pl-2.5 font-mono text-[11px] text-ink placeholder:text-faint transition-colors hover:border-graphite focus:border-ink focus:outline-none"
       />
       <kbd
         aria-hidden
-        className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded-[2px] border border-rule px-1 font-mono text-[9px] text-faint"
+        className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded-xs border border-rule px-1 font-mono text-[9px] text-faint"
       >
         /
       </kbd>
@@ -139,7 +139,7 @@ export function GlobalSearch() {
       {open && (
         // Wider than the rail it sits in — record titles are the thing being
         // read here, and clipping them to 224px defeats the point.
-        <div className="absolute top-full left-0 z-50 mt-1 max-h-96 w-[min(22rem,calc(100vw-2rem))] overflow-y-auto rounded-[3px] border border-ink bg-paper shadow-lg shadow-ink/5">
+        <div className="absolute top-full left-0 z-50 mt-1 max-h-96 w-[min(22rem,calc(100vw-2rem))] overflow-y-auto rounded-sm border border-ink bg-surface shadow-lg shadow-ink/5">
           {hits.length === 0 ? (
             <p className="px-3 py-4 text-center font-mono text-[10px] text-faint">
               Nothing matches “{term}”

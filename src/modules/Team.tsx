@@ -119,7 +119,7 @@ function MemberRow({ member, onEdit }: { member: TeamMember; onEdit: () => void 
     <div className="group flex items-center gap-3 py-2.5">
       {/* Initials plate, set in the member's division treatment. */}
       <span
-        className={`grid size-8 shrink-0 place-items-center rounded-[2px] font-mono text-[11px] font-medium ${
+        className={`grid size-8 shrink-0 place-items-center rounded-xs font-mono text-[11px] font-medium ${
           mark(member.division).tag
         }`}
         aria-hidden

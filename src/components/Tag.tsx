@@ -14,7 +14,7 @@ export function Tag({ tag, size = 'sm' }: { tag: string; size?: 'sm' | 'md' }) {
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-[2px] font-mono font-medium ${m.tag} ${
+      className={`inline-flex shrink-0 items-center rounded-xs font-mono font-medium ${m.tag} ${
         size === 'md' ? 'px-1.5 py-[3px] text-[11px]' : 'px-1 py-px text-[10px]'
       }`}
     >
@@ -36,7 +36,7 @@ export function TagLegend() {
       ).map(([division, code, label]) => (
         <div key={division} className="flex items-center gap-2">
           <dt
-            className={`inline-flex shrink-0 items-center rounded-[2px] px-1 py-px font-mono text-[10px] font-medium ${
+            className={`inline-flex shrink-0 items-center rounded-xs px-1 py-px font-mono text-[10px] font-medium ${
               mark(division).tag
             }`}
           >

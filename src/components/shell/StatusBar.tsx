@@ -44,7 +44,7 @@ export function StatusBar() {
       )}
 
       <span className="ml-auto hidden shrink-0 items-center gap-1 text-faint sm:flex">
-        <kbd className="rounded-[2px] border border-rule px-1">/</kbd>
+        <kbd className="rounded-xs border border-rule px-1">/</kbd>
         to search
       </span>
     </footer>

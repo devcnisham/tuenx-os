@@ -39,13 +39,13 @@ export function TopBar({
   mobileNavOpen: boolean
 }) {
   return (
-    <header className="sticky top-0 z-40 border-b border-ink bg-paper">
+    <header className="sticky top-0 z-40 border-b border-ink bg-surface">
       <div className="flex items-center gap-3 px-3 py-2">
         <a href={href('overview')} className="flex shrink-0 items-baseline gap-1.5">
           <span className="font-display text-base leading-none font-semibold tracking-tight text-ink">
             TUENX
           </span>
-          <span className="rounded-[2px] bg-ink px-1 py-px font-mono text-[9px] font-medium text-paper">
+          <span className="rounded-xs bg-ink px-1 py-px font-mono text-[9px] font-medium text-surface">
             OS
           </span>
         </a>
@@ -63,7 +63,7 @@ export function TopBar({
         <div
           role="group"
           aria-label="Panels"
-          className="hidden shrink-0 overflow-hidden rounded-[3px] border border-rule lg:flex"
+          className="hidden shrink-0 overflow-hidden rounded-sm border border-rule lg:flex"
         >
           {PANELS.map((panel) => (
             <button
@@ -73,7 +73,7 @@ export function TopBar({
               title={`${layout[panel] ? 'Hide' : 'Show'} ${PANEL_LABEL[panel].toLowerCase()}`}
               onClick={() => onToggle(panel)}
               className={`px-1.5 py-1 font-mono text-[10px] transition-colors ${
-                layout[panel] ? 'bg-ink text-paper' : 'bg-paper text-graphite hover:text-ink'
+                layout[panel] ? 'bg-ink text-surface' : 'bg-surface text-graphite hover:text-ink'
               }`}
             >
               {PANEL_LABEL[panel]}
@@ -86,7 +86,7 @@ export function TopBar({
           onClick={onOpenMobileNav}
           aria-expanded={mobileNavOpen}
           aria-label="Toggle navigation"
-          className="shrink-0 rounded-[3px] border border-rule px-2 py-1 font-mono text-[11px] text-ink lg:hidden"
+          className="shrink-0 rounded-sm border border-rule px-2 py-1 font-mono text-[11px] text-ink lg:hidden"
         >
           {mobileNavOpen ? 'Close' : 'Menu'}
         </button>

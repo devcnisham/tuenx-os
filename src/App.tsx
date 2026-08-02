@@ -4,6 +4,7 @@ import { useLayout } from './lib/layout.ts'
 import { mark } from './lib/divisions.ts'
 import { DIVISION_CODE, type Division } from './types.ts'
 import { TagLegend } from './components/Tag.tsx'
+import { Icon, type IconName } from './components/Icon.tsx'
 import { TopBar } from './components/shell/TopBar.tsx'
 import { RightRail } from './components/shell/RightRail.tsx'
 import { StatusBar } from './components/shell/StatusBar.tsx'
@@ -22,63 +23,75 @@ import { Products } from './modules/Products.tsx'
  * division's tag treatment — so the rail teaches the encoding while it
  * navigates.
  */
-const NAV: { group: string; items: { id: ModuleId; label: string; owner: Division }[] }[] = [
+const NAV: {
+  group: string
+  items: { id: ModuleId; label: string; owner: Division; icon: IconName }[]
+}[] = [
   {
     group: 'Group',
     items: [
-      { id: 'overview', label: 'Overview', owner: 'tuenx' },
-      { id: 'tasks', label: 'Tasks', owner: 'tuenx' },
-      { id: 'crm', label: 'CRM', owner: 'tuenx' },
-      { id: 'team', label: 'Team', owner: 'tuenx' },
-      { id: 'treasury', label: 'Treasury', owner: 'tuenx' },
+      { id: 'overview', label: 'Overview', owner: 'tuenx', icon: 'overview' },
+      { id: 'tasks', label: 'Tasks', owner: 'tuenx', icon: 'tasks' },
+      { id: 'crm', label: 'CRM', owner: 'tuenx', icon: 'crm' },
+      { id: 'team', label: 'Team', owner: 'tuenx', icon: 'team' },
+      { id: 'treasury', label: 'Treasury', owner: 'tuenx', icon: 'treasury' },
     ],
   },
   {
     group: 'Agency',
     items: [
-      { id: 'projects', label: 'Projects', owner: 'agency' },
-      { id: 'invoices', label: 'Invoices', owner: 'agency' },
+      { id: 'projects', label: 'Projects', owner: 'agency', icon: 'projects' },
+      { id: 'invoices', label: 'Invoices', owner: 'agency', icon: 'invoices' },
     ],
   },
   {
     group: 'Gaphatch',
-    items: [{ id: 'products', label: 'Products', owner: 'gaphatch' }],
+    items: [{ id: 'products', label: 'Products', owner: 'gaphatch', icon: 'products' }],
   },
 ]
 
 function NavList({ active, onNavigate }: { active: ModuleId; onNavigate?: () => void }) {
   return (
-    <nav className="space-y-4">
+    <nav className="space-y-5">
       {NAV.map(({ group, items }) => (
         <div key={group}>
-          <p className="label-mono mb-1 px-3">{group}</p>
-          {items.map((item) => {
-            const isActive = item.id === active
-            return (
-              <a
-                key={item.id}
-                href={href(item.id)}
-                onClick={onNavigate}
-                aria-current={isActive ? 'page' : undefined}
-                className={`group flex items-center justify-between gap-2 border-l-2 py-1.5 pr-2 pl-3 transition-colors ${
-                  isActive
-                    ? 'border-ink bg-wash text-ink'
-                    : 'border-transparent text-graphite hover:border-rule hover:text-ink'
-                }`}
-              >
-                <span className={`font-display text-sm ${isActive ? 'font-semibold' : ''}`}>
-                  {item.label}
-                </span>
-                <span
-                  className={`shrink-0 rounded-[2px] px-1 py-px font-mono text-[9px] font-medium transition-opacity ${
-                    mark(item.owner).tag
-                  } ${isActive ? 'opacity-100' : 'opacity-45 group-hover:opacity-100'}`}
+          <p className="label-mono mb-1.5 px-4">{group}</p>
+          <div className="space-y-0.5">
+            {items.map((item) => {
+              const isActive = item.id === active
+              return (
+                <a
+                  key={item.id}
+                  href={href(item.id)}
+                  onClick={onNavigate}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`group mx-2 flex items-center gap-2.5 rounded-sm px-2.5 py-2 transition-all duration-150 ${
+                    isActive
+                      ? 'bg-ink text-surface shadow-card'
+                      : 'text-graphite hover:bg-wash hover:text-ink'
+                  }`}
                 >
-                  {DIVISION_CODE[item.owner]}
-                </span>
-              </a>
-            )
-          })}
+                  <Icon
+                    name={item.icon}
+                    size={16}
+                    className={isActive ? '' : 'text-faint group-hover:text-graphite'}
+                  />
+                  <span className={`flex-1 text-sm ${isActive ? 'font-medium' : ''}`}>
+                    {item.label}
+                  </span>
+                  <span
+                    className={`shrink-0 rounded-xs px-1 py-px font-mono text-[9px] font-medium transition-opacity ${
+                      isActive
+                        ? 'bg-surface/20 text-surface'
+                        : `${mark(item.owner).tag} opacity-60 group-hover:opacity-100`
+                    }`}
+                  >
+                    {DIVISION_CODE[item.owner]}
+                  </span>
+                </a>
+              )
+            })}
+          </div>
         </div>
       ))}
     </nav>

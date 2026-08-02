@@ -24,7 +24,7 @@ export function LayoutSwitch({
     <div
       role="group"
       aria-label="Record layout"
-      className="flex shrink-0 overflow-hidden rounded-[3px] border border-rule"
+      className="flex shrink-0 overflow-hidden rounded-sm border border-rule"
     >
       {available.map((layout) => (
         <button
@@ -33,7 +33,7 @@ export function LayoutSwitch({
           aria-pressed={value === layout}
           onClick={() => onChange(layout)}
           className={`px-2 py-1 font-mono text-[10px] transition-colors ${
-            value === layout ? 'bg-ink text-paper' : 'bg-paper text-graphite hover:text-ink'
+            value === layout ? 'bg-ink text-surface' : 'bg-surface text-graphite hover:text-ink'
           }`}
         >
           {RECORD_LAYOUT_LABEL[layout]}

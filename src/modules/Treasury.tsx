@@ -208,7 +208,7 @@ function DivisionBook({ byDivision }: { byDivision: TreasuryData['byDivision'] }
           <div key={d.division}>
             <div className="flex items-center gap-1.5 border-b border-ink pb-2">
               <span
-                className={`shrink-0 rounded-[2px] px-1 py-px font-mono text-[9px] font-medium ${
+                className={`shrink-0 rounded-xs px-1 py-px font-mono text-[9px] font-medium ${
                   mark(d.division).tag
                 }`}
               >

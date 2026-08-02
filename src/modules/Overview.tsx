@@ -143,7 +143,7 @@ function DivisionLedger({ divisions }: { divisions: DivisionSummary[] }) {
         {divisions.map((d) => (
           <div key={d.division} className="flex items-center gap-1.5">
             <span
-              className={`shrink-0 rounded-[2px] px-1 py-px font-mono text-[9px] font-medium ${
+              className={`shrink-0 rounded-xs px-1 py-px font-mono text-[9px] font-medium ${
                 mark(d.division).tag
               }`}
             >

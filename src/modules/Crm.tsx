@@ -208,7 +208,7 @@ function ContactCard({
     <article
       draggable
       onDragStart={(e) => e.dataTransfer.setData('text/plain', contact.id)}
-      className="relative overflow-hidden rounded-[3px] border border-rule bg-paper py-2 pr-2 pl-3 transition-colors hover:border-ink"
+      className="relative overflow-hidden rounded-sm border border-rule bg-surface py-2 pr-2 pl-3 transition-colors hover:border-ink"
     >
       <span
         className="absolute inset-y-0 left-0 w-[3px]"

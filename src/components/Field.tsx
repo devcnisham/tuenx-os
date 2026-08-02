@@ -1,7 +1,7 @@
 import { useId, type ReactNode } from 'react'
 
 const CONTROL =
-  'w-full rounded-[3px] border border-rule bg-paper px-2.5 py-1.5 text-sm text-ink placeholder:text-faint transition-colors hover:border-graphite focus:border-ink focus:outline-none disabled:opacity-50'
+  'w-full rounded-sm border border-rule bg-surface px-2.5 py-1.5 text-sm text-ink placeholder:text-faint transition-colors hover:border-graphite focus:border-ink focus:outline-none disabled:opacity-50'
 
 function Wrapper({
   label,
@@ -152,10 +152,10 @@ export function FilterSelect<T extends string>({
       onChange={(e) => onChange(e.target.value as T | '')}
       // The options keep paper/ink regardless, or an active filter renders
       // black-on-black in the native dropdown.
-      className={`rounded-[3px] border px-2 py-1 font-mono text-[11px] transition-colors focus:outline-none [&>option]:bg-paper [&>option]:text-ink ${
+      className={`rounded-sm border px-2 py-1 font-mono text-[11px] transition-colors focus:outline-none [&>option]:bg-surface [&>option]:text-ink ${
         value
-          ? 'border-ink bg-ink text-paper'
-          : 'border-rule bg-paper text-graphite hover:border-graphite'
+          ? 'border-ink bg-ink text-surface'
+          : 'border-rule bg-surface text-graphite hover:border-graphite'
       }`}
     >
       <option value="">{placeholder}</option>

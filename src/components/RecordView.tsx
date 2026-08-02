@@ -54,7 +54,7 @@ export function RecordView({
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="rounded-[2px] px-1 font-mono text-base leading-none text-faint transition-colors hover:text-ink"
+          className="rounded-xs px-1 font-mono text-base leading-none text-faint transition-colors hover:text-ink"
         >
           ×
         </button>
@@ -64,7 +64,7 @@ export function RecordView({
 
   if (mode === 'full') {
     return (
-      <div className="fixed inset-0 z-50 overflow-y-auto bg-paper">
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-surface">
         <div className="mx-auto min-h-dvh max-w-3xl border-x border-rule">
           {header}
           {children}
@@ -86,7 +86,7 @@ export function RecordView({
           role="dialog"
           aria-modal="true"
           aria-label={title}
-          className="flex h-dvh w-full max-w-md flex-col overflow-y-auto border-l border-ink bg-paper"
+          className="flex h-dvh w-full max-w-md flex-col overflow-y-auto border-l border-ink bg-surface"
         >
           {header}
           {children}
@@ -104,7 +104,7 @@ export function RecordView({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="my-auto flex w-full max-w-xl flex-col rounded-[3px] border border-ink bg-paper"
+        className="my-auto flex w-full max-w-xl flex-col rounded-sm border border-ink bg-surface"
       >
         {header}
         {children}
@@ -124,7 +124,7 @@ function ViewToggle({
     <div
       role="group"
       aria-label="Record view"
-      className="flex overflow-hidden rounded-[3px] border border-rule"
+      className="flex overflow-hidden rounded-sm border border-rule"
     >
       {(
         [
@@ -140,7 +140,7 @@ function ViewToggle({
           aria-pressed={mode === value}
           onClick={() => onChange(value)}
           className={`px-1.5 py-0.5 font-mono text-[10px] transition-colors ${
-            mode === value ? 'bg-ink text-paper' : 'bg-paper text-graphite hover:text-ink'
+            mode === value ? 'bg-ink text-surface' : 'bg-surface text-graphite hover:text-ink'
           }`}
         >
           {label}

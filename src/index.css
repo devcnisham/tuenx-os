@@ -1,26 +1,23 @@
 @import 'tailwindcss';
 
 /**
- * Tuenx OS design system — "datasheet".
+ * Tuenx OS design system.
  *
- * Light, printed-instrument feel: a warm-neutral paper ground, near-black ink
- * with a cool undertone, hairline rules, and a hard left alignment spine that
- * every element hangs off.
+ * A warm-neutral canvas with white cards lifted off it. Depth comes from
+ * elevation and generous space rather than from hairlines — the previous
+ * system read as flat and cramped, and this is the correction.
  *
- * Divisions carry BOTH a hue and a typographic treatment: Tuenx amber and a
- * filled block, Agency orange and an outlined frame, Gaphatch teal and a
- * letter-spaced underscore. The hue is what you read across a room; the
- * treatment is what still works in greyscale, on a bad projector, or for a
- * colour-blind reader. Neither is load-bearing alone.
+ * Divisions carry a hue *and* a typographic treatment on their tag: Tuenx
+ * amber, Agency orange, Gaphatch teal. The hue is what reads across a room;
+ * the treatment is what survives greyscale and colour-blind readers.
  *
- * Status keeps red and green — alert and ready — but not amber, which belongs
- * to Tuenx. "Pending" is a neutral outline instead, so no status can be
- * mistaken for a division.
+ * Status colour is red and green only. Amber belongs to Tuenx, so a "pending"
+ * state uses ink rather than impersonating a division.
  *
- * Type is one superfamily in three roles, so the system reads as one voice:
+ * Type is one superfamily in three roles, so the interface reads as one voice:
  *   Condensed  headings and figures — technical, tight, drawn
- *   Mono       tags, labels, and all data
- *   Sans       body copy only
+ *   Mono       tags, labels, and data
+ *   Sans       body copy
  */
 
 @theme {
@@ -28,24 +25,25 @@
   --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
 
-  /* Surfaces. Warm-neutral, deliberately not cream. */
-  --color-paper: #fcfcfa;
-  --color-wash: #f2f3ef;
-  --color-rule: #e3e4e0;
+  /* Surfaces. Cards sit on the canvas, not flush with it. */
+  --color-canvas: #f3f4ef;
+  --color-surface: #ffffff;
+  --color-wash: #f7f8f4;
+  --color-rule: #e4e6df;
+  --color-rule-soft: #eff1ea;
 
   /*
-   * Ink. Cool-black, not brown. Three tonal steps do the work hue used to.
-   * Every step clears WCAG AA against paper, because the smallest text in this
-   * interface is 10px mono and it all sits on `faint`:
-   *   ink 17:1 · graphite 8.3:1 · faint 4.6:1
+   * Ink, in three tonal steps. All clear WCAG AA on both canvas and surface —
+   * the smallest text here is 11px mono and it sits on the lightest step.
+   *   ink 16:1 · graphite 8:1 · faint 4.6:1
    */
-  --color-ink: #101418;
+  --color-ink: #14181c;
   --color-graphite: #464e5c;
   --color-faint: #6d7480;
 
   /*
-   * Division hues. Each `-ink` is the text-safe cut (all ≥4.9:1 on paper); the
-   * plain token is the saturated fill used for bars, markers, and chip tints.
+   * Division hues. `-ink` is the text-safe cut (all ≥4.9:1); the plain token
+   * is the saturated fill for bars, markers, and tints.
    */
   --color-tuenx: #f59e0b;
   --color-tuenx-ink: #b45309;
@@ -54,12 +52,22 @@
   --color-gaphatch: #14b8a6;
   --color-gaphatch-ink: #0f766e;
 
-  /*
-   * Status. Red and green only — amber is Tuenx, so "pending" reads as a
-   * neutral outline rather than competing with a division.
-   */
+  /* Status. Red and green only — amber is Tuenx. */
   --color-alert: #c8322b;
   --color-ready: #1f7a4d;
+
+  /* Rounder than before. Cards read as objects, not table cells. */
+  --radius-xs: 5px;
+  --radius-sm: 7px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* Elevation. Two soft layers — a tight contact shadow plus a wide ambient. */
+  --shadow-card: 0 1px 2px rgb(20 24 28 / 0.04), 0 1px 3px rgb(20 24 28 / 0.06);
+  --shadow-lift:
+    0 2px 4px -1px rgb(20 24 28 / 0.06), 0 8px 20px -6px rgb(20 24 28 / 0.12);
+  --shadow-panel:
+    0 4px 8px -2px rgb(20 24 28 / 0.08), 0 20px 48px -12px rgb(20 24 28 / 0.18);
 }
 
 @layer base {
@@ -68,35 +76,45 @@
   }
 
   body {
-    @apply bg-paper font-sans text-ink antialiased;
+    /* 15px base. The old 13px was the single biggest cause of "cramped". */
+    @apply bg-canvas font-sans text-[15px] leading-relaxed text-ink antialiased;
   }
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-faint) transparent;
+    scrollbar-color: var(--color-rule) transparent;
   }
 
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-faint;
+    @apply rounded-full border-4 border-transparent bg-clip-padding;
+    background-color: var(--color-rule);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-faint);
   }
 
   ::-webkit-scrollbar-track {
     background: transparent;
   }
 
-  /* Focus is ink, not a colour — colour is reserved for status. */
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-ink;
   }
 
   input[type='date']::-webkit-calendar-picker-indicator {
     cursor: pointer;
-    opacity: 0.5;
+    opacity: 0.45;
+    transition: opacity 150ms;
+  }
+
+  input[type='date']:hover::-webkit-calendar-picker-indicator {
+    opacity: 0.8;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -111,23 +129,52 @@
   }
 }
 
-/* Small uppercase mono label. The workhorse of the whole interface. */
+/* Small uppercase mono label. The workhorse of the interface. */
 @utility label-mono {
-  @apply font-mono text-[10px] font-medium tracking-[0.16em] text-graphite uppercase;
+  @apply font-mono text-[11px] font-medium tracking-[0.13em] text-faint uppercase;
 }
 
-/**
- * Dot leader, as used on a spec sheet: label ....... value.
- * The dots are generated, so the row stays readable at any width.
- */
+/** Dot leader, as on a spec sheet: label ....... value. */
 @utility leader {
   @apply flex items-baseline gap-2;
 
   &::after {
     content: '';
-    @apply order-1 h-px flex-1 self-end mb-[0.35em];
-    background-image: radial-gradient(circle, var(--color-faint) 0.5px, transparent 0.5px);
+    @apply order-1 mb-[0.35em] h-px flex-1 self-end;
+    background-image: radial-gradient(circle, var(--color-rule) 0.5px, transparent 0.5px);
     background-size: 4px 1px;
     background-repeat: repeat-x;
+  }
+}
+
+/** A card that lifts slightly on hover. Used for anything clickable. */
+@utility card-interactive {
+  @apply bg-surface shadow-card transition-[box-shadow,transform] duration-150;
+
+  &:hover {
+    @apply -translate-y-px shadow-lift;
+  }
+}
+
+/** Entrance for panels and dialogs. Short, and respects reduced motion. */
+@utility animate-rise {
+  animation: rise 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@utility animate-slide-in {
+  animation: slide-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
   }
 }

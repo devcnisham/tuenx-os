@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "prisma generate && node scripts/migrate-if-configured.mjs && vite build",
+  "buildCommand": "prisma generate && node scripts/migrate-if-configured.mjs && vite build && node scripts/bundle-api.mjs",
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" }

@@ -12,6 +12,7 @@
 import { PrismaClient } from '@prisma/client'
 import { allocateTag } from '../server/tags.ts'
 import { TAG_TYPE, type Division } from '../src/types.ts'
+import { hashPassword } from '../server/auth.ts'
 
 const prisma = new PrismaClient()
 
@@ -34,6 +35,9 @@ async function main() {
   await prisma.project.deleteMany()
   await prisma.contact.deleteMany()
   await prisma.teamMember.deleteMany()
+  await prisma.session.deleteMany()
+  await prisma.userAccount.deleteMany()
+  await prisma.clientAccount.deleteMany()
   await prisma.message.deleteMany()
   await prisma.channelMember.deleteMany()
   await prisma.channel.deleteMany()
@@ -49,16 +53,16 @@ async function main() {
 
   await prisma.$transaction(async (tx) => {
     // -- Team ---------------------------------------------------------------
-    const people: { name: string; role: string; division: Division; email: string }[] = [
-      { name: 'Nisham', role: 'Founder', division: 'tuenx', email: 'nisham@tuenx.com' },
-      { name: 'Aria Sen', role: 'Operations Lead', division: 'tuenx', email: 'aria@tuenx.com' },
-      { name: 'Dev Rao', role: 'Finance & Admin', division: 'tuenx', email: 'dev@tuenx.com' },
-      { name: 'Maya Iqbal', role: 'Agency Lead', division: 'agency', email: 'maya@tuenx.com' },
-      { name: 'Tomas Lund', role: 'Account Manager', division: 'agency', email: 'tomas@tuenx.com' },
-      { name: 'Priya Nair', role: 'Designer', division: 'agency', email: 'priya@tuenx.com' },
-      { name: 'Kenji Mori', role: 'Product Lead', division: 'gaphatch', email: 'kenji@tuenx.com' },
-      { name: 'Sara Okoye', role: 'Engineer', division: 'gaphatch', email: 'sara@tuenx.com' },
-      { name: 'Luis Ferrer', role: 'Engineer', division: 'gaphatch', email: 'luis@tuenx.com' },
+    const people: { name: string; role: string; division: Division; team: string; email: string }[] = [
+      { name: 'Nisham', role: 'Founder', division: 'tuenx', team: 'leadership', email: 'nisham@tuenx.com' },
+      { name: 'Aria Sen', role: 'Operations Lead', division: 'tuenx', team: 'ops', email: 'aria@tuenx.com' },
+      { name: 'Dev Rao', role: 'Finance & Admin', division: 'tuenx', team: 'finance', email: 'dev@tuenx.com' },
+      { name: 'Maya Iqbal', role: 'Agency Lead', division: 'agency', team: 'leadership', email: 'maya@tuenx.com' },
+      { name: 'Tomas Lund', role: 'Account Manager', division: 'agency', team: 'sales', email: 'tomas@tuenx.com' },
+      { name: 'Priya Nair', role: 'Designer', division: 'agency', team: 'design', email: 'priya@tuenx.com' },
+      { name: 'Kenji Mori', role: 'Product Lead', division: 'gaphatch', team: 'product', email: 'kenji@tuenx.com' },
+      { name: 'Sara Okoye', role: 'Engineer', division: 'gaphatch', team: 'engineering', email: 'sara@tuenx.com' },
+      { name: 'Luis Ferrer', role: 'Engineer', division: 'gaphatch', team: 'engineering', email: 'luis@tuenx.com' },
     ]
 
     const members: Record<string, string> = {}
@@ -505,6 +509,48 @@ tracked separately and does not count against runway.`,
 
 
 
+
+    // -- Accounts -----------------------------------------------------------
+    //
+    // Demo credentials. Every password here is `tuenx1234` — fine for a seeded
+    // local database, and it must never be how a real account is created. The
+    // hash is computed properly through the same scrypt path the login route
+    // uses, so nothing about the storage format is special-cased for the seed.
+    const accountSpecs: { member: string; username: string; role: string }[] = [
+      { member: 'Nisham', username: 'nisham', role: 'admin' },
+      { member: 'Aria Sen', username: 'aria', role: 'admin' },
+      { member: 'Maya Iqbal', username: 'maya', role: 'lead' },
+      { member: 'Kenji Mori', username: 'kenji', role: 'lead' },
+      { member: 'Sara Okoye', username: 'sara', role: 'member' },
+      { member: 'Priya Nair', username: 'priya', role: 'member' },
+    ]
+
+    for (const spec of accountSpecs) {
+      const { passwordHash, passwordSalt } = await hashPassword('tuenx1234')
+      await tx.userAccount.create({
+        data: {
+          memberId: members[spec.member]!,
+          email: `${spec.username}@tuenx.com`,
+          username: spec.username,
+          role: spec.role,
+          passwordHash,
+          passwordSalt,
+        },
+      })
+    }
+
+    // Client portal logins. No password by design — see server/routes/auth.ts.
+    for (const company of ['Northwind Studio', 'Brightline Health', 'Odeon Group']) {
+      const contactId = contactIds[company]
+      if (!contactId) continue
+      const contact = await tx.contact.findUniqueOrThrow({
+        where: { id: contactId },
+        select: { email: true },
+      })
+      if (!contact.email) continue
+      await tx.clientAccount.create({ data: { contactId, email: contact.email.toLowerCase() } })
+    }
+
     // -- Messaging ----------------------------------------------------------
     const channels: { name: string; purpose: string; division: Division; kind: string; members: string[]; messages: { author: string; body: string; minutesAgo: number }[] }[] = [
       {
@@ -742,7 +788,7 @@ tracked separately and does not count against runway.`,
 
   })
 
-  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount, msgCount] = await Promise.all([
+  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount, msgCount, accountCount] = await Promise.all([
     prisma.teamMember.count(),
     prisma.task.count(),
     prisma.contact.count(),
@@ -752,10 +798,11 @@ tracked separately and does not count against runway.`,
     prisma.idea.count(),
     prisma.calendarEntry.count(),
     prisma.message.count(),
+    prisma.userAccount.count(),
   ])
 
   console.log(
-    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries, ${msgCount} messages.`,
+    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries, ${msgCount} messages, ${accountCount} accounts.`,
   )
 }
 

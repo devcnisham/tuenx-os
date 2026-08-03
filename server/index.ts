@@ -1,5 +1,8 @@
 import express from 'express'
 import { errorHandler } from './http.ts'
+import { attachViewer, requireTeam } from './auth.ts'
+import { authRouter } from './routes/auth.ts'
+import { portalRouter } from './routes/portal.ts'
 import { overviewRouter } from './routes/overview.ts'
 import { tasksRouter } from './routes/tasks.ts'
 import { contactsRouter } from './routes/contacts.ts'
@@ -22,18 +25,39 @@ import { searchRouter } from './routes/search.ts'
 /**
  * Tuenx OS API.
  *
- * No authentication — deliberate, per PRD §5 and TRD §5. Phase 9 adds
- * per-person accounts and role-based permissions; until then this binds to
- * localhost and is not intended to be exposed.
+ * Three audiences, three levels of access:
+ *   owner / admin  the full dashboard — every module
+ *   team member    the same API, gated by a signed-in team session
+ *   client         /api/portal only, read-only, scoped to their own records
+ *
+ * Everything below `requireTeam` is default-deny: a route is internal unless
+ * it is mounted above the gate. That ordering *is* the security boundary —
+ * adding a router below it is safe by default, and adding one above it has to
+ * be a deliberate decision.
  */
 const app = express()
 const port = Number(process.env.API_PORT ?? 5174)
 
 app.use(express.json({ limit: '1mb' }))
+app.use(attachViewer)
+
+// --- Open ------------------------------------------------------------------
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true })
 })
+
+// Login, logout, and "who am I" must be reachable before a session exists.
+// Account management inside this router carries its own admin gate.
+app.use('/api/auth', authRouter)
+
+// --- Client portal ---------------------------------------------------------
+// Carries its own requireClient gate, and is the only thing a client can reach.
+app.use('/api/portal', portalRouter)
+
+// --- Team gate -------------------------------------------------------------
+// Everything past this point needs a signed-in team session.
+app.use('/api', requireTeam)
 
 // Phase 1
 app.use('/api/overview', overviewRouter)
@@ -57,14 +81,16 @@ app.use('/api/treasury', treasuryRouter)
 app.use('/api/docs', docsRouter)
 app.use('/api/okrs', okrsRouter)
 
-// Cross-module
-app.use('/api/calendar', calendarRouter)
-app.use('/api/planner', plannerRouter)
-app.use('/api/links', linksRouter)
-app.use('/api/messages', messagesRouter)
+// Task depth — epics, sprints, time
 app.use('/api/work', workRouter)
 
+// Planning and calendar
+app.use('/api/calendar', calendarRouter)
+app.use('/api/planner', plannerRouter)
+
 // Cross-module
+app.use('/api/links', linksRouter)
+app.use('/api/messages', messagesRouter)
 app.use('/api/search', searchRouter)
 
 app.use('/api', (_req, res) => {

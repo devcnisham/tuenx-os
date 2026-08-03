@@ -10,15 +10,20 @@ import {
   sent,
   str,
 } from '../http.ts'
-import { DIVISIONS, TAG_TYPE, isDivision } from '../../src/types.ts'
+import { DIVISIONS, TAG_TYPE, TEAMS, isDivision, isTeam } from '../../src/types.ts'
 
 export const teamRouter = Router()
 
 /** TRD §2 TeamMember. PRD §6: roster with role and division tag. */
 teamRouter.get(
   '/',
-  route(async (_req, res) => {
+  route(async (req, res) => {
+    const { division, team } = req.query
     const members = await prisma.teamMember.findMany({
+      where: {
+        ...(isDivision(division) ? { division } : {}),
+        ...(isTeam(team) ? { team } : {}),
+      },
       orderBy: [{ division: 'asc' }, { name: 'asc' }],
     })
     res.json(members)
@@ -39,6 +44,9 @@ teamRouter.post(
           name: str(body, 'name', 120),
           role: str(body, 'role', 120),
           division,
+          team: body.team === undefined || body.team === null || body.team === ''
+            ? null
+            : oneOf(body, 'team', isTeam, TEAMS),
           email: optionalStr(body, 'email', 200),
         },
       })
@@ -67,6 +75,12 @@ teamRouter.patch(
         ...(sent(body, 'role') && { role: str(body, 'role', 120) }),
         ...(sent(body, 'division') && {
           division: oneOf(body, 'division', isDivision, DIVISIONS),
+        }),
+        ...(sent(body, 'team') && {
+          team:
+            body.team === null || body.team === ''
+              ? null
+              : oneOf(body, 'team', isTeam, TEAMS),
         }),
         ...(sent(body, 'email') && { email: optionalStr(body, 'email', 200) }),
       },

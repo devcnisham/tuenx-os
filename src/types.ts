@@ -262,6 +262,54 @@ export const PLAN_EFFORT_LABEL: Record<PlanEffort, string> = {
 export const PLAN_EFFORT_WEIGHT: Record<PlanEffort, number> = { s: 1, m: 3, l: 8 }
 
 // ---------------------------------------------------------------------------
+// Accounts, roles, and functional teams
+// ---------------------------------------------------------------------------
+
+/** PRD §5 roles. Only `admin` is enforced today, for account management. */
+export const ROLES = ['admin', 'lead', 'member'] as const
+export type Role = (typeof ROLES)[number]
+
+export const ROLE_LABEL: Record<Role, string> = {
+  admin: 'Owner / Admin',
+  lead: 'Division lead',
+  member: 'Member',
+}
+
+/**
+ * Functional teams, orthogonal to division.
+ *
+ * Division says which arm of the group pays for someone; team says what they
+ * do. An Agency designer and a Gaphatch designer are the same craft in
+ * different arms, and collapsing the two axes would lose that.
+ */
+export const TEAMS = [
+  'engineering',
+  'design',
+  'product',
+  'marketing',
+  'sales',
+  'people',
+  'finance',
+  'ops',
+  'support',
+  'leadership',
+] as const
+export type Team = (typeof TEAMS)[number]
+
+export const TEAM_LABEL: Record<Team, string> = {
+  engineering: 'Engineering',
+  design: 'Design',
+  product: 'Product',
+  marketing: 'Marketing',
+  sales: 'Sales',
+  people: 'People',
+  finance: 'Finance',
+  ops: 'Operations',
+  support: 'Support',
+  leadership: 'Leadership',
+}
+
+// ---------------------------------------------------------------------------
 // Messaging
 //
 // Was an explicit non-goal until the founder reversed it — see master plan §7.
@@ -350,7 +398,49 @@ export interface TeamMember {
   name: string
   role: string
   division: Division
+  /** Functional team. Nullable — not everyone slots into one. */
+  team: Team | null
   email: string | null
+  createdAt: string
+}
+
+/** What the API says about whoever is signed in. Never carries a hash. */
+export interface Viewer {
+  kind: 'team' | 'client'
+  account?: {
+    id: string
+    role: Role
+    memberId: string
+    name: string
+    division: Division
+  }
+  client?: {
+    id: string
+    contactId: string
+    name: string
+    company: string | null
+  }
+}
+
+export interface UserAccount {
+  id: string
+  memberId: string
+  member: Pick<TeamMember, 'id' | 'tag' | 'name' | 'division' | 'team'>
+  email: string
+  username: string
+  role: Role
+  active: boolean
+  lastLoginAt: string | null
+  createdAt: string
+}
+
+export interface ClientAccount {
+  id: string
+  contactId: string
+  contact: Pick<Contact, 'id' | 'tag' | 'name' | 'company'>
+  email: string
+  active: boolean
+  lastLoginAt: string | null
   createdAt: string
 }
 
@@ -708,3 +798,5 @@ export const isEntryKind = oneOf(ENTRY_KINDS)
 export const isChannelKind = oneOf(CHANNEL_KINDS)
 export const isEpicStatus = oneOf(EPIC_STATUSES)
 export const isSprintStatus = oneOf(SPRINT_STATUSES)
+export const isRole = oneOf(ROLES)
+export const isTeam = oneOf(TEAMS)

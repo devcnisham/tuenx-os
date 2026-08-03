@@ -156,6 +156,7 @@ model Contact {
 
   projects Project[]
   invoices Invoice[]
+  account  ClientAccount?
 
   @@index([division])
   @@index([stage])
@@ -212,6 +213,17 @@ model TeamMember {
   name      String
   role      String
   division  String // tuenx | agency | gaphatch
+  /// Functional team — engineering, design, marketing, people, finance, ops,
+  /// sales, support, leadership.
+  ///
+  /// Orthogonal to division on purpose. Division says which arm of the group
+  /// pays for someone; team says what they do. An Agency designer and a
+  /// Gaphatch designer are the same craft in different arms, and collapsing
+  /// the two axes would lose that.
+  ///
+  /// Nullable, because not everyone slots neatly into one and forcing a choice
+  /// produces worse data than admitting the gap.
+  team      String?
   email     String?
   createdAt DateTime @default(now())
 
@@ -221,6 +233,7 @@ model TeamMember {
   channelMembers  ChannelMember[]
   messages        Message[]
   timeEntries     TimeEntry[]
+  account         UserAccount?
 
   @@index([division])
 }
@@ -725,6 +738,87 @@ model RecordLink {
   @@unique([fromType, fromId, toType, toId])
   @@index([fromType, fromId])
   @@index([toType, toId])
+}
+
+// ---------------------------------------------------------------------------
+// Accounts and sessions
+//
+// TRD Phase 9 put authentication last. The founder pulled it forward on
+// 2026-08-02 along with a client-facing portal, which PRD §4 had ruled out.
+// Both reversals are recorded in master plan §7.
+// ---------------------------------------------------------------------------
+
+/// A team member's login. One per TeamMember, so the roster stays the single
+/// list of who exists and an account is something a person *has*, not is.
+model UserAccount {
+  id       String     @id @default(cuid())
+  memberId String     @unique
+  member   TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  email    String @unique
+  username String @unique
+
+  /// scrypt. `passwordHash` is the derived key, `passwordSalt` the per-account
+  /// salt — both hex. Never store or log anything recoverable.
+  passwordHash String
+  passwordSalt String
+
+  /// PRD §5 roles. Not enforced anywhere yet beyond admin-only account
+  /// management; the rest of the permission model is still Phase 9 work.
+  role   String // admin | lead | member
+  active Boolean @default(true)
+
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  sessions Session[]
+}
+
+/// A client's login. No password, by the founder's explicit instruction —
+/// possession of the email address is the whole credential.
+///
+/// That is an authentication bypass by design: anyone who knows a client's
+/// email can read that client's invoices, projects, and contract value. It is
+/// acceptable only while this runs on localhost. Adding a code or password
+/// means one more column here and one more check in the login route; nothing
+/// else has to change.
+model ClientAccount {
+  id        String  @id @default(cuid())
+  contactId String  @unique
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  email  String  @unique
+  active Boolean @default(true)
+
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  sessions Session[]
+}
+
+/// A logged-in session.
+///
+/// Server-side rather than a self-contained signed token, so revoking access is
+/// a delete rather than waiting for an expiry. At this scale the extra lookup
+/// per request costs nothing.
+model Session {
+  id    String @id @default(cuid())
+  /// Random, high-entropy, and the only thing the cookie carries.
+  token String @unique
+  kind  String // team | client
+
+  userAccountId String?
+  userAccount   UserAccount? @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+
+  clientAccountId String?
+  clientAccount   ClientAccount? @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userAccountId])
+  @@index([clientAccountId])
+  @@index([expiresAt])
 }
 
 // ---------------------------------------------------------------------------

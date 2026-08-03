@@ -25,7 +25,7 @@ export function RightRail() {
   const latePro = (projects.data ?? []).filter(
     (p) =>
       p.dueDate &&
-      p.status !== 'delivered' &&
+      p.status !== 'closed' &&
       new Date(p.dueDate).getTime() < Date.now(),
   )
 

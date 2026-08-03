@@ -135,7 +135,7 @@ calendarRouter.get(
         detail: p.contact.company ?? p.contact.name,
         kind: 'project' as const,
         division: p.contact.division,
-        open: p.status !== 'delivered',
+        open: p.status !== 'closed',
         route: '#/projects',
       })),
       ...invoices.map((i) => ({

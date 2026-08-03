@@ -6,6 +6,7 @@ import { dateInputValue, money, moneyShort, pluralise } from '../lib/format.ts'
 import {
   CONTACT_STAGES,
   CONTACT_STAGE_LABEL,
+  isContactOpen,
   CONTRACT_TYPES,
   CONTRACT_TYPE_LABEL,
   DIVISIONS,
@@ -48,9 +49,10 @@ export function Crm() {
     [contacts.data],
   )
 
-  // "In play" excludes closed — matching how the Overview rollup counts it.
+  // "In play" excludes anything that has stopped moving — won or lost —
+  // matching how the Overview rollup counts it.
   const openValue = columns
-    .filter((c) => c.stage !== 'closed')
+    .filter((c) => isContactOpen(c.stage))
     .reduce((total, c) => total + c.value, 0)
 
   const moveContact = async (contact: Contact, stage: ContactStage) => {
@@ -100,7 +102,10 @@ export function Crm() {
       ) : contacts.loading ? (
         <Skeleton rows={5} />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        // Eight stages is too many to fit at any width worth designing for, so
+        // the pipeline scrolls sideways with columns wide enough to stay
+        // readable — the same thing every CRM ends up doing.
+        <div className="-mx-1 flex snap-x gap-4 overflow-x-auto px-1 pb-2">
           {columns.map(({ stage, items, value }) => (
             <StageColumn
               key={stage}
@@ -151,6 +156,7 @@ function StageColumn({
 
   return (
     <Panel
+      className={`w-64 shrink-0 snap-start transition-colors ${dragOver ? 'border-ink' : ''}`}
       title={
         <span className="flex items-baseline gap-1.5">
           {CONTACT_STAGE_LABEL[stage]}
@@ -160,7 +166,6 @@ function StageColumn({
       subtitle={
         <span className="font-mono text-[11px] tabular-nums text-ink">{moneyShort(value)}</span>
       }
-      className={`transition-colors ${dragOver ? 'border-ink' : ''}`}
       bodyClassName="p-2 min-h-24"
     >
       <div

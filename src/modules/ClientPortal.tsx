@@ -184,7 +184,7 @@ export function ClientPortal({ viewer, onSignOut }: { viewer: Viewer; onSignOut:
                           due {shortDate(project.dueDate)}
                         </span>
                       )}
-                      <Pill tone={project.status === 'delivered' ? 'ready' : 'neutral'}>
+                      <Pill tone={project.status === 'closed' ? 'ready' : 'neutral'}>
                         {PROJECT_STATUS_LABEL[project.status]}
                       </Pill>
                     </li>

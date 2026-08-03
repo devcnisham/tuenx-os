@@ -100,15 +100,44 @@ export const TASK_PRIORITY_LABEL: Record<TaskPriority, string> = {
   high: 'High',
 }
 
-export const CONTACT_STAGES = ['lead', 'proposal', 'active', 'closed'] as const
+/**
+ * The sales pipeline as the founder's diagram draws it (2026-08-03), plus the
+ * two states the diagram has no box for.
+ *
+ * `discovery`, `signed`, and `onboarding` are the new ones: the diagram splits
+ * the discovery call out of "lead" and names onboarding as its own step, both
+ * of which the old four-stage list buried inside `lead` and `active`.
+ *
+ * `closed` and `lost` are not on the diagram and are kept anyway — a pipeline
+ * with nowhere to put a deal that went away either lies or leaks. `closed`
+ * means closed *won* and finished; every pre-existing `closed` row was a won
+ * one, so the migration leaves them where they are.
+ */
+export const CONTACT_STAGES = [
+  'lead',
+  'discovery',
+  'proposal',
+  'signed',
+  'onboarding',
+  'active',
+  'closed',
+  'lost',
+] as const
 export type ContactStage = (typeof CONTACT_STAGES)[number]
 
 export const CONTACT_STAGE_LABEL: Record<ContactStage, string> = {
-  lead: 'Lead',
-  proposal: 'Proposal',
+  lead: 'New lead',
+  discovery: 'Discovery call',
+  proposal: 'Proposal sent',
+  signed: 'Contract signed',
+  onboarding: 'Onboarding',
   active: 'Active',
-  closed: 'Closed',
+  closed: 'Closed won',
+  lost: 'Lost',
 }
+
+/** Deals that are no longer moving — excluded from pipeline value. */
+export const isContactOpen = (stage: ContactStage) => stage !== 'closed' && stage !== 'lost'
 
 // ---------------------------------------------------------------------------
 // Task depth — epics, sprints, subtasks, time
@@ -146,20 +175,50 @@ export const CONTRACT_TYPE_LABEL: Record<ContractType, string> = {
 }
 
 /**
- * Not enumerated anywhere in the TRD or PRD — chosen here. See ADR-0002.
- * `on_hold` earns its place because Agency work stalls on client sign-off far
- * more often than it fails outright, and that is worth telling apart from
- * active.
+ * The delivery pipeline from the founder's diagram (2026-08-03). See ADR-0002.
+ *
+ * Replaces `planning | active | on_hold | delivered`, where `active` was doing
+ * the work of four distinct stages — kickoff, build, QA, and handoff — which is
+ * exactly the information a status field exists to carry.
+ *
+ * `on_hold` is gone as a *stage* and is now a flag on the project. Work stalls
+ * on client sign-off from any stage, and collapsing that into a status
+ * destroyed the record of which stage it stalled in.
+ *
+ * `support` is the warranty period the diagram ends on, and the moment the
+ * retainer conversation happens. `closed` is after that.
  */
-export const PROJECT_STATUSES = ['planning', 'active', 'on_hold', 'delivered'] as const
+export const PROJECT_STATUSES = [
+  'kickoff',
+  'build',
+  'qa',
+  'handoff',
+  'support',
+  'closed',
+] as const
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number]
 
 export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
-  planning: 'Planning',
-  active: 'Active',
-  on_hold: 'On hold',
-  delivered: 'Delivered',
+  kickoff: 'Kickoff & requirements',
+  build: 'Build',
+  qa: 'QA & review',
+  handoff: 'Delivery & handoff',
+  support: 'Support & warranty',
+  closed: 'Closed',
 }
+
+/** Short forms, for board column heads and chips where the full label wraps. */
+export const PROJECT_STATUS_SHORT: Record<ProjectStatus, string> = {
+  kickoff: 'Kickoff',
+  build: 'Build',
+  qa: 'QA',
+  handoff: 'Handoff',
+  support: 'Support',
+  closed: 'Closed',
+}
+
+/** Finished work. An old due date on one of these is not a problem. */
+export const isProjectClosed = (status: ProjectStatus) => status === 'closed'
 
 export const INVOICE_STATUSES = ['draft', 'sent', 'paid', 'overdue'] as const
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number]
@@ -617,6 +676,8 @@ export interface Project {
   contact: Pick<Contact, 'id' | 'tag' | 'name' | 'company' | 'division'>
   title: string
   status: ProjectStatus
+  /** Stalled where it stands. Orthogonal to status — see ADR-0002. */
+  onHold: boolean
   dueDate: string | null
   createdAt: string
   counts: {

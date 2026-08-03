@@ -171,7 +171,10 @@ model Project {
   contactId String
   contact   Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
   title     String
-  status    String // planning | active | on_hold | delivered
+  status    String // kickoff | build | qa | handoff | support | closed
+  /// Stalled, usually on client sign-off. A flag rather than a status because
+  /// work stalls *from* a stage and has to come back to it — see ADR-0002.
+  onHold    Boolean   @default(false)
   dueDate   DateTime?
   createdAt DateTime  @default(now())
 

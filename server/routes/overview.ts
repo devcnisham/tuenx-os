@@ -36,7 +36,8 @@ overviewRouter.get(
         // Pipeline value excludes closed deals — money still in play, not booked.
         prisma.contact.groupBy({
           by: ['division'],
-          where: { stage: { not: 'closed' } },
+          // Open pipeline: neither won-and-finished nor lost.
+          where: { stage: { notIn: ['closed', 'lost'] } },
           _sum: { value: true },
         }),
         prisma.contact.groupBy({

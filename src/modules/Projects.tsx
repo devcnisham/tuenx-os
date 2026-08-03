@@ -8,6 +8,8 @@ import {
   DIVISION_LABEL,
   PROJECT_STATUSES,
   PROJECT_STATUS_LABEL,
+  PROJECT_STATUS_SHORT,
+  isProjectClosed,
   type Contact,
   type Division,
   type Project,
@@ -50,7 +52,7 @@ export function Projects() {
   )
 
   const liveValue = columns
-    .filter((c) => c.status === 'active' || c.status === 'planning')
+    .filter((c) => !isProjectClosed(c.status))
     .reduce((sum, c) => sum + c.invoiced, 0)
 
   const moveProject = async (project: Project, status: ProjectStatus) => {
@@ -104,7 +106,9 @@ export function Projects() {
       ) : projects.loading ? (
         <Skeleton rows={4} />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        // Six stages will not fit at any width worth designing for, so the
+        // board scrolls sideways with columns wide enough to stay readable.
+        <div className="-mx-1 flex snap-x gap-4 overflow-x-auto px-1 pb-2">
           {columns.map(({ status, items, invoiced }) => (
             <StatusColumn
               key={status}
@@ -156,16 +160,16 @@ function StatusColumn({
 
   return (
     <Panel
+      className={`w-64 shrink-0 snap-start transition-colors ${dragOver ? 'border-ink' : ''}`}
       title={
         <span className="flex items-baseline gap-1.5">
-          {PROJECT_STATUS_LABEL[status]}
+          {PROJECT_STATUS_SHORT[status]}
           <span className="text-faint">{projects.length}</span>
         </span>
       }
       subtitle={
         <span className="font-mono text-[11px] tabular-nums text-ink">{moneyShort(invoiced)}</span>
       }
-      className={`transition-colors ${dragOver ? 'border-ink' : ''}`}
       bodyClassName="p-2 min-h-24"
     >
       <div
@@ -211,7 +215,7 @@ function ProjectCard({
   const index = PROJECT_STATUSES.indexOf(project.status)
   const due = project.dueDate ? dueLabel(project.dueDate) : null
   // Delivered work is finished — an old due date isn't a problem any more.
-  const showDue = due && project.status !== 'delivered'
+  const showDue = due && !isProjectClosed(project.status)
 
   return (
     <article
@@ -227,7 +231,8 @@ function ProjectCard({
 
       <div className="flex items-start justify-between gap-2">
         <Tag tag={project.tag} />
-        {showDue && (
+        {project.onHold && <Pill tone="pending">On hold</Pill>}
+        {showDue && !project.onHold && (
           <Pill tone={due.tone === 'overdue' ? 'alert' : due.tone === 'soon' ? 'pending' : 'neutral'}>
             {due.text}
           </Pill>
@@ -288,7 +293,8 @@ function ProjectForm({
 }) {
   const [title, setTitle] = useState(project?.title ?? '')
   const [contactId, setContactId] = useState(project?.contactId ?? contacts[0]?.id ?? '')
-  const [status, setStatus] = useState<ProjectStatus | ''>(project?.status ?? 'planning')
+  const [status, setStatus] = useState<ProjectStatus | ''>(project?.status ?? 'kickoff')
+  const [onHold, setOnHold] = useState(project?.onHold ?? false)
   const [dueDate, setDueDate] = useState(dateInputValue(project?.dueDate ?? null))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -298,7 +304,7 @@ function ProjectForm({
     setSaving(true)
     setError(null)
     try {
-      const body = { title, contactId, status, dueDate }
+      const body = { title, contactId, status, dueDate, onHold }
       if (project) await api.patch(`/projects/${project.id}`, body)
       else await api.post('/projects', body)
       onSaved()
@@ -362,6 +368,22 @@ function ProjectForm({
             />
             <TextField label="Due date" type="date" value={dueDate} onChange={setDueDate} />
           </div>
+
+          <label className="flex items-start gap-2.5 rounded-sm border border-rule px-3 py-2.5">
+            <input
+              type="checkbox"
+              checked={onHold}
+              onChange={(e) => setOnHold(e.target.checked)}
+              className="mt-0.5 size-3.5 shrink-0 accent-ink"
+            />
+            <span>
+              <span className="text-[13px] text-ink">On hold</span>
+              <span className="mt-0.5 block text-[11px] leading-snug text-faint">
+                Stalled, usually waiting on the client. The project keeps the stage it
+                stopped in rather than losing it — see ADR-0002.
+              </span>
+            </span>
+          </label>
 
           {project && <LinkedRecords type="project" id={project.id} />}
 

@@ -144,32 +144,40 @@ export function App() {
   }, [])
 
   /**
-   * `#/team` and `#/client` open straight into a portal without credentials.
+   * Every route opens without credentials. There is no sign-in step.
    *
-   * The founder asked to drop the login step for now. This mints a real session
-   * through the dev endpoint rather than faking a viewer in the browser, so
-   * every request afterwards is a normally authenticated one and the server's
-   * boundaries still apply — a client landing this way still cannot read
-   * anything but their own records.
+   * Widened on the founder's instruction (2026-08-03) from the previous
+   * behaviour, where only `#/team` and `#/client` skipped the login: any route
+   * now mints a team session, and `#/client` a client one. The sign-in screen
+   * is only reached if this fails.
    *
-   * It also swaps sides: `#/client` while signed in as the team mints a client
-   * session instead of being ignored, and the reverse. Being silently left on
-   * the dashboard you were already on is indistinguishable from a broken link.
+   * It mints a *real* session through the dev endpoint rather than faking a
+   * viewer in the browser, so every request afterwards is a normally
+   * authenticated one and the server's boundaries still hold — a client
+   * landing this way still cannot read anything but their own records. And it
+   * swaps sides: `#/client` while signed in as the team mints a client session
+   * rather than doing nothing.
+   *
+   * The endpoint refuses to work off-machine: it needs `AUTH_BYPASS` and a
+   * loopback address. Set `AUTH_BYPASS=false` to put the password login — which
+   * is untouched underneath this — back in front of everything.
    */
   useEffect(() => {
-    const wanted = hash.replace(/^#\/?/, '').split(/[/?]/)[0]
+    const first = hash.replace(/^#\/?/, '').split(/[/?]/)[0]
+    const wanted = first === 'client' ? 'client' : 'team'
     if (loading || entering) return
-    if (wanted !== 'team' && wanted !== 'client') return
     if (viewer?.kind === wanted) return
+    // A team viewer stays a team viewer everywhere except `#/client`; only an
+    // explicit client route swaps them over.
+    if (viewer?.kind === 'team' && first !== 'client') return
 
     setEntering(true)
     api
-      .post<{ viewer: Viewer }>('/auth/dev-session', {
-        kind: wanted === 'client' ? 'client' : 'team',
-      })
+      .post<{ viewer: Viewer }>('/auth/dev-session', { kind: wanted })
       .then((result) => {
         setViewer(result.viewer)
-        window.location.hash = result.viewer.kind === 'client' ? '#/client' : '#/overview'
+        if (result.viewer.kind === 'client') window.location.hash = '#/client'
+        else if (first === 'team' || first === '') window.location.hash = '#/overview'
       })
       .catch(() => {
         // Bypass switched off, or nothing seeded. Fall through to the sign-in
@@ -179,10 +187,12 @@ export function App() {
   }, [hash, viewer, loading, entering, setViewer])
 
   /**
-   * Signing out has to leave the bypass route as well as the session, or the
-   * effect above mints a new one on the next tick and sign-out does nothing.
+   * Signing out with the bypass on is a round trip to nowhere — the effect
+   * above mints a new session on the next tick. Said plainly rather than
+   * leaving a button that appears to do nothing.
    */
   const handleSignOut = useCallback(() => {
+    if (!confirm('Sign-in is currently bypassed, so this signs you straight back in.\n\nTo really sign out, set AUTH_BYPASS=false and restart the API.')) return
     window.location.hash = '#/overview'
     void signOut()
   }, [signOut])

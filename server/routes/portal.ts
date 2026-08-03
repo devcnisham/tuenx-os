@@ -79,7 +79,7 @@ portalRouter.get(
       totals: {
         outstanding,
         paid: invoices.filter((i) => i.status === 'paid').reduce((s, i) => s + i.amount, 0),
-        openProjects: projects.filter((p) => p.status !== 'delivered').length,
+        openProjects: projects.filter((p) => p.status !== 'closed').length,
       },
     })
   }),

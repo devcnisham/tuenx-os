@@ -143,8 +143,8 @@ async function main() {
       { name: 'Helen Marsh', company: 'Northwind Studio', division: 'agency', stage: 'active', value: 48000, email: 'helen@northwind.co', notes: 'Rebrand + site. Retainer conversation in September.', contractType: 'project', contractValue: 48000, startDate: daysOut(-60), endDate: daysOut(34) },
       { name: 'Owen Baptiste', company: 'Brightline Health', division: 'agency', stage: 'active', value: 36000, email: 'owen@brightline.io', contractType: 'retainer', contractValue: 12000, startDate: daysOut(-70), endDate: daysOut(110) },
       { name: 'Ravi Chandra', company: 'Halcyon Labs', division: 'agency', stage: 'proposal', value: 60000, email: 'ravi@halcyonlabs.com', notes: 'Proposal out this week. Wants a 6-month retainer.' },
-      { name: 'Dana Whitlock', company: 'Ferrous & Co', division: 'agency', stage: 'proposal', value: 22000, email: 'dana@ferrous.co' },
-      { name: 'Ines Duarte', company: 'Cartel Coffee', division: 'agency', stage: 'lead', value: 15000, email: 'ines@cartelcoffee.pt' },
+      { name: 'Dana Whitlock', company: 'Ferrous & Co', division: 'agency', stage: 'onboarding', value: 22000, email: 'dana@ferrous.co' },
+      { name: 'Ines Duarte', company: 'Cartel Coffee', division: 'agency', stage: 'discovery', value: 15000, email: 'ines@cartelcoffee.pt' },
       { name: 'Marcus Bell', company: 'Odeon Group', division: 'agency', stage: 'closed', value: 41000, email: 'marcus@odeongroup.com', notes: 'Closed won, delivered in Q1.', contractType: 'project', contractValue: 41000, startDate: daysOut(-190), endDate: daysOut(-120) },
 
       { name: 'Prof. Amara Diallo', company: 'Ashfield College', division: 'gaphatch', stage: 'proposal', value: 12000, email: 'a.diallo@ashfield.edu', notes: 'Scholr pilot — 400 seats, first institutional deal.' },
@@ -180,13 +180,14 @@ async function main() {
       company: string
       title: string
       status: string
+      onHold?: boolean
       dueDate?: Date
       invoices: { amount: number; status: string; issue: Date; due: Date; notes?: string }[]
     }[] = [
       {
         company: 'Northwind Studio',
         title: 'Northwind rebrand + site build',
-        status: 'active',
+        status: 'build',
         dueDate: daysOut(34),
         invoices: [
           { amount: 24000, status: 'paid', issue: daysOut(-52), due: daysOut(-22), notes: 'Phase 1 — discovery and identity.' },
@@ -196,7 +197,7 @@ async function main() {
       {
         company: 'Brightline Health',
         title: 'Brightline retainer — Q3',
-        status: 'active',
+        status: 'support',
         dueDate: daysOut(58),
         invoices: [
           { amount: 12000, status: 'paid', issue: daysOut(-63), due: daysOut(-33) },
@@ -207,7 +208,7 @@ async function main() {
       {
         company: 'Odeon Group',
         title: 'Odeon campaign — delivered',
-        status: 'delivered',
+        status: 'closed',
         invoices: [
           { amount: 41000, status: 'paid', issue: daysOut(-140), due: daysOut(-110) },
         ],
@@ -215,14 +216,15 @@ async function main() {
       {
         company: 'Ferrous & Co',
         title: 'Ferrous website refresh',
-        status: 'on_hold',
+        status: 'build',
+        onHold: true,
         dueDate: daysOut(75),
         invoices: [],
       },
       {
         company: 'Halcyon Labs',
         title: 'Halcyon retainer — pending signature',
-        status: 'planning',
+        status: 'kickoff',
         dueDate: daysOut(20),
         invoices: [],
       },
@@ -243,6 +245,7 @@ async function main() {
           contactId,
           title: spec.title,
           status: spec.status,
+          onHold: spec.onHold ?? false,
           dueDate: spec.dueDate ?? null,
         },
       })

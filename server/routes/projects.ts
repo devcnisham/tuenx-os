@@ -132,6 +132,7 @@ projectsRouter.post(
           contactId,
           title: str(body, 'title', 200),
           status: oneOf(body, 'status', isProjectStatus, PROJECT_STATUSES),
+          onHold: body.onHold === true,
           dueDate: optionalDate(body, 'dueDate'),
         },
         include: WITH_RELATIONS,
@@ -160,6 +161,8 @@ projectsRouter.patch(
           status: oneOf(body, 'status', isProjectStatus, PROJECT_STATUSES),
         }),
         ...(sent(body, 'contactId') && { contactId: str(body, 'contactId', 60) }),
+        // A held project keeps its stage — that is the point of the flag.
+        ...(sent(body, 'onHold') && { onHold: body.onHold === true }),
         ...(sent(body, 'dueDate') && { dueDate: optionalDate(body, 'dueDate') }),
       },
       include: WITH_RELATIONS,

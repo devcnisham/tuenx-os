@@ -107,6 +107,17 @@ app.use('/api', (_req, res) => {
 
 app.use(errorHandler)
 
-app.listen(port, '127.0.0.1', () => {
-  console.log(`[api] Tuenx OS API listening on http://127.0.0.1:${port}`)
-})
+/**
+ * The Express app itself, for a serverless host to hand requests to.
+ *
+ * Vercel imports this and never calls `listen`; locally we do. The guard is
+ * `VERCEL`, which Vercel sets on every deployment — binding a port inside a
+ * serverless function does nothing useful and logs a confusing error.
+ */
+export default app
+
+if (!process.env.VERCEL) {
+  app.listen(port, '127.0.0.1', () => {
+    console.log(`[api] Tuenx OS API listening on http://127.0.0.1:${port}`)
+  })
+}

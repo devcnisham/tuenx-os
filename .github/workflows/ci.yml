@@ -1,0 +1,42 @@
+# Typecheck and build on every push and pull request.
+#
+# There is no test suite, so this is what "CI" can honestly mean here: the
+# TypeScript project builds, and the Prisma schema is valid. Both catch the
+# class of mistake that actually breaks this repo — a type that drifted between
+# the client and the server, since src/types.ts is imported by both.
+#
+# Deployment is Vercel's git integration rather than a job here: it already
+# builds from this branch, and two things racing to deploy the same commit is
+# how you get a half-deployed app.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The client is generated from the schema, and nothing typechecks
+      # without it.
+      - run: npx prisma generate
+
+      - name: Validate the Prisma schema
+        run: npx prisma validate
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build

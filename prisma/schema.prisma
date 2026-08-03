@@ -15,7 +15,12 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  // Postgres since 2026-08-03, for the Vercel deploy. ADR-0001 named this as
+  // the destination and promised it would be `provider` plus `DATABASE_URL`;
+  // it was. No application code changed — the enums were already TypeScript
+  // unions validated at the API boundary rather than database enums, which is
+  // the thing that would otherwise have made this a rewrite.
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

@@ -1,17 +1,21 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../lib/api.ts'
 import { useResource } from '../lib/useResource.ts'
 import { mark } from '../lib/divisions.ts'
 import {
   CALENDAR_VIEWS,
   CALENDAR_VIEW_LABEL,
+  DAY_START_HOUR,
+  HOUR_PX,
   addDays,
   addMonths,
   daysFor,
   isSameMonth,
   isToday,
   isoDay,
+  miniMonthDays,
   rangeFor,
+  slotFor,
   titleFor,
   WEEKDAY_LABELS,
   type CalendarView,
@@ -27,7 +31,7 @@ import {
   type EntryKind,
 } from '../types.ts'
 import { PageHeader, Toolbar } from '../components/PageHeader.tsx'
-import { Button, EmptyState, ErrorState, Panel, Pill, Skeleton } from '../components/ui.tsx'
+import { Button, ErrorState, Panel, Skeleton } from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextAreaField, TextField } from '../components/Field.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
@@ -39,15 +43,6 @@ const KIND_OPTIONS = ENTRY_KINDS.map((k) => ({ value: k, label: ENTRY_KIND_LABEL
 
 const KINDS = ['task', 'project', 'invoice', 'release', 'contract', 'entry'] as const
 type Kind = (typeof KINDS)[number]
-
-const KIND_LABEL: Record<Kind, string> = {
-  task: 'Task',
-  project: 'Project',
-  invoice: 'Invoice',
-  release: 'Release',
-  contract: 'Contract ends',
-  entry: 'Entry',
-}
 
 interface CalendarEvent {
   id: string
@@ -224,48 +219,66 @@ export function Calendar() {
         </div>
       </Toolbar>
 
-      {calendar.error ? (
-        <ErrorState message={calendar.error} onRetry={calendar.reload} />
-      ) : calendar.loading ? (
-        <Skeleton rows={4} />
-      ) : view === 'day' ? (
-        <DayView
-          day={days[0]!}
-          events={byDay.get(isoDay(days[0]!)) ?? []}
-          onEdit={setEditing}
-          onAdd={() => openNewOn(isoDay(days[0]!))}
-        />
-      ) : (
-        <Panel bodyClassName="p-0">
-          <div className="grid grid-cols-7 border-b border-rule-soft">
-            {WEEKDAY_LABELS.map((label) => (
-              <div key={label} className="px-3 py-2 text-center">
-                <span className="label-mono">{label}</span>
+      {/* Sidebar beside the grid, the way every calendar app is laid out: the
+          month you are looking at, and the month you are jumping to, at once.
+          It drops out below lg, where it would cost more width than it earns. */}
+      <div className="flex gap-5">
+        <aside className="hidden w-56 shrink-0 lg:block">
+          <MiniMonth anchor={anchor} onPick={(d) => setAnchor(d)} />
+
+          <div className="mt-5 border-t border-rule pt-4">
+            <p className="label-mono mb-2">What is on here</p>
+            <Legend />
+          </div>
+        </aside>
+
+        <div className="min-w-0 flex-1">
+          {calendar.error ? (
+            <ErrorState message={calendar.error} onRetry={calendar.reload} />
+          ) : calendar.loading ? (
+            <Skeleton rows={4} />
+          ) : view === 'month' ? (
+            <Panel bodyClassName="p-0">
+              <div className="grid grid-cols-7 border-b border-rule-soft">
+                {WEEKDAY_LABELS.map((label) => (
+                  <div key={label} className="px-3 py-2 text-center">
+                    <span className="label-mono">{label}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <div className="grid grid-cols-7">
-            {days.map((d) => (
-              <DayCell
-                key={d.toISOString()}
-                day={d}
-                events={byDay.get(isoDay(d)) ?? []}
-                muted={view === 'month' && !isSameMonth(d, anchor)}
-                tall={view === 'week'}
-                onDropEvent={(id, day) => {
-                  const dropped = events.find((e) => e.id === id)
-                  if (dropped) moveEvent(dropped, day)
-                }}
-                onAdd={openNewOn}
-                onEditEntry={setEditing}
-              />
-            ))}
-          </div>
-        </Panel>
-      )}
-
-      <Legend />
+              <div className="grid grid-cols-7">
+                {days.map((d) => (
+                  <DayCell
+                    key={d.toISOString()}
+                    day={d}
+                    events={byDay.get(isoDay(d)) ?? []}
+                    muted={!isSameMonth(d, anchor)}
+                    tall={false}
+                    onDropEvent={(id, day) => {
+                      const dropped = events.find((e) => e.id === id)
+                      if (dropped) moveEvent(dropped, day)
+                    }}
+                    onAdd={openNewOn}
+                    onEditEntry={setEditing}
+                  />
+                ))}
+              </div>
+            </Panel>
+          ) : (
+            <TimeGrid
+              days={days}
+              byDay={byDay}
+              onDropEvent={(id, day) => {
+                const dropped = events.find((e) => e.id === id)
+                if (dropped) moveEvent(dropped, day)
+              }}
+              onAdd={openNewOn}
+              onEditEntry={setEditing}
+            />
+          )}
+        </div>
+      </div>
 
       {planning && (
         <MeetingPlanner
@@ -294,6 +307,271 @@ export function Calendar() {
         />
       )}
     </>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/* Mini month                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The little month in the sidebar. Its own anchor, so paging it to look at
+ * November doesn't drag the main grid along until a day is actually picked.
+ */
+function MiniMonth({ anchor, onPick }: { anchor: Date; onPick: (day: Date) => void }) {
+  const [month, setMonth] = useState(anchor)
+
+  // Following the main view when it moves is what makes it a companion rather
+  // than a second, competing control.
+  const shownMonth = isSameMonth(month, anchor) ? month : anchor
+  const days = miniMonthDays(shownMonth)
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between">
+        <span className="font-display text-sm font-semibold text-ink">
+          {shownMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+        </span>
+        <span className="flex gap-0.5">
+          <button
+            type="button"
+            aria-label="Previous month"
+            onClick={() => setMonth(addMonths(shownMonth, -1))}
+            className="rounded-xs px-1 text-faint transition-colors hover:text-ink"
+          >
+            <Icon name="arrowLeft" size={12} />
+          </button>
+          <button
+            type="button"
+            aria-label="Next month"
+            onClick={() => setMonth(addMonths(shownMonth, 1))}
+            className="rounded-xs px-1 text-faint transition-colors hover:text-ink"
+          >
+            <Icon name="arrowRight" size={12} />
+          </button>
+        </span>
+      </div>
+
+      <div className="grid grid-cols-7 gap-y-0.5">
+        {WEEKDAY_LABELS.map((label) => (
+          <span key={label} className="text-center font-mono text-[9px] text-faint">
+            {label.slice(0, 1)}
+          </span>
+        ))}
+
+        {days.map((d) => {
+          const selected = isoDay(d) === isoDay(anchor)
+          const today = isToday(d)
+          return (
+            <button
+              key={d.toISOString()}
+              type="button"
+              onClick={() => onPick(d)}
+              className={`mx-auto grid size-6 place-items-center rounded-full font-mono text-[10px] tabular-nums transition-colors ${
+                selected
+                  ? 'bg-ink text-surface'
+                  : today
+                    ? 'text-ink ring-1 ring-ink'
+                    : isSameMonth(d, shownMonth)
+                      ? 'text-graphite hover:bg-wash hover:text-ink'
+                      : 'text-faint hover:bg-wash'
+              }`}
+            >
+              {d.getDate()}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/* Time grid — day and week                                                   */
+/* -------------------------------------------------------------------------- */
+
+const HOURS = Array.from({ length: 24 }, (_, h) => h)
+
+/**
+ * Hours down the side, days across, events placed where they actually fall.
+ *
+ * Deadlines are the awkward part: almost everything the calendar projects —
+ * a task due date, an invoice, a contract ending — has no time of day, because
+ * it is a deadline rather than an appointment. Dropping them into a 9am slot
+ * would invent information. They sit in the all-day band across the top, which
+ * is exactly the distinction that band exists to draw.
+ */
+function TimeGrid({
+  days,
+  byDay,
+  onDropEvent,
+  onAdd,
+  onEditEntry,
+}: {
+  days: Date[]
+  byDay: Map<string, CalendarEvent[]>
+  onDropEvent: (id: string, day: string) => void
+  onAdd: (day: string) => void
+  onEditEntry: (entry: CalendarEntry) => void
+}) {
+  const scroller = useRef<HTMLDivElement>(null)
+
+  // Open on the working day rather than at midnight. Nobody schedules at 3am,
+  // and eight empty rows is a poor first impression.
+  useEffect(() => {
+    if (scroller.current) scroller.current.scrollTop = DAY_START_HOUR * HOUR_PX
+  }, [])
+
+  const timed = (day: Date) => (byDay.get(isoDay(day)) ?? []).filter((e) => e.startTime)
+  const allDay = (day: Date) => (byDay.get(isoDay(day)) ?? []).filter((e) => !e.startTime)
+
+  return (
+    <Panel bodyClassName="p-0">
+      {/* Day heads */}
+      <div
+        className="grid border-b border-rule-soft"
+        style={{ gridTemplateColumns: `3.5rem repeat(${days.length}, minmax(0, 1fr))` }}
+      >
+        <span />
+        {days.map((d) => (
+          <div key={d.toISOString()} className="px-2 py-2 text-center">
+            <p className="label-mono">{WEEKDAY_LABELS[(d.getDay() + 6) % 7]}</p>
+            <p
+              className={`mx-auto mt-1 grid size-7 place-items-center rounded-full font-display text-sm font-semibold tabular-nums ${
+                isToday(d) ? 'bg-ink text-surface' : 'text-ink'
+              }`}
+            >
+              {d.getDate()}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* All-day band — deadlines, which is most of what this calendar holds */}
+      <div
+        className="grid border-b border-rule bg-wash/50"
+        style={{ gridTemplateColumns: `3.5rem repeat(${days.length}, minmax(0, 1fr))` }}
+      >
+        <span className="px-2 py-1.5 text-right font-mono text-[9px] text-faint">all-day</span>
+        {days.map((d) => (
+          <AllDayCell
+            key={d.toISOString()}
+            day={d}
+            events={allDay(d)}
+            onDropEvent={onDropEvent}
+            onEditEntry={onEditEntry}
+          />
+        ))}
+      </div>
+
+      {/* Hour grid */}
+      <div ref={scroller} className="max-h-[32rem] overflow-y-auto">
+        <div
+          className="relative grid"
+          style={{ gridTemplateColumns: `3.5rem repeat(${days.length}, minmax(0, 1fr))` }}
+        >
+          {/* Hour gutter */}
+          <div className="relative">
+            {HOURS.map((h) => (
+              <div key={h} className="relative" style={{ height: HOUR_PX }}>
+                <span className="absolute -top-1.5 right-2 font-mono text-[9px] text-faint">
+                  {h === 0 ? '' : `${String(h).padStart(2, '0')}:00`}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {days.map((d) => (
+            <div
+              key={d.toISOString()}
+              className="relative border-l border-rule-soft"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault()
+                const id = e.dataTransfer.getData('text/plain')
+                if (id) onDropEvent(id, isoDay(d))
+              }}
+            >
+              {HOURS.map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  aria-label={`Add an entry at ${String(h).padStart(2, '0')}:00`}
+                  onClick={() => onAdd(isoDay(d))}
+                  className="block w-full border-b border-rule-soft transition-colors hover:bg-wash"
+                  style={{ height: HOUR_PX }}
+                />
+              ))}
+
+              {timed(d).map((event) => {
+                const slot = slotFor(event.startTime, event.endTime)
+                if (!slot) return null
+                return (
+                  <div
+                    key={`${event.kind}-${event.id}`}
+                    className="absolute right-1 left-1"
+                    style={{ top: slot.top, height: slot.height }}
+                  >
+                    <EventChip event={event} onEditEntry={onEditEntry} timed />
+                  </div>
+                )
+              })}
+
+              {isToday(d) && <NowLine />}
+            </div>
+          ))}
+        </div>
+      </div>
+    </Panel>
+  )
+}
+
+/** The current time, as a hairline across today. */
+function NowLine() {
+  const now = new Date()
+  const top = ((now.getHours() * 60 + now.getMinutes()) / 60) * HOUR_PX
+  return (
+    <div className="pointer-events-none absolute inset-x-0 z-10" style={{ top }} aria-hidden>
+      <div className="h-px bg-alert" />
+      <div className="absolute -top-1 -left-1 size-2 rounded-full bg-alert" />
+    </div>
+  )
+}
+
+function AllDayCell({
+  day,
+  events,
+  onDropEvent,
+  onEditEntry,
+}: {
+  day: Date
+  events: CalendarEvent[]
+  onDropEvent: (id: string, day: string) => void
+  onEditEntry: (entry: CalendarEntry) => void
+}) {
+  const [dragOver, setDragOver] = useState(false)
+
+  return (
+    <div
+      onDragOver={(e) => {
+        e.preventDefault()
+        setDragOver(true)
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault()
+        setDragOver(false)
+        const id = e.dataTransfer.getData('text/plain')
+        if (id) onDropEvent(id, isoDay(day))
+      }}
+      className={`min-h-9 space-y-0.5 border-l border-rule-soft p-1 transition-colors ${
+        dragOver ? 'bg-wash' : ''
+      }`}
+    >
+      {events.map((event) => (
+        <EventChip key={`${event.kind}-${event.id}`} event={event} onEditEntry={onEditEntry} />
+      ))}
+    </div>
   )
 }
 
@@ -379,9 +657,12 @@ function DayCell({
 function EventChip({
   event,
   onEditEntry,
+  timed = false,
 }: {
   event: CalendarEvent
   onEditEntry: (entry: CalendarEntry) => void
+  /** In the hour grid the chip is positioned and sized by its slot. */
+  timed?: boolean
 }) {
   const overdue = event.open && event.date < isoDay(new Date())
   // Contract terms are not the calendar's to move.
@@ -413,10 +694,17 @@ function EventChip({
         }
       }}
       title={`${event.tag} · ${event.title}${draggable ? ' — drag to move' : ''}`}
-      className={`block truncate rounded-xs border-l-2 py-0.5 pr-1 pl-1.5 text-[11px] leading-tight transition-colors hover:bg-wash ${
-        draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
-      } ${overdue ? 'text-alert' : 'text-ink'}`}
-      style={{ borderLeftColor: `var(--color-${event.division})` }}
+      className={`rounded-xs border-l-2 py-0.5 pr-1 pl-1.5 text-[11px] leading-tight transition-colors ${
+        timed
+          ? 'h-full overflow-hidden bg-surface shadow-card hover:brightness-95'
+          : 'block truncate hover:bg-wash'
+      } ${draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${
+        overdue ? 'text-alert' : 'text-ink'
+      }`}
+      style={{
+        borderLeftColor: `var(--color-${event.division})`,
+        ...(timed && { background: `color-mix(in oklab, var(--color-${event.division}) 14%, var(--color-surface))` }),
+      }}
     >
       {event.startTime && <span className="font-mono text-faint">{event.startTime} </span>}
       {event.title}
@@ -425,91 +713,23 @@ function EventChip({
 }
 
 /** Day view is an agenda, not a grid — one day of cells is mostly empty space. */
-function DayView({
-  day,
-  events,
-  onEdit,
-  onAdd,
-}: {
-  day: Date
-  events: CalendarEvent[]
-  onEdit: (entry: CalendarEntry) => void
-  onAdd: () => void
-}) {
-  if (events.length === 0) {
-    return (
-      <EmptyState
-        icon="calendar"
-        title="Nothing due"
-        hint={`No deadlines land on ${day.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}.`}
-        action={{ label: 'Add an entry', onClick: onAdd }}
-      />
-    )
-  }
-
-  return (
-    <Panel bodyClassName="p-0">
-      <ul className="divide-y divide-rule-soft">
-        {events.map((event) => {
-          const overdue = event.open && event.date < isoDay(new Date())
-          return (
-            <li key={`${event.kind}-${event.id}`}>
-              <button
-                type="button"
-                onClick={async () => {
-                  if (event.kind === 'entry' && event.entryId) {
-                    const entries = await api.get<CalendarEntry[]>('/calendar/entries')
-                    const full = entries.find((e) => e.id === event.entryId)
-                    if (full) onEdit(full)
-                    return
-                  }
-                  window.location.hash = event.route.replace(/^#/, '')
-                }}
-                className="relative flex w-full flex-wrap items-center gap-x-4 gap-y-1 py-3 pr-4 pl-5 text-left transition-colors hover:bg-wash"
-              >
-                <span
-                  className="absolute inset-y-0 left-0 w-[3px]"
-                  style={mark(event.division).fill}
-                  aria-hidden
-                />
-                {event.startTime && (
-                  <span className="w-20 shrink-0 font-mono text-[11px] tabular-nums text-graphite">
-                    {event.startTime}
-                    {event.endTime ? `–${event.endTime}` : ''}
-                  </span>
-                )}
-                <Tag tag={event.tag} />
-                <span className="min-w-0 flex-1 basis-56 truncate text-sm text-ink">
-                  {event.title}
-                </span>
-                {event.detail && (
-                  <span className="font-mono text-[10px] text-faint">{event.detail}</span>
-                )}
-                <Pill tone={overdue ? 'alert' : 'neutral'}>
-                  {overdue ? 'Overdue' : KIND_LABEL[event.kind]}
-                </Pill>
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-    </Panel>
-  )
-}
-
 function Legend() {
   return (
-    <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-[10px] text-faint">
-      <span>Left edge is the division:</span>
+    <div className="space-y-2 font-mono text-[10px] text-faint">
+      <p>Left edge is the division:</p>
       {DIVISIONS.map((d) => (
-        <span key={d} className="flex items-center gap-1.5">
+        <p key={d} className="flex items-center gap-1.5">
           <span className="h-3 w-0.5" style={mark(d).fill} aria-hidden />
           {DIVISION_LABEL[d]}
-        </span>
+        </p>
       ))}
-      <span className="text-alert">Red means past due and still open.</span>
-      <span>Drag to move · double-click a day to add.</span>
-    </p>
+      <p className="text-alert">Red means past due and still open.</p>
+      <p>
+        Deadlines have no time of day, so they sit in the all-day band rather
+        than being dropped into an hour nobody chose.
+      </p>
+      <p>Drag to move · click an hour to add.</p>
+    </div>
   )
 }
 

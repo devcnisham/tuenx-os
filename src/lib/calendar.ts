@@ -91,3 +91,41 @@ export function titleFor(view: CalendarView, anchor: Date): string {
 }
 
 export const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+/* -------------------------------------------------------------------------- */
+/* Time grid                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/** `HH:mm` → minutes past midnight. Anything unparseable is treated as absent. */
+export function minutesOf(time: string | null | undefined): number | null {
+  if (!time) return null
+  const [h, m] = time.split(':').map(Number)
+  if (h === undefined || Number.isNaN(h)) return null
+  return h * 60 + (Number.isNaN(m as number) ? 0 : (m as number))
+}
+
+/** Height of one hour row in the time grid, in pixels. */
+export const HOUR_PX = 44
+
+/** The hours a working day is scrolled to. Earlier hours stay reachable above. */
+export const DAY_START_HOUR = 7
+
+/**
+ * Where a timed event sits in the grid, in pixels from midnight.
+ *
+ * An event with no end time gets a nominal 45 minutes — long enough to hold its
+ * title, short enough not to imply a duration nobody entered.
+ */
+export function slotFor(startTime: string | null | undefined, endTime: string | null | undefined) {
+  const start = minutesOf(startTime)
+  if (start === null) return null
+  const end = minutesOf(endTime)
+  const minutes = end !== null && end > start ? end - start : 45
+  return { top: (start / 60) * HOUR_PX, height: Math.max((minutes / 60) * HOUR_PX, 18) }
+}
+
+/** Every month day plus the leading/trailing days that square off the grid. */
+export function miniMonthDays(anchor: Date): Date[] {
+  const from = startOfWeek(startOfMonth(anchor))
+  return Array.from({ length: 42 }, (_, i) => addDays(from, i))
+}

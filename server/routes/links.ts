@@ -77,6 +77,30 @@ const RESOLVERS = {
     find: (ids: string[]) =>
       prisma.idea.findMany({ where: { id: { in: ids } }, select: { id: true, tag: true, title: true } }),
   },
+  candidate: {
+    label: 'Candidate',
+    route: '#/ops',
+    find: (ids: string[]) =>
+      prisma.candidate.findMany({ where: { id: { in: ids } }, select: { id: true, tag: true, name: true } }),
+  },
+  vendor: {
+    label: 'Vendor',
+    route: '#/ops',
+    find: (ids: string[]) =>
+      prisma.vendor.findMany({ where: { id: { in: ids } }, select: { id: true, tag: true, name: true } }),
+  },
+  campaign: {
+    label: 'Campaign',
+    route: '#/ops',
+    find: (ids: string[]) =>
+      prisma.campaign.findMany({ where: { id: { in: ids } }, select: { id: true, tag: true, title: true } }),
+  },
+  contract: {
+    label: 'Contract',
+    route: '#/ops',
+    find: (ids: string[]) =>
+      prisma.contract.findMany({ where: { id: { in: ids } }, select: { id: true, tag: true, party: true } }),
+  },
 } as const
 
 export type LinkType = keyof typeof RESOLVERS
@@ -98,10 +122,19 @@ async function resolve(refs: { type: LinkType; id: string }[]) {
   await Promise.all(
     [...byType].map(async ([type, ids]) => {
       const rows = await RESOLVERS[type].find(ids)
-      for (const row of rows as { id: string; tag: string; title?: string; name?: string; status?: string }[]) {
+      for (const row of rows as {
+        id: string
+        tag: string
+        title?: string
+        name?: string
+        party?: string
+        status?: string
+      }[]) {
         found.set(`${type}:${row.id}`, {
           tag: row.tag,
-          title: row.title ?? row.name ?? row.status ?? row.tag,
+          // Whatever that record type calls its own label. An invoice has none,
+          // so its status stands in.
+          title: row.title ?? row.name ?? row.party ?? row.status ?? row.tag,
         })
       }
     }),

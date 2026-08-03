@@ -918,7 +918,18 @@ export interface SearchHit {
   tag: string
   title: string
   detail: string | null
-  kind: 'task' | 'contact' | 'member' | 'product' | 'project' | 'invoice' | 'doc'
+  kind:
+    | 'task'
+    | 'contact'
+    | 'member'
+    | 'product'
+    | 'project'
+    | 'invoice'
+    | 'doc'
+    | 'candidate'
+    | 'vendor'
+    | 'campaign'
+    | 'contract'
   route: string
 }
 

@@ -11,7 +11,18 @@ export interface SearchHit {
   title: string
   /** Secondary line — client name, role, assignee, whatever identifies it. */
   detail: string | null
-  kind: 'task' | 'contact' | 'member' | 'product' | 'project' | 'invoice' | 'doc'
+  kind:
+    | 'task'
+    | 'contact'
+    | 'member'
+    | 'product'
+    | 'project'
+    | 'invoice'
+    | 'doc'
+    | 'candidate'
+    | 'vendor'
+    | 'campaign'
+    | 'contract'
   /** Hash route that opens the record's module. */
   route: string
 }
@@ -52,7 +63,19 @@ searchRouter.get(
       { contact: { company: { contains: term } } },
     ]
 
-    const [tasks, contacts, members, products, projects, invoices, docs] = await Promise.all([
+    const [
+      tasks,
+      contacts,
+      members,
+      products,
+      projects,
+      invoices,
+      docs,
+      candidates,
+      vendors,
+      campaigns,
+      contracts,
+    ] = await Promise.all([
       prisma.task.findMany({
         where: byTitleOrTag('title'),
         take: LIMIT_PER_KIND,
@@ -108,6 +131,34 @@ searchRouter.get(
         take: LIMIT_PER_KIND,
         select: { id: true, tag: true, title: true, category: true },
         orderBy: { updatedAt: 'desc' },
+      }),
+      // Phase 6. Leave is deliberately absent — it is identified by the person,
+      // who is already searchable, and a list of holidays in the results would
+      // bury the records people are actually looking for.
+      prisma.candidate.findMany({
+        where: byTitleOrTag('name'),
+        take: LIMIT_PER_KIND,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.vendor.findMany({
+        where: byTitleOrTag('name'),
+        take: LIMIT_PER_KIND,
+        include: { owner: { select: { name: true } } },
+        orderBy: { name: 'asc' },
+      }),
+      prisma.campaign.findMany({
+        where: byTitleOrTag('title'),
+        take: LIMIT_PER_KIND,
+        orderBy: { date: 'desc' },
+      }),
+      // A contract's party is its title — searching a vendor's name should find
+      // the agreement with them, not just the subscription.
+      prisma.contract.findMany({
+        where: {
+          OR: [{ party: { contains: term } }, { tag: { contains: term.toUpperCase() } }],
+        },
+        take: LIMIT_PER_KIND,
+        orderBy: { createdAt: 'desc' },
       }),
     ])
 
@@ -173,6 +224,38 @@ searchRouter.get(
         detail: i.status,
         kind: 'invoice' as const,
         route: '#/invoices',
+      })),
+      ...candidates.map((c) => ({
+        id: c.id,
+        tag: c.tag,
+        title: c.name,
+        detail: c.role,
+        kind: 'candidate' as const,
+        route: '#/ops',
+      })),
+      ...vendors.map((v) => ({
+        id: v.id,
+        tag: v.tag,
+        title: v.name,
+        detail: v.owner?.name ?? 'No owner',
+        kind: 'vendor' as const,
+        route: '#/ops',
+      })),
+      ...campaigns.map((c) => ({
+        id: c.id,
+        tag: c.tag,
+        title: c.title,
+        detail: c.channel,
+        kind: 'campaign' as const,
+        route: '#/ops',
+      })),
+      ...contracts.map((c) => ({
+        id: c.id,
+        tag: c.tag,
+        title: c.party,
+        detail: c.type,
+        kind: 'contract' as const,
+        route: '#/ops',
       })),
     ]
 

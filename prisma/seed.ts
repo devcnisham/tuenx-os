@@ -29,11 +29,19 @@ async function main() {
   // Order matters: children before parents.
   await prisma.roadmapItem.deleteMany()
   await prisma.release.deleteMany()
+  await prisma.campaign.deleteMany()
   await prisma.product.deleteMany()
   await prisma.invoice.deleteMany()
+  await prisma.timeEntry.deleteMany()
   await prisma.task.deleteMany()
+  await prisma.epic.deleteMany()
+  await prisma.sprint.deleteMany()
   await prisma.project.deleteMany()
   await prisma.contact.deleteMany()
+  await prisma.leaveRequest.deleteMany()
+  await prisma.vendor.deleteMany()
+  await prisma.candidate.deleteMany()
+  await prisma.contract.deleteMany()
   await prisma.teamMember.deleteMany()
   await prisma.session.deleteMany()
   await prisma.userAccount.deleteMany()
@@ -786,9 +794,176 @@ tracked separately and does not count against runway.`,
       }
     }
 
+    // -- People & Ops (Phase 6) ---------------------------------------------
+    //
+    // Hiring, time off, vendors, marketing, and the contracts repository. Still
+    // not payroll — master plan §4. Leave records who is away and nothing more.
+    const candidates: {
+      name: string
+      role: string
+      division: Division
+      stage: string
+      source?: string
+      notes?: string
+    }[] = [
+      { name: 'Ines Kabir', role: 'Senior Engineer', division: 'gaphatch', stage: 'interview', source: 'Referral — Sara Okoye', notes: 'Second interview booked. Strong on the data layer.' },
+      { name: 'Tom Alvarez', role: 'Senior Engineer', division: 'gaphatch', stage: 'screening', source: 'Inbound' },
+      { name: 'Rhea Sundaram', role: 'Motion Designer', division: 'agency', stage: 'offer', source: 'Portfolio outreach', notes: 'Offer out. Wants a start date after the 15th.' },
+      { name: 'Callum Boyd', role: 'Motion Designer', division: 'agency', stage: 'passed', source: 'Inbound', notes: 'Good reel, wrong seniority for this role.' },
+      { name: 'Nadia Haddad', role: 'Operations Associate', division: 'tuenx', stage: 'applied', source: 'Referral — Aria Sen' },
+      { name: 'Jonas Weiss', role: 'Account Manager', division: 'agency', stage: 'hired', source: 'Agency', notes: 'Starts next month.' },
+    ]
+
+    for (const candidate of candidates) {
+      const tag = await allocateTag(tx, candidate.division, TAG_TYPE.candidate)
+      await tx.candidate.create({
+        data: {
+          tag,
+          name: candidate.name,
+          role: candidate.role,
+          division: candidate.division,
+          stage: candidate.stage,
+          source: candidate.source ?? null,
+          notes: candidate.notes ?? null,
+        },
+      })
+    }
+
+    const leaves: {
+      member: string
+      type: string
+      status: string
+      start: Date
+      end: Date
+      notes?: string
+    }[] = [
+      { member: 'Aria Sen', type: 'holiday', status: 'approved', start: daysOut(15), end: daysOut(19), notes: 'Already on the calendar.' },
+      { member: 'Priya Nair', type: 'holiday', status: 'requested', start: daysOut(30), end: daysOut(41) },
+      { member: 'Luis Ferrer', type: 'sick', status: 'approved', start: daysOut(-3), end: daysOut(-2) },
+      { member: 'Tomas Lund', type: 'parental', status: 'approved', start: daysOut(45), end: daysOut(105), notes: 'Cover plan needed before the Northwind renewal.' },
+      { member: 'Sara Okoye', type: 'unpaid', status: 'declined', start: daysOut(9), end: daysOut(12), notes: 'Clashes with the Scholr launch week.' },
+    ]
+
+    for (const leave of leaves) {
+      const person = people.find((p) => p.name === leave.member)!
+      const tag = await allocateTag(tx, person.division, TAG_TYPE.leave)
+      await tx.leaveRequest.create({
+        data: {
+          tag,
+          memberId: members[leave.member]!,
+          type: leave.type,
+          status: leave.status,
+          startDate: leave.start,
+          endDate: leave.end,
+          notes: leave.notes ?? null,
+        },
+      })
+    }
+
+    const vendors: {
+      name: string
+      division: Division
+      monthlyCost: number
+      renewal?: Date
+      owner?: string
+      notes?: string
+    }[] = [
+      { name: 'Google Workspace', division: 'tuenx', monthlyCost: 108, renewal: daysOut(22), owner: 'Aria Sen', notes: '9 seats.' },
+      { name: 'Xero', division: 'tuenx', monthlyCost: 70, renewal: daysOut(64), owner: 'Dev Rao' },
+      { name: 'Figma', division: 'agency', monthlyCost: 135, renewal: daysOut(8), owner: 'Priya Nair', notes: '3 editors, 4 viewers.' },
+      { name: 'Adobe Creative Cloud', division: 'agency', monthlyCost: 180, renewal: daysOut(120) },
+      { name: 'Vercel', division: 'gaphatch', monthlyCost: 60, renewal: daysOut(41), owner: 'Luis Ferrer' },
+      { name: 'Sentry', division: 'gaphatch', monthlyCost: 29, renewal: daysOut(97), owner: 'Sara Okoye', notes: 'Bought for the Scholr launch.' },
+      { name: 'Linear', division: 'gaphatch', monthlyCost: 48, owner: 'Kenji Mori', notes: 'Being wound down as Tuenx OS takes over.' },
+    ]
+
+    for (const vendor of vendors) {
+      const tag = await allocateTag(tx, vendor.division, TAG_TYPE.vendor)
+      await tx.vendor.create({
+        data: {
+          tag,
+          name: vendor.name,
+          division: vendor.division,
+          monthlyCost: vendor.monthlyCost,
+          renewalDate: vendor.renewal ?? null,
+          ownerId: vendor.owner ? members[vendor.owner]! : null,
+          notes: vendor.notes ?? null,
+        },
+      })
+    }
+
+    const campaigns: {
+      title: string
+      channel: string
+      division: Division
+      product?: string
+      status: string
+      date: Date
+      notes?: string
+    }[] = [
+      { title: 'Scholr beta waitlist push', channel: 'Email', division: 'gaphatch', product: 'Scholr', status: 'live', date: daysOut(-6), notes: 'Two sends left in the sequence.' },
+      { title: 'Scholr launch announcement', channel: 'Product Hunt', division: 'gaphatch', product: 'Scholr', status: 'planned', date: daysOut(26) },
+      { title: 'Agency case study — Odeon', channel: 'LinkedIn', division: 'agency', status: 'done', date: daysOut(-34) },
+      { title: 'Retainer offer to lapsed clients', channel: 'Email', division: 'agency', status: 'planned', date: daysOut(12) },
+      { title: 'Group hiring post — engineering', channel: 'LinkedIn', division: 'tuenx', status: 'live', date: daysOut(-2) },
+    ]
+
+    for (const campaign of campaigns) {
+      const productId = campaign.product ? productIds[campaign.product] ?? null : null
+      const division = productId ? 'gaphatch' : campaign.division
+      const tag = await allocateTag(tx, division, TAG_TYPE.campaign)
+      await tx.campaign.create({
+        data: {
+          tag,
+          scopeKind: productId ? 'product' : 'division',
+          division,
+          productId,
+          title: campaign.title,
+          channel: campaign.channel,
+          status: campaign.status,
+          date: campaign.date,
+          notes: campaign.notes ?? null,
+        },
+      })
+    }
+
+    const contracts: {
+      party: string
+      division: Division
+      type: string
+      value: number
+      start?: Date
+      end?: Date
+      fileRef?: string
+      notes?: string
+    }[] = [
+      { party: 'Northwind Studio', division: 'agency', type: 'client', value: 48000, start: daysOut(-60), end: daysOut(34), fileRef: '/Shared/Contracts/northwind-rebrand.pdf' },
+      { party: 'Brightline Health', division: 'agency', type: 'client', value: 12000, start: daysOut(-70), end: daysOut(110), fileRef: '/Shared/Contracts/brightline-retainer.pdf', notes: 'Retainer, rolls monthly after the end date.' },
+      { party: 'Odeon Group', division: 'agency', type: 'client', value: 41000, start: daysOut(-190), end: daysOut(-120), notes: 'Delivered and closed.' },
+      { party: 'Adobe', division: 'agency', type: 'vendor', value: 2160, start: daysOut(-245), end: daysOut(120) },
+      { party: 'Jonas Weiss', division: 'agency', type: 'employment', value: 62000, start: daysOut(30), notes: 'Signed, starts next month.' },
+      { party: 'Regus — desk licence', division: 'tuenx', type: 'other', value: 9600, start: daysOut(-120), end: daysOut(245) },
+    ]
+
+    for (const contract of contracts) {
+      const tag = await allocateTag(tx, contract.division, TAG_TYPE.contract)
+      await tx.contract.create({
+        data: {
+          tag,
+          party: contract.party,
+          division: contract.division,
+          type: contract.type,
+          value: contract.value,
+          startDate: contract.start ?? null,
+          endDate: contract.end ?? null,
+          fileRef: contract.fileRef ?? null,
+          notes: contract.notes ?? null,
+        },
+      })
+    }
   })
 
-  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount, msgCount, accountCount] = await Promise.all([
+  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount, msgCount, accountCount, candidateCount, vendorCount, contractCount] = await Promise.all([
     prisma.teamMember.count(),
     prisma.task.count(),
     prisma.contact.count(),
@@ -799,10 +974,13 @@ tracked separately and does not count against runway.`,
     prisma.calendarEntry.count(),
     prisma.message.count(),
     prisma.userAccount.count(),
+    prisma.candidate.count(),
+    prisma.vendor.count(),
+    prisma.contract.count(),
   ])
 
   console.log(
-    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries, ${msgCount} messages, ${accountCount} accounts.`,
+    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries, ${msgCount} messages, ${accountCount} accounts, ${candidateCount} candidates, ${vendorCount} vendors, ${contractCount} contracts.`,
   )
 }
 

@@ -43,6 +43,7 @@ const MODULE_TITLE: Record<ModuleId, string> = {
   brainstorms: 'Brainstorms',
   messages: 'Messages',
   team: 'Team',
+  ops: 'People & Ops',
   users: 'Users',
   products: 'Products',
 }

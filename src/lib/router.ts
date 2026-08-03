@@ -22,6 +22,7 @@ export type ModuleId =
   | 'messages'
   | 'users'
   | 'team'
+  | 'ops'
   | 'products'
 
 export interface Route {
@@ -50,6 +51,7 @@ const MODULES: ModuleId[] = [
   'messages',
   'users',
   'team',
+  'ops',
   'products',
 ]
 

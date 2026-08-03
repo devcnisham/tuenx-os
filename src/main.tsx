@@ -12,7 +12,11 @@ import '@fontsource/ibm-plex-mono/500.css'
 import '@fontsource/ibm-plex-mono/600.css'
 
 import './index.css'
+import { applyStoredTheme } from './lib/theme.ts'
 import { App } from './App.tsx'
+
+// Before the first paint, or the page flashes light and then flips.
+applyStoredTheme()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

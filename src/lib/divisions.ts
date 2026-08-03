@@ -31,6 +31,8 @@ export interface DivisionMark {
 
 export const DIVISION_MARK: Record<Division, DivisionMark> = {
   tuenx: {
+    // Tint + ring rather than a solid fill, so the same chip works on paper and
+    // on a dark ground without a per-theme override.
     tag: 'bg-tuenx/15 text-tuenx-ink ring-1 ring-inset ring-tuenx/40 font-semibold',
     text: 'text-tuenx-ink',
     fill: { background: 'var(--color-tuenx)' },

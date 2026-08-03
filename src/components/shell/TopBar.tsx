@@ -1,6 +1,27 @@
 import { GlobalSearch } from '../GlobalSearch.tsx'
 import { PANELS, type LayoutState, type Panel } from '../../lib/layout.ts'
 import { href, type ModuleId } from '../../lib/router.ts'
+import { THEMES, THEME_LABEL, useTheme } from '../../lib/theme.ts'
+import { Icon } from '../Icon.tsx'
+
+/** Light / dark / follow the OS. Cycles, so it is one control not three. */
+function ThemeSwitch() {
+  const [theme, resolved, setTheme] = useTheme()
+  const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]!
+
+  return (
+    <button
+      type="button"
+      onClick={() => setTheme(next)}
+      title={`Theme: ${THEME_LABEL[theme]}${theme === 'system' ? ` (${resolved})` : ''} — click for ${THEME_LABEL[next]}`}
+      aria-label={`Theme: ${THEME_LABEL[theme]}. Switch to ${THEME_LABEL[next]}`}
+      className="hidden shrink-0 items-center gap-1.5 rounded-sm border border-rule px-2 py-1 font-mono text-[10px] text-graphite transition-colors hover:border-faint hover:text-ink lg:flex"
+    >
+      <Icon name={resolved === 'dark' ? 'clock' : 'overview'} size={12} />
+      {THEME_LABEL[theme]}
+    </button>
+  )
+}
 
 const PANEL_LABEL: Record<Panel, string> = {
   left: 'Nav',
@@ -64,6 +85,8 @@ export function TopBar({
         <div className="ml-auto w-full max-w-xs">
           <GlobalSearch />
         </div>
+
+        <ThemeSwitch />
 
         {/* Panel toggles — the "hide/unhide" control for the whole shell. */}
         <div

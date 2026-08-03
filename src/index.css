@@ -70,9 +70,59 @@
     0 4px 8px -2px rgb(20 24 28 / 0.08), 0 20px 48px -12px rgb(20 24 28 / 0.18);
 }
 
+/**
+ * Dark theme.
+ *
+ * Not the light tokens inverted. Inverting produces pure black and blown-out
+ * accents; this raises the surfaces off a near-black canvas so the same
+ * elevation language still reads, and lifts each division hue to the tint that
+ * stays legible on a dark ground rather than the ink-safe cut used on paper.
+ *
+ * Shadows do almost nothing on a dark ground, so cards separate by surface
+ * lightness instead, with a hairline to hold the edge.
+ */
+:root[data-theme='dark'] {
+  --color-canvas: #0e1013;
+  --color-surface: #17191d;
+  --color-wash: #1e2126;
+  --color-rule: #2b2f36;
+  --color-rule-soft: #23262c;
+
+  /* Never pure white — it vibrates against a dark ground at body size. */
+  --color-ink: #e9ebee;
+  --color-graphite: #a8aeb8;
+  --color-faint: #7c8490;
+
+  /* Division hues, lifted for a dark ground. */
+  --color-tuenx: #f5b13d;
+  --color-tuenx-ink: #f0b357;
+  --color-agency: #fb8a4c;
+  --color-agency-ink: #f89b66;
+  --color-gaphatch: #2dd4bf;
+  --color-gaphatch-ink: #45d8c4;
+
+  --color-alert: #f0736b;
+  --color-ready: #4ec98a;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 0 0 1px rgb(255 255 255 / 0.04);
+  --shadow-lift:
+    0 2px 6px rgb(0 0 0 / 0.5), 0 12px 28px -8px rgb(0 0 0 / 0.55),
+    0 0 0 1px rgb(255 255 255 / 0.06);
+  --shadow-panel:
+    0 8px 24px rgb(0 0 0 / 0.55), 0 24px 60px -12px rgb(0 0 0 / 0.7),
+    0 0 0 1px rgb(255 255 255 / 0.08);
+}
+
 @layer base {
   html {
     color-scheme: light;
+  }
+
+  /* Colours are on custom properties, so a theme swap can be transitioned. */
+  body {
+    transition:
+      background-color 160ms ease,
+      color 160ms ease;
   }
 
   body {

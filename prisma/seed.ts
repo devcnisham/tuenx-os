@@ -516,8 +516,8 @@ tracked separately and does not count against runway.`,
     // local database, and it must never be how a real account is created. The
     // hash is computed properly through the same scrypt path the login route
     // uses, so nothing about the storage format is special-cased for the seed.
-    const accountSpecs: { member: string; username: string; role: string }[] = [
-      { member: 'Nisham', username: 'nisham', role: 'admin' },
+    const accountSpecs: { member: string; username: string; role: string; password?: string }[] = [
+      { member: 'Nisham', username: 'nisham', role: 'admin', password: '11223344' },
       { member: 'Aria Sen', username: 'aria', role: 'admin' },
       { member: 'Maya Iqbal', username: 'maya', role: 'lead' },
       { member: 'Kenji Mori', username: 'kenji', role: 'lead' },
@@ -526,7 +526,7 @@ tracked separately and does not count against runway.`,
     ]
 
     for (const spec of accountSpecs) {
-      const { passwordHash, passwordSalt } = await hashPassword('tuenx1234')
+      const { passwordHash, passwordSalt } = await hashPassword(spec.password ?? 'tuenx1234')
       await tx.userAccount.create({
         data: {
           memberId: members[spec.member]!,

@@ -25,6 +25,7 @@ import { Team } from './modules/Team.tsx'
 import { Products } from './modules/Products.tsx'
 import { SignIn } from './modules/SignIn.tsx'
 import { ClientPortal } from './modules/ClientPortal.tsx'
+import { Users } from './modules/Users.tsx'
 
 /**
  * Nav, grouped by which part of the company a module serves. `owner` is the
@@ -43,6 +44,7 @@ const NAV: {
       { id: 'tasks', label: 'Tasks', owner: 'tuenx', icon: 'tasks' },
       { id: 'crm', label: 'CRM', owner: 'tuenx', icon: 'crm' },
       { id: 'team', label: 'Team', owner: 'tuenx', icon: 'team' },
+      { id: 'users', label: 'Users', owner: 'tuenx', icon: 'crm' },
       { id: 'treasury', label: 'Treasury', owner: 'tuenx', icon: 'treasury' },
       { id: 'docs', label: 'Docs', owner: 'tuenx', icon: 'docs' },
       { id: 'okrs', label: 'OKRs', owner: 'tuenx', icon: 'okrs' },
@@ -217,6 +219,7 @@ function Dashboard({ viewer, onSignOut }: { viewer: Viewer; onSignOut: () => voi
             {route.module === 'brainstorms' && <Brainstorms />}
             {route.module === 'messages' && <Messages />}
             {route.module === 'team' && <Team />}
+            {route.module === 'users' && <Users viewer={viewer} />}
             {route.module === 'products' && <Products productId={route.productId} />}
           </div>
         </main>

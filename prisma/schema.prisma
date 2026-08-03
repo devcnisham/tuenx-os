@@ -608,8 +608,14 @@ model Ticket {
   kind            String    @default("bug")
   status          String // open | pending | resolved
   priority        String // low | medium | high
+  /// Where this came from, when it was not typed here — `gh:1234` for GitHub
+  /// issue 1234. Unique per product, so re-syncing updates rather than
+  /// duplicates.
+  externalId      String?
+  externalUrl     String?
   createdAt       DateTime  @default(now())
 
+  @@unique([productId, externalId])
   @@index([productId])
   @@index([status])
   @@index([customerId])

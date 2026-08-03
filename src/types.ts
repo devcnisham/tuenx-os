@@ -916,6 +916,9 @@ export interface Ticket {
   kind: TicketKind
   status: TicketStatus
   priority: TaskPriority
+  /** `gh:1234` when synced from GitHub, null when typed here. */
+  externalId: string | null
+  externalUrl: string | null
   createdAt: string
 }
 

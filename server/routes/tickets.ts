@@ -13,6 +13,7 @@ import {
   sent,
   str,
 } from '../http.ts'
+import { fetchIssues, kindFor, parseRepo, priorityFor } from '../github.ts'
 import {
   TAG_TYPE,
   TASK_PRIORITIES,
@@ -154,5 +155,79 @@ ticketsRouter.delete(
     }
     await prisma.ticket.delete({ where: { id: req.params.id } })
     res.status(204).end()
+  }),
+)
+
+/* -------------------------------------------------------------------------- */
+/* GitHub sync                                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Pulls a product's GitHub issues into its queue.
+ *
+ * One-directional. GitHub owns anything it knows about — title, body, labels,
+ * open/closed — and a re-sync overwrites those fields on rows it created. It
+ * never touches a ticket somebody typed here, and it never writes back to
+ * GitHub, because a two-way sync that gets a conflict wrong quietly reopens
+ * issues people deliberately closed.
+ *
+ * Closed on GitHub becomes `resolved`; `pending` is a state GitHub does not
+ * have, so a synced ticket parked in pending goes back to open or resolved on
+ * the next sync. Said here rather than discovered later.
+ */
+ticketsRouter.post(
+  '/sync/:productId',
+  route(async (req, res) => {
+    const product = await resolveProduct(req.params.productId)
+    if (!product.repoUrl) {
+      throw badRequest('This product has no repository link — add one on the product first')
+    }
+
+    const { owner, repo } = parseRepo(product.repoUrl)
+    const { issues, truncated } = await fetchIssues(owner, repo)
+
+    let created = 0
+    let updated = 0
+
+    for (const issue of issues) {
+      const externalId = `gh:${issue.number}`
+      const existing = await prisma.ticket.findFirst({
+        where: { productId: product.id, externalId },
+        select: { id: true },
+      })
+
+      const fields = {
+        subject: issue.title.slice(0, 200),
+        body: issue.body ? issue.body.slice(0, 4000) : null,
+        kind: kindFor(issue.labels),
+        status: issue.state === 'closed' ? 'resolved' : 'open',
+        priority: priorityFor(issue.labels),
+        externalUrl: issue.html_url,
+      }
+
+      if (existing) {
+        await prisma.ticket.update({ where: { id: existing.id }, data: fields })
+        updated += 1
+      } else {
+        await prisma.$transaction(async (tx) => {
+          const tag = await allocateTag(tx, 'gaphatch', TAG_TYPE.ticket)
+          await tx.ticket.create({
+            data: { tag, productId: product.id, externalId, ...fields },
+          })
+        })
+        created += 1
+      }
+    }
+
+    res.json({
+      repo: `${owner}/${repo}`,
+      created,
+      updated,
+      total: issues.length,
+      // Reported rather than hidden: a silent cap reads as "that is all of
+      // them", which is exactly the wrong thing to believe about a backlog.
+      truncated,
+      authenticated: Boolean(process.env.GITHUB_TOKEN),
+    })
   }),
 )

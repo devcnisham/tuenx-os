@@ -158,7 +158,7 @@ export function ProductDetail({ productId }: { productId: string }) {
         )}
       </section>
 
-      <Issues productId={productId} />
+      <Issues productId={productId} repoUrl={p.repoUrl} />
 
       <Panel
         title="Releases"
@@ -571,11 +571,39 @@ const TICKET_KIND_TONE: Record<TicketKind, PillTone> = {
  * that has to be asked for, since the useful question is almost always "what
  * is still open".
  */
-function Issues({ productId }: { productId: string }) {
+function Issues({ productId, repoUrl }: { productId: string; repoUrl: string | null }) {
   const [showResolved, setShowResolved] = useState(false)
   const [editing, setEditing] = useState<Ticket | 'new' | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncNote, setSyncNote] = useState<string | null>(null)
 
   const tickets = useResource<Ticket[]>(() => api.get('/tickets', { productId }), [productId])
+
+  /** One-directional: GitHub owns what it knows, nothing is written back. */
+  const sync = async () => {
+    setSyncing(true)
+    setSyncNote(null)
+    try {
+      const result = await api.post<{
+        repo: string
+        created: number
+        updated: number
+        total: number
+        truncated: boolean
+        authenticated: boolean
+      }>(`/tickets/sync/${productId}`, {})
+      setSyncNote(
+        `${result.repo}: ${result.created} new, ${result.updated} updated, ${result.total} issues` +
+          (result.truncated ? ' — stopped at 200, there are more' : '') +
+          (result.authenticated ? '' : ' · unauthenticated, 60 requests an hour'),
+      )
+      tickets.reload()
+    } catch (err) {
+      setSyncNote(err instanceof Error ? err.message : 'Sync failed')
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const all = tickets.data ?? []
   const open = all.filter((t) => t.status !== 'resolved')
@@ -611,6 +639,16 @@ function Issues({ productId }: { productId: string }) {
                 {showResolved ? 'Hide resolved' : 'Show resolved'}
               </Button>
             )}
+            {repoUrl && (
+              <Button
+                size="sm"
+                onClick={sync}
+                disabled={syncing}
+                title={`Pull issues from ${repoUrl}`}
+              >
+                {syncing ? 'Pulling…' : 'Pull from GitHub'}
+              </Button>
+            )}
             <Button size="sm" onClick={() => setEditing('new')}>
               + Report
             </Button>
@@ -618,6 +656,12 @@ function Issues({ productId }: { productId: string }) {
         }
         bodyClassName="p-0"
       >
+        {syncNote && (
+          <p className="border-b border-rule-soft bg-wash px-4 py-2 font-mono text-[10px] text-graphite">
+            {syncNote}
+          </p>
+        )}
+
         {tickets.error ? (
           <div className="p-4">
             <ErrorState message={tickets.error} onRetry={tickets.reload} />
@@ -649,9 +693,22 @@ function Issues({ productId }: { productId: string }) {
                   {ticket.subject}
                 </button>
 
-                <span className="shrink-0 font-mono text-[10px] text-faint">
-                  {ticket.customerContact ?? '—'}
-                </span>
+                {ticket.externalUrl ? (
+                  <a
+                    href={ticket.externalUrl}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    onClick={(e) => e.stopPropagation()}
+                    className="shrink-0 font-mono text-[10px] text-graphite underline-offset-2 hover:text-ink hover:underline"
+                    title="Open on GitHub"
+                  >
+                    {ticket.externalId?.replace('gh:', '#')}
+                  </a>
+                ) : (
+                  <span className="shrink-0 font-mono text-[10px] text-faint">
+                    {ticket.customerContact ?? '—'}
+                  </span>
+                )}
                 <Pill tone={ticket.priority === 'high' ? 'alert' : 'neutral'}>
                   {TASK_PRIORITY_LABEL[ticket.priority]}
                 </Pill>

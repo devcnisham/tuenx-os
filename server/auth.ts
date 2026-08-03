@@ -78,6 +78,18 @@ export function readCookie(req: Request, name: string): string | null {
   return null
 }
 
+/**
+ * `Secure` on anything that is not plain-http localhost.
+ *
+ * It cannot be unconditional: on `http://localhost` a Secure cookie is never
+ * set at all, so the whole app would fail to sign anyone in. It also cannot be
+ * omitted once this is served over HTTPS, so it is a switch rather than a
+ * decision — set `COOKIE_SECURE=true` (or `NODE_ENV=production`) wherever this
+ * is deployed. See `docs/DEPLOYING.md`.
+ */
+const SECURE_COOKIE =
+  process.env.COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production'
+
 export function setSessionCookie(res: Response, token: string) {
   res.setHeader(
     'Set-Cookie',
@@ -85,19 +97,20 @@ export function setSessionCookie(res: Response, token: string) {
       `${SESSION_COOKIE}=${encodeURIComponent(token)}`,
       'Path=/',
       // httpOnly so a script on the page cannot read it, SameSite=Lax so it is
-      // not sent on cross-site requests. Secure is omitted deliberately: this
-      // runs on http://localhost, where Secure would stop the cookie being set
-      // at all. It MUST be added before this is served over anything but
-      // localhost.
+      // not sent on cross-site requests.
       'HttpOnly',
       'SameSite=Lax',
+      ...(SECURE_COOKIE ? ['Secure'] : []),
       `Max-Age=${SESSION_DAYS * 24 * 60 * 60}`,
     ].join('; '),
   )
 }
 
 export function clearSessionCookie(res: Response) {
-  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`)
+  res.setHeader(
+    'Set-Cookie',
+    `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax${SECURE_COOKIE ? '; Secure' : ''}; Max-Age=0`,
+  )
 }
 
 export interface Viewer {

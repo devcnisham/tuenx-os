@@ -179,6 +179,12 @@ Ordered by value per unit of work, not by the numbering above:
 
 ## 6. Still open
 
-1. **Cap table (30)** — for Tuenx itself? Not excluded, not planned
+1. **Compliance has no module.** The founder confirmed (2026-08-03) that Tuenx
+   handles legal, accounts, finance, and compliance for the whole group. The
+   first three have homes — the contracts repository, Treasury, Invoices. There
+   is no register of obligations, filings, or their deadlines. Smallest useful
+   version: a `ComplianceItem` with an owner, a recurrence, and a next-due
+   date, projected onto the calendar the way every other deadline already is
+2. **Cap table (30)** — for Tuenx itself? Not excluded, not planned
 2. **Tag alphabet** — 26 of 26 letters used. Phase 7's three types are the last free reservations (`S`, `Z`, `U`). Anything after that needs two-letter codes or shared letters
 3. **`lead` vs `member`** — the PM row in the team diagram is the case for making them differ

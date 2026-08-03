@@ -18,6 +18,22 @@ Tuenx Technologies — parent / holding / management entity
 > company-wide modules (Overview, Tasks, CRM, Team, and later Docs, People/Ops,
 > Contracts, KPIs). The scope decisions in §4 are unaffected: still
 > internal-only, still no external LPs or portfolio.
+>
+> **Extended 2026-08-03 by the founder:** *"Tuenx handles all the legal,
+> accounts, finance, compliance and all."* So the back office is Tuenx's
+> entirely, not split per division — legal and contracts, accounts and finance,
+> and compliance. Agency and Gaphatch run delivery and product; they do not
+> keep their own books or their own contracts.
+>
+> This is already how the app is built — Treasury, Invoices, Docs, and the
+> contracts repository are all Tuenx-owned, and every record carries the
+> division it *relates to* rather than the division that files it. The one
+> thing it adds is that **compliance has no home yet**: there is no register of
+> obligations, filings, or deadlines. Not built, not scheduled — see
+> `docs/tuenx-os-v2-scope.md` §6.
+>
+> Payroll and tax filing stay out regardless (§4). Handling the finance
+> function is not the same as becoming the filing software for it.
 
 Team: 6–15 people. Mixed model — some people are dedicated to one division, others work across both. Every person is tagged with a division: `Tuenx` (shared/cross-division), `Agency`, or `Gaphatch`.
 

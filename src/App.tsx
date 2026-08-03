@@ -72,6 +72,23 @@ const NAV: {
   },
 ]
 
+/**
+ * Which portal a hostname means.
+ *
+ * `client.tuenx.com` opens the client portal, `admin.` and `team.` the
+ * internal app, and anything else (localhost, an IP, a preview URL) is
+ * internal too. A subdomain is a better front door than a URL fragment: it is
+ * what you can put in an email to a client, and it keeps the two audiences
+ * from ever seeing each other's entry point.
+ *
+ * This decides the *default portal*, not access. The boundary is still the
+ * server's — a client session gets 403 from every internal route whatever
+ * hostname it arrived on.
+ */
+function portalForHost(): 'team' | 'client' {
+  return window.location.hostname.split('.')[0] === 'client' ? 'client' : 'team'
+}
+
 function NavList({ active, onNavigate }: { active: ModuleId; onNavigate?: () => void }) {
   return (
     <nav className="space-y-5">
@@ -164,7 +181,12 @@ export function App() {
    */
   useEffect(() => {
     const first = hash.replace(/^#\/?/, '').split(/[/?]/)[0]
-    const wanted = first === 'client' ? 'client' : 'team'
+    // `client.tuenx.com` is the client portal without anyone typing a route;
+    // `admin.` and `team.` are the internal app. The hash still wins, so
+    // `client.…/#/team` works for whoever is testing both sides.
+    const wanted = first === 'client' || (first !== 'team' && portalForHost() === 'client')
+      ? 'client'
+      : 'team'
     if (loading || entering) return
     if (viewer?.kind === wanted) return
     // A team viewer stays a team viewer everywhere except `#/client`; only an

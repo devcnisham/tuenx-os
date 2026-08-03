@@ -18,6 +18,7 @@ const KIND_LABEL: Record<SearchHit['kind'], string> = {
   contract: 'Contract',
   epic: 'Epic',
   sprint: 'Sprint',
+  ticket: 'Issue',
 }
 
 /**

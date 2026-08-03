@@ -21,6 +21,7 @@ import { calendarRouter } from './routes/calendar.ts'
 import { plannerRouter } from './routes/planner.ts'
 import { linksRouter } from './routes/links.ts'
 import { messagesRouter } from './routes/messages.ts'
+import { ticketsRouter } from './routes/tickets.ts'
 import { workRouter } from './routes/work.ts'
 import { searchRouter } from './routes/search.ts'
 
@@ -84,6 +85,9 @@ app.use('/api/treasury', treasuryRouter)
 // Phase 5
 app.use('/api/docs', docsRouter)
 app.use('/api/okrs', okrsRouter)
+
+// Phase 7 — bugs, issues, and feature requests per product
+app.use('/api/tickets', ticketsRouter)
 
 // Task depth — epics, sprints, time
 app.use('/api/work', workRouter)

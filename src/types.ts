@@ -297,6 +297,26 @@ export const CONTRACT_KIND_LABEL: Record<ContractKind, string> = {
 // Phase 7 — Gaphatch customer-facing
 // ---------------------------------------------------------------------------
 
+/**
+ * What kind of thing came in.
+ *
+ * Bugs and features are tracked in the same queue on purpose: they compete for
+ * the same week of the same engineer, and splitting them into two systems is
+ * how a bug list quietly becomes something nobody opens. The kind changes how
+ * it is read, not where it lives.
+ *
+ * A `feature` that survives triage should become a roadmap item — the same
+ * promotion an idea gets in Brainstorms.
+ */
+export const TICKET_KINDS = ['bug', 'issue', 'feature'] as const
+export type TicketKind = (typeof TICKET_KINDS)[number]
+
+export const TICKET_KIND_LABEL: Record<TicketKind, string> = {
+  bug: 'Bug',
+  issue: 'Issue',
+  feature: 'Feature request',
+}
+
 export const TICKET_STATUSES = ['open', 'pending', 'resolved'] as const
 export type TicketStatus = (typeof TICKET_STATUSES)[number]
 
@@ -884,6 +904,21 @@ export interface CompanyContract {
   createdAt: string
 }
 
+export interface Ticket {
+  id: string
+  tag: string
+  productId: string
+  product: Pick<Product, 'id' | 'tag' | 'name'>
+  customerId: string | null
+  customerContact: string | null
+  subject: string
+  body: string | null
+  kind: TicketKind
+  status: TicketStatus
+  priority: TaskPriority
+  createdAt: string
+}
+
 export interface FundEntry {
   id: string
   tag: string
@@ -920,6 +955,10 @@ export interface Product {
   name: string
   status: ProductStatus
   description: string | null
+  /** The live site, or staging while it is still building. */
+  url: string | null
+  /** Where the code lives. */
+  repoUrl: string | null
   createdAt: string
   counts: {
     roadmapTotal: number
@@ -993,6 +1032,7 @@ export interface SearchHit {
     | 'contract'
     | 'epic'
     | 'sprint'
+    | 'ticket'
   route: string
 }
 
@@ -1031,5 +1071,6 @@ export const isLeaveType = oneOf(LEAVE_TYPES)
 export const isLeaveStatus = oneOf(LEAVE_STATUSES)
 export const isCampaignStatus = oneOf(CAMPAIGN_STATUSES)
 export const isContractKind = oneOf(CONTRACT_KINDS)
+export const isTicketKind = oneOf(TICKET_KINDS)
 export const isTicketStatus = oneOf(TICKET_STATUSES)
 export const isSubscriptionStatus = oneOf(SUBSCRIPTION_STATUSES)

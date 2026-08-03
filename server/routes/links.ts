@@ -95,6 +95,12 @@ const RESOLVERS = {
     find: (ids: string[]) =>
       prisma.campaign.findMany({ where: { id: { in: ids } }, select: { id: true, tag: true, title: true } }),
   },
+  ticket: {
+    label: 'Issue',
+    route: '#/products',
+    find: (ids: string[]) =>
+      prisma.ticket.findMany({ where: { id: { in: ids } }, select: { id: true, tag: true, subject: true } }),
+  },
   epic: {
     label: 'Epic',
     route: '#/work',
@@ -139,6 +145,7 @@ async function resolve(refs: { type: LinkType; id: string }[]) {
         tag: string
         title?: string
         name?: string
+        subject?: string
         party?: string
         status?: string
       }[]) {
@@ -146,7 +153,7 @@ async function resolve(refs: { type: LinkType; id: string }[]) {
           tag: row.tag,
           // Whatever that record type calls its own label. An invoice has none,
           // so its status stands in.
-          title: row.title ?? row.name ?? row.party ?? row.status ?? row.tag,
+          title: row.title ?? row.name ?? row.subject ?? row.party ?? row.status ?? row.tag,
         })
       }
     }),

@@ -96,6 +96,8 @@ productsRouter.post(
           name: str(body, 'name', 120),
           status: oneOf(body, 'status', isProductStatus, PRODUCT_STATUSES),
           description: optionalStr(body, 'description', 2000),
+          url: optionalStr(body, 'url', 500),
+          repoUrl: optionalStr(body, 'repoUrl', 500),
         },
         include: WITH_COUNTS,
       })
@@ -123,6 +125,8 @@ productsRouter.patch(
         ...(sent(body, 'description') && {
           description: optionalStr(body, 'description', 2000),
         }),
+        ...(sent(body, 'url') && { url: optionalStr(body, 'url', 500) }),
+        ...(sent(body, 'repoUrl') && { repoUrl: optionalStr(body, 'repoUrl', 500) }),
       },
       include: WITH_COUNTS,
     })

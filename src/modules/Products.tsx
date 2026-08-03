@@ -19,6 +19,7 @@ import {
   type PillTone,
 } from '../components/ui.tsx'
 import { SelectField, TextAreaField, TextField } from '../components/Field.tsx'
+import { Icon } from '../components/Icon.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
 import { ProductDetail } from './ProductDetail.tsx'
@@ -97,11 +98,11 @@ function ProductCard({ product }: { product: Product }) {
   const { roadmapTotal, roadmapShipped, releases } = product.counts
   const progress = roadmapTotal === 0 ? 0 : (roadmapShipped / roadmapTotal) * 100
 
+  // A div, not an anchor: the card carries external links of its own now, and
+  // an anchor inside an anchor is invalid and behaves unpredictably. The title
+  // is the link into the product instead.
   return (
-    <a
-      href={href('products', product.id)}
-      className="group flex flex-col rounded-sm border border-rule bg-surface p-4 transition-colors hover:border-ink"
-    >
+    <div className="group flex flex-col rounded-sm border border-rule bg-surface p-4 transition-colors hover:border-ink">
       <div className="flex items-start justify-between gap-2">
         <Tag tag={product.tag} size="md" />
         <Pill tone={PRODUCT_STATUS_TONE[product.status]}>
@@ -109,9 +110,12 @@ function ProductCard({ product }: { product: Product }) {
         </Pill>
       </div>
 
-      <h2 className="mt-3 font-display text-xl leading-none font-semibold text-ink underline-offset-4 group-hover:underline">
+      <a
+        href={href('products', product.id)}
+        className="mt-3 font-display text-xl leading-none font-semibold text-ink underline-offset-4 group-hover:underline"
+      >
         {product.name}
-      </h2>
+      </a>
 
       {product.description && (
         <p className="mt-2 line-clamp-2 text-[13px] leading-snug text-graphite">
@@ -136,8 +140,49 @@ function ProductCard({ product }: { product: Product }) {
           <span className="label-mono order-0">Releases</span>
           <span className="order-2 font-mono text-[11px] tabular-nums text-ink">{releases}</span>
         </div>
+
+        <ProductLinks product={product} />
       </div>
-    </a>
+    </div>
+  )
+}
+
+/**
+ * The product's own links — where it runs, and where its code is.
+ *
+ * `noreferrer` and a new tab because these leave the app entirely. Shown only
+ * when set: an empty "Live" chip that goes nowhere is worse than no chip.
+ */
+export function ProductLinks({ product }: { product: Product }) {
+  if (!product.url && !product.repoUrl) return null
+
+  return (
+    <div className="mt-3 flex flex-wrap gap-1.5 border-t border-rule-soft pt-3">
+      {product.url && (
+        <a
+          href={product.url}
+          target="_blank"
+          rel="noreferrer noopener"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex items-center gap-1 rounded-xs border border-rule px-1.5 py-0.5 font-mono text-[10px] text-graphite transition-colors hover:border-ink hover:text-ink"
+        >
+          <Icon name="arrowRight" size={10} />
+          {product.status === 'live' ? 'Live site' : 'Staging'}
+        </a>
+      )}
+      {product.repoUrl && (
+        <a
+          href={product.repoUrl}
+          target="_blank"
+          rel="noreferrer noopener"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex items-center gap-1 rounded-xs border border-rule px-1.5 py-0.5 font-mono text-[10px] text-graphite transition-colors hover:border-ink hover:text-ink"
+        >
+          <Icon name="arrowRight" size={10} />
+          Repo
+        </a>
+      )}
+    </div>
   )
 }
 
@@ -155,6 +200,8 @@ export function ProductForm({
   const [name, setName] = useState(product?.name ?? '')
   const [status, setStatus] = useState<ProductStatus | ''>(product?.status ?? 'planning')
   const [description, setDescription] = useState(product?.description ?? '')
+  const [url, setUrl] = useState(product?.url ?? '')
+  const [repoUrl, setRepoUrl] = useState(product?.repoUrl ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -163,7 +210,7 @@ export function ProductForm({
     setSaving(true)
     setError(null)
     try {
-      const body = { name, status, description }
+      const body = { name, status, description, url, repoUrl }
       if (product) await api.patch(`/products/${product.id}`, body)
       else await api.post('/products', body)
       onSaved()
@@ -221,6 +268,20 @@ export function ProductForm({
             onChange={setDescription}
             rows={3}
             placeholder="What it is, and who it's for."
+          />
+
+          <TextField
+            label="Live link"
+            value={url}
+            onChange={setUrl}
+            placeholder="https://scholr.app"
+            hint="The live site, or the staging URL while it is still building."
+          />
+          <TextField
+            label="Repository"
+            value={repoUrl}
+            onChange={setRepoUrl}
+            placeholder="https://github.com/…"
           />
 
           {error && <p className="text-sm text-alert">{error}</p>}

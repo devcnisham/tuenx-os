@@ -25,6 +25,7 @@ export interface SearchHit {
     | 'contract'
     | 'epic'
     | 'sprint'
+    | 'ticket'
   /** Hash route that opens the record's module. */
   route: string
 }
@@ -79,6 +80,7 @@ searchRouter.get(
       contracts,
       epics,
       sprints,
+      tickets,
     ] = await Promise.all([
       prisma.task.findMany({
         where: byTitleOrTag('title'),
@@ -174,6 +176,20 @@ searchRouter.get(
         where: byTitleOrTag('name'),
         take: LIMIT_PER_KIND,
         orderBy: { startDate: 'desc' },
+      }),
+      // Phase 7. Body-searchable like docs — a bug is usually remembered by
+      // what it did, not by its subject line.
+      prisma.ticket.findMany({
+        where: {
+          OR: [
+            { subject: { contains: term } },
+            { body: { contains: term } },
+            { tag: { contains: term.toUpperCase() } },
+          ],
+        },
+        take: LIMIT_PER_KIND,
+        include: { product: { select: { id: true, name: true } } },
+        orderBy: { createdAt: 'desc' },
       }),
     ])
 
@@ -287,6 +303,14 @@ searchRouter.get(
         detail: s.goal,
         kind: 'sprint' as const,
         route: `#/tasks?sprint=${s.id}`,
+      })),
+      ...tickets.map((t) => ({
+        id: t.id,
+        tag: t.tag,
+        title: t.subject,
+        detail: `${t.kind} · ${t.product.name}`,
+        kind: 'ticket' as const,
+        route: `#/products/${t.productId}`,
       })),
     ]
 

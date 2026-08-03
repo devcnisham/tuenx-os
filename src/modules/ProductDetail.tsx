@@ -8,16 +8,35 @@ import {
   PRODUCT_STATUS_LABEL,
   ROADMAP_STATUSES,
   ROADMAP_STATUS_LABEL,
+  TASK_PRIORITIES,
+  TASK_PRIORITY_LABEL,
+  TICKET_KINDS,
+  TICKET_KIND_LABEL,
+  TICKET_STATUSES,
+  TICKET_STATUS_LABEL,
   type Product,
   type Release,
   type RoadmapItem,
   type RoadmapStatus,
+  type TaskPriority,
+  type Ticket,
+  type TicketKind,
+  type TicketStatus,
 } from '../types.ts'
-import { Button, EmptyState, ErrorState, Panel, Pill, Skeleton } from '../components/ui.tsx'
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  Panel,
+  Pill,
+  Skeleton,
+  type PillTone,
+} from '../components/ui.tsx'
+import { LinkedRecords } from '../components/LinkedRecords.tsx'
 import { SelectField, TextAreaField, TextField } from '../components/Field.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
-import { PRODUCT_STATUS_TONE, ProductForm } from './Products.tsx'
+import { PRODUCT_STATUS_TONE, ProductForm, ProductLinks } from './Products.tsx'
 import { MoveButton } from './Tasks.tsx'
 
 const ROADMAP_OPTIONS = ROADMAP_STATUSES.map((s) => ({ value: s, label: ROADMAP_STATUS_LABEL[s] }))
@@ -102,6 +121,7 @@ export function ProductDetail({ productId }: { productId: string }) {
               {p.counts.roadmapShipped}/{p.counts.roadmapTotal} roadmap items shipped ·{' '}
               {pluralise(p.counts.releases, 'release')}
             </p>
+            <ProductLinks product={p} />
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
@@ -136,6 +156,8 @@ export function ProductDetail({ productId }: { productId: string }) {
           </div>
         )}
       </section>
+
+      <Issues productId={productId} />
 
       <Panel
         title="Releases"
@@ -518,6 +540,280 @@ function ReleaseForm({
           </Button>
           <Button type="submit" variant="primary" disabled={saving}>
             {saving ? 'Saving…' : release ? 'Save changes' : 'Log release'}
+          </Button>
+        </RecordFooter>
+      </form>
+    </RecordView>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/* Issues — bugs, issues, feature requests                                    */
+/* -------------------------------------------------------------------------- */
+
+const TICKET_KIND_TONE: Record<TicketKind, PillTone> = {
+  bug: 'alert',
+  issue: 'pending',
+  feature: 'neutral',
+}
+
+/**
+ * Phase 7's queue, on the product it belongs to.
+ *
+ * One list for bugs, issues, and feature requests rather than three. They
+ * compete for the same week of the same engineer, and a separate bug tracker
+ * is how a bug list becomes something nobody opens. The kind is a chip, not a
+ * filing cabinet.
+ *
+ * Resolved tickets are hidden by default and counted in the header — history
+ * that has to be asked for, since the useful question is almost always "what
+ * is still open".
+ */
+function Issues({ productId }: { productId: string }) {
+  const [showResolved, setShowResolved] = useState(false)
+  const [editing, setEditing] = useState<Ticket | 'new' | null>(null)
+
+  const tickets = useResource<Ticket[]>(() => api.get('/tickets', { productId }), [productId])
+
+  const all = tickets.data ?? []
+  const open = all.filter((t) => t.status !== 'resolved')
+  const shown = showResolved ? all : open
+  const bugs = open.filter((t) => t.kind === 'bug').length
+
+  const move = async (ticket: Ticket, status: TicketStatus) => {
+    const previous = all
+    tickets.set(previous.map((t) => (t.id === ticket.id ? { ...t, status } : t)))
+    try {
+      await api.patch(`/tickets/${ticket.id}`, { status })
+    } catch {
+      tickets.set(previous)
+    }
+  }
+
+  return (
+    <>
+      <Panel
+        className="mb-6"
+        title="Issues"
+        subtitle={
+          <span className="font-mono text-[10px] text-faint">
+            {open.length} open
+            {bugs > 0 && <span className="text-alert"> · {pluralise(bugs, 'bug')}</span>}
+            {all.length > open.length && ` · ${all.length - open.length} resolved`}
+          </span>
+        }
+        actions={
+          <>
+            {all.length > open.length && (
+              <Button size="sm" variant="subtle" onClick={() => setShowResolved((v) => !v)}>
+                {showResolved ? 'Hide resolved' : 'Show resolved'}
+              </Button>
+            )}
+            <Button size="sm" onClick={() => setEditing('new')}>
+              + Report
+            </Button>
+          </>
+        }
+        bodyClassName="p-0"
+      >
+        {tickets.error ? (
+          <div className="p-4">
+            <ErrorState message={tickets.error} onRetry={tickets.reload} />
+          </div>
+        ) : tickets.loading ? (
+          <div className="p-4">
+            <Skeleton rows={2} />
+          </div>
+        ) : shown.length === 0 ? (
+          <p className="px-4 py-8 text-center font-mono text-[11px] text-faint">
+            {all.length === 0
+              ? 'Nothing reported. Bugs, issues, and feature requests all land here.'
+              : 'Nothing open.'}
+          </p>
+        ) : (
+          <ul className="divide-y divide-rule-soft">
+            {shown.map((ticket) => (
+              <li key={ticket.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5">
+                <Tag tag={ticket.tag} />
+                <Pill tone={TICKET_KIND_TONE[ticket.kind]}>{TICKET_KIND_LABEL[ticket.kind]}</Pill>
+
+                <button
+                  type="button"
+                  onClick={() => setEditing(ticket)}
+                  className={`min-w-0 flex-1 basis-64 truncate text-left text-[13px] underline-offset-2 hover:underline ${
+                    ticket.status === 'resolved' ? 'text-faint line-through' : 'text-ink'
+                  }`}
+                >
+                  {ticket.subject}
+                </button>
+
+                <span className="shrink-0 font-mono text-[10px] text-faint">
+                  {ticket.customerContact ?? '—'}
+                </span>
+                <Pill tone={ticket.priority === 'high' ? 'alert' : 'neutral'}>
+                  {TASK_PRIORITY_LABEL[ticket.priority]}
+                </Pill>
+                <Pill tone={ticket.status === 'resolved' ? 'ready' : 'pending'}>
+                  {TICKET_STATUS_LABEL[ticket.status]}
+                </Pill>
+
+                <span className="flex shrink-0 gap-1 font-mono text-[10px]">
+                  <MoveButton
+                    label={`Move ${ticket.tag} back`}
+                    disabled={TICKET_STATUSES.indexOf(ticket.status) === 0}
+                    onClick={() =>
+                      move(ticket, TICKET_STATUSES[TICKET_STATUSES.indexOf(ticket.status) - 1]!)
+                    }
+                  >
+                    ←
+                  </MoveButton>
+                  <MoveButton
+                    label={`Move ${ticket.tag} forward`}
+                    disabled={TICKET_STATUSES.indexOf(ticket.status) === TICKET_STATUSES.length - 1}
+                    onClick={() =>
+                      move(ticket, TICKET_STATUSES[TICKET_STATUSES.indexOf(ticket.status) + 1]!)
+                    }
+                  >
+                    →
+                  </MoveButton>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+
+      {editing && (
+        <TicketForm
+          productId={productId}
+          ticket={editing === 'new' ? null : editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null)
+            tickets.reload()
+          }}
+        />
+      )}
+    </>
+  )
+}
+
+function TicketForm({
+  productId,
+  ticket,
+  onClose,
+  onSaved,
+}: {
+  productId: string
+  ticket: Ticket | null
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [subject, setSubject] = useState(ticket?.subject ?? '')
+  const [body, setBody] = useState(ticket?.body ?? '')
+  const [kind, setKind] = useState<TicketKind | ''>(ticket?.kind ?? 'bug')
+  const [status, setStatus] = useState<TicketStatus | ''>(ticket?.status ?? 'open')
+  const [priority, setPriority] = useState<TaskPriority | ''>(ticket?.priority ?? 'medium')
+  const [customerContact, setCustomerContact] = useState(ticket?.customerContact ?? '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setError(null)
+    try {
+      const payload = { productId, subject, body, kind, status, priority, customerContact }
+      if (ticket) await api.patch(`/tickets/${ticket.id}`, payload)
+      else await api.post('/tickets', payload)
+      onSaved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save')
+      setSaving(false)
+    }
+  }
+
+  const remove = async () => {
+    if (!ticket || !confirm(`Delete ${ticket.tag}? This cannot be undone.`)) return
+    setSaving(true)
+    try {
+      await api.del(`/tickets/${ticket.id}`)
+      onSaved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete')
+      setSaving(false)
+    }
+  }
+
+  return (
+    <RecordView
+      title={ticket ? 'Edit issue' : 'Report an issue'}
+      subtitle={
+        ticket ? (
+          <Tag tag={ticket.tag} />
+        ) : (
+          <span className="font-mono text-[10px] text-faint">Tagged on save, e.g. GPH-S004</span>
+        )
+      }
+      onClose={onClose}
+    >
+      <form onSubmit={submit}>
+        <div className="space-y-4 px-4 py-4">
+          <TextField label="Subject" value={subject} onChange={setSubject} required autoFocus />
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <SelectField
+              label="Kind"
+              value={kind}
+              options={TICKET_KINDS.map((k) => ({ value: k, label: TICKET_KIND_LABEL[k] }))}
+              onChange={setKind}
+            />
+            <SelectField
+              label="Status"
+              value={status}
+              options={TICKET_STATUSES.map((t) => ({ value: t, label: TICKET_STATUS_LABEL[t] }))}
+              onChange={setStatus}
+            />
+            <SelectField
+              label="Priority"
+              value={priority}
+              options={TASK_PRIORITIES.map((p) => ({ value: p, label: TASK_PRIORITY_LABEL[p] }))}
+              onChange={setPriority}
+            />
+          </div>
+
+          <TextField
+            label="Reported by"
+            value={customerContact}
+            onChange={setCustomerContact}
+            placeholder="Name or email"
+            hint="Free text until the customer base exists — a reporter who is not a tracked customer still has to go somewhere."
+          />
+
+          <TextAreaField
+            label="Detail"
+            value={body}
+            onChange={setBody}
+            rows={5}
+            placeholder="What happened, and what should have happened."
+          />
+
+          {ticket && <LinkedRecords type="ticket" id={ticket.id} />}
+
+          {error && <p className="text-sm text-alert">{error}</p>}
+        </div>
+
+        <RecordFooter>
+          {ticket && (
+            <Button type="button" variant="danger" onClick={remove} disabled={saving} className="mr-auto">
+              Delete
+            </Button>
+          )}
+          <Button type="button" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary" disabled={saving}>
+            {saving ? 'Saving…' : ticket ? 'Save changes' : 'Report it'}
           </Button>
         </RecordFooter>
       </form>

@@ -253,6 +253,12 @@ model Product {
   name        String
   status      String // planning | building | live
   description String?
+  /// Where the product actually lives — the live site, or the staging URL
+  /// while it is still building. A link, not an embed.
+  url         String?
+  /// Where its code lives. Kept separate from `url` because the two are read
+  /// by different people for different reasons.
+  repoUrl     String?
   createdAt   DateTime @default(now())
 
   roadmapItems RoadmapItem[]
@@ -597,6 +603,9 @@ model Ticket {
   customerContact String?
   subject         String
   body            String?
+  /// bug | issue | feature — see TICKET_KINDS. Bugs and feature requests share
+  /// one queue because they compete for the same week of the same engineer.
+  kind            String    @default("bug")
   status          String // open | pending | resolved
   priority        String // low | medium | high
   createdAt       DateTime  @default(now())

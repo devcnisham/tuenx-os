@@ -27,6 +27,7 @@ const daysOut = (n: number) => {
 async function main() {
   console.log('Clearing existing data…')
   // Order matters: children before parents.
+  await prisma.ticket.deleteMany()
   await prisma.roadmapItem.deleteMany()
   await prisma.release.deleteMany()
   await prisma.campaign.deleteMany()
@@ -531,13 +532,26 @@ tracked separately and does not count against runway.`,
       name: string
       status: string
       description: string
+      url?: string
+      repoUrl?: string
       roadmap: { title: string; status: string }[]
       releases: { version: string; notes: string; date: Date }[]
+      tickets?: { subject: string; kind: string; status: string; priority: string; reporter?: string; body?: string }[]
     }[] = [
       {
         name: 'Scholr',
         status: 'building',
         description: 'Academic tracking for students and tutors. The one product in active development.',
+        url: 'https://staging.scholr.app',
+        repoUrl: 'https://github.com/devcnisham/scholr',
+        tickets: [
+          { subject: 'Signup fails silently on slow connections', kind: 'bug', status: 'open', priority: 'high', reporter: 'a.diallo@ashfield.edu', body: 'Reported during the Ashfield pilot. The form posts twice and the second call 409s, but nothing is shown to the user.' },
+          { subject: 'Session expires mid-form and loses the entry', kind: 'bug', status: 'pending', priority: 'high', reporter: 'beta tester #12' },
+          { subject: 'Term dates are wrong for southern-hemisphere schools', kind: 'issue', status: 'open', priority: 'medium', reporter: 'a.diallo@ashfield.edu' },
+          { subject: 'Export grades to CSV', kind: 'feature', status: 'open', priority: 'medium', reporter: 'Lattice Tutoring', body: 'Asked for twice. Worth a roadmap item if a third person asks.' },
+          { subject: 'Dark mode', kind: 'feature', status: 'open', priority: 'low', reporter: 'beta tester #4' },
+          { subject: 'Dashboard slow above 200 assignments', kind: 'bug', status: 'resolved', priority: 'medium', body: 'Fixed in 0.3.0 — the projection query was running per row.' },
+        ],
         roadmap: [
           { title: 'Assignment tracker', status: 'shipped' },
           { title: 'Grade projections', status: 'shipped' },
@@ -556,6 +570,7 @@ tracked separately and does not count against runway.`,
       {
         name: 'Vespor',
         status: 'planning',
+        repoUrl: 'https://github.com/devcnisham/vespor',
         description: 'Second Gaphatch product. Scoping in progress, no build started.',
         roadmap: [
           { title: 'Define the core loop', status: 'building' },
@@ -582,10 +597,29 @@ tracked separately and does not count against runway.`,
           name: spec.name,
           status: spec.status,
           description: spec.description,
+          url: spec.url ?? null,
+          repoUrl: spec.repoUrl ?? null,
         },
       })
 
       productIds[spec.name] = product.id
+
+      // Phase 7. Bugs, issues, and feature requests share one queue.
+      for (const ticket of spec.tickets ?? []) {
+        const tag = await allocateTag(tx, 'gaphatch', TAG_TYPE.ticket)
+        await tx.ticket.create({
+          data: {
+            tag,
+            productId: product.id,
+            subject: ticket.subject,
+            body: ticket.body ?? null,
+            kind: ticket.kind,
+            status: ticket.status,
+            priority: ticket.priority,
+            customerContact: ticket.reporter ?? null,
+          },
+        })
+      }
 
       for (const item of spec.roadmap) {
         const tag = await allocateTag(tx, 'gaphatch', TAG_TYPE.roadmap)
@@ -1181,7 +1215,7 @@ tracked separately and does not count against runway.`,
     }
   })
 
-  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount, msgCount, accountCount, candidateCount, vendorCount, contractCount, epicCount, sprintCount, timeCount] = await Promise.all([
+  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount, msgCount, accountCount, candidateCount, vendorCount, contractCount, epicCount, sprintCount, timeCount, ticketCount] = await Promise.all([
     prisma.teamMember.count(),
     prisma.task.count(),
     prisma.contact.count(),
@@ -1198,10 +1232,11 @@ tracked separately and does not count against runway.`,
     prisma.epic.count(),
     prisma.sprint.count(),
     prisma.timeEntry.count(),
+    prisma.ticket.count(),
   ])
 
   console.log(
-    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries, ${msgCount} messages, ${accountCount} accounts, ${candidateCount} candidates, ${vendorCount} vendors, ${contractCount} contracts, ${epicCount} epics, ${sprintCount} sprints, ${timeCount} time entries.`,
+    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries, ${msgCount} messages, ${accountCount} accounts, ${candidateCount} candidates, ${vendorCount} vendors, ${contractCount} contracts, ${epicCount} epics, ${sprintCount} sprints, ${timeCount} time entries, ${ticketCount} issues.`,
   )
 }
 

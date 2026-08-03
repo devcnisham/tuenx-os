@@ -7,21 +7,7 @@ Internal operations platform for Tuenx Technologies — one place to run the who
 - **Agency** — service-based, client work (name still a placeholder)
 - **Gaphatch** — product-based, builds SaaS tools; one product in active development
 
-Internal-only. Not multi-tenant, not a product for other companies. See [`docs/tuenx-os-master-plan.md`](docs/tuenx-os-master-plan.md) §4.
-
-## Status
-
-| Phase | Scope | State |
-|---|---|---|
-| 1 | Overview, Tasks, CRM, Team | ✅ Built |
-| 2 | Gaphatch Products, per-product roadmap, releases | ✅ Built |
-| 3 | Agency contract terms, Projects, Invoicing | ✅ Built |
-| 4 | Tuenx Treasury — income, spend, allocation, runway | ✅ Built |
-| 5–9 | OKRs/Docs, People/Ops, Support/Metrics, KPIs, Auth | Planned |
-
-Cross-module search ships alongside these: one box, `/` to focus, matching any record by title, by client, or by tag.
-
-**No authentication.** Deliberate, per PRD §5 and TRD §5 — accounts and role-based permissions arrive in Phase 9. The API binds to `127.0.0.1`; don't expose it.
+> **New session?** Read [`docs/HANDOFF.md`](docs/HANDOFF.md) first — it is the live state of the build. [`CLAUDE.md`](CLAUDE.md) covers conventions.
 
 ## Running it
 
@@ -33,67 +19,121 @@ Then open http://localhost:5173.
 
 `npm run dev` starts two processes: Vite on 5173 and the API on 5174. Vite proxies `/api` to the API, so the client is single-origin.
 
-### Other scripts
+### Getting in
+
+Login is **currently bypassed** while building — see [`docs/HANDOFF.md`](docs/HANDOFF.md).
+
+| Route | Opens |
+|---|---|
+| `#/team` | Owner/admin dashboard, no credentials |
+| `#/client` | Client portal, no credentials |
+| anything else | Sign-in screen |
+
+The real login still works: `nisham` / `11223344` (admin), or `sara` / `tuenx1234` (member). Client portal: `helen@northwind.co`, no password.
+
+Turn the bypass off with `AUTH_BYPASS=false` in `.env`.
+
+### Scripts
 
 | Script | Does |
 |---|---|
 | `npm run build` | Typecheck and produce a production bundle |
 | `npm run typecheck` | Types only |
+| `npm run db:migrate` | Create and apply a migration |
 | `npm run db:seed` | **Destructive.** Wipes and reinserts demo data |
-| `npm run db:studio` | Prisma Studio, to inspect the database directly |
-| `npm run db:reset` | Drop, re-migrate, re-seed |
+| `npm run db:studio` | Prisma Studio, to inspect the database |
+| `npm run db:reset` | Drop, re-migrate, re-seed — **will not run under Claude Code**, which blocks destructive Prisma migrations. Run it from a normal terminal. |
+
+There is no test suite. Verification is done by running the app and exercising the API.
+
+## Status
+
+| Phase | Scope | API | UI |
+|---|---|---|---|
+| 1 | Overview, Tasks, CRM, Team | ✅ | ✅ |
+| 2 | Products, roadmap, releases | ✅ | ✅ |
+| 3 | Contract terms, Projects, Invoicing | ✅ | ✅ |
+| 4 | Treasury | ✅ | ✅ |
+| 5 | OKRs, Docs | ✅ | ✅ |
+| 6 | Hiring, leave, vendors, campaigns, contracts | ✅ | ✗ |
+| 7 | Tickets, metrics, customers | ✗ | ✗ |
+| 8 | KPI dashboard | ✗ | ✗ |
+| 9 | Auth, permissions, audit log | Partial | Partial |
+
+Beyond the original phases: Calendar, Planner, Brainstorms, Messages, Users administration, cross-record links, global search, the client portal, and task depth (epics, sprints, subtasks, time — API only).
 
 ## Shape of the code
 
 ```
-docs/            The three planning docs + ADRs. Source of truth.
-prisma/          Schema, migrations, demo seed
-server/          Node API — one router per entity
+docs/            Planning docs, ADRs, HANDOFF.md. Source of truth.
+prisma/          Schema, 10 migrations, demo seed
+server/
+  index.ts       Route mounting — the requireTeam line IS the security boundary
+  auth.ts        scrypt hashing, sessions, the require* gates
   tags.ts        Division-coded ID allocation
   http.ts        Error handling and body validation
+  routes/        22 routers
 src/
   types.ts       Shared vocabulary — imported by client AND server
-  lib/           API client, per-resource loader, router, division marks
-  components/    Shared UI
-  modules/       One file per module
+  lib/           API client, cache, per-resource loader, router, theme, layout
+  components/    Shared UI; components/shell/ for the four-panel chrome
+  modules/       One file per screen
 ```
 
-`src/types.ts` is imported by both sides on purpose: statuses, stages, and division codes cannot drift between the client and the API.
+`src/types.ts` is imported by both sides on purpose: statuses, stages, and division codes cannot drift.
 
 ## Record IDs
 
 Every record carries a division-coded tag — `AGY-T003`, `GPH-C012`.
 
-`<DIVISION>-<TYPE><SEQ>`, sequence zero-padded to three digits and counted **per division per type**, so `AGY-T001` and `GPH-T001` are different records.
+`<DIVISION>-<TYPE><SEQ>`, zero-padded to three digits, counted **per division per type**, so `AGY-T001` and `GPH-T001` are different records.
 
-| | |
-|---|---|
-| Divisions | `TNX` Tuenx · `AGY` Agency · `GPH` Gaphatch |
-| Types | `T` task · `C` contact · `M` member · `P` product · `R` roadmap item · `V` release · `J` project · `I` invoice · `F` fund entry |
+**Divisions:** `TNX` Tuenx · `AGY` Agency · `GPH` Gaphatch
 
-`J` for project because `P` is already the product. Projects and invoices store no division of their own — they inherit the client's — but their tag still carries it.
+**Types:**
 
-Allocation happens server-side inside a transaction ([`server/tags.ts`](server/tags.ts)), so two concurrent creates can never collide.
+| | | | |
+|---|---|---|---|
+| `T` task | `C` contact | `M` member | `P` product |
+| `R` roadmap item | `V` release | `J` project | `I` invoice |
+| `F` fund entry | `D` doc | `O` objective | `K` key result |
+| `H` candidate (hire) | `L` leave | `N` vendor | `G` campaign |
+| `A` contract (agreement) | `S` ticket (support) | `Z` metric | `U` customer |
+| `B` idea (brainstorm) | `Q` plan item (quarter) | `E` calendar entry | `X` channel |
+| `Y` epic | `W` sprint | | |
 
-Tags are never reissued or renumbered. Moving a person from Agency to Gaphatch keeps their `AGY-M004` — the tag is identity, not a category label.
+Several letters are non-obvious because the intuitive one was taken — `J` for project because `P` is the product, `Z` for metric because `M` is member and `E` is a calendar entry.
+
+Allocation happens server-side inside a transaction ([`server/tags.ts`](server/tags.ts)), so concurrent creates cannot collide. Tags are never reissued or renumbered: moving someone from Agency to Gaphatch keeps their `AGY-M004` — the tag is identity, not a category label.
 
 ## Design system
 
-Light, printed-instrument feel. One rule drives everything:
+Warm canvas with white cards lifted off it; depth from elevation rather than hairlines. Light, dark, or follow the OS — dark is true black with surfaces a few points above it.
 
-> **Division is typographic. Colour is status.**
+- **Division is colour** — Tuenx amber, Agency orange, Gaphatch teal. Flat fills, no textures.
+- **Status colour is red and green only.** Amber belongs to Tuenx, so a "pending" state uses ink.
+- Type is one superfamily in three roles: Plex Sans Condensed (headings, figures), Plex Mono (tags, labels, data), Plex Sans (body).
+- Every ink tone clears WCAG AA on both themes. The smallest text is 11px mono.
 
-Divisions are told apart by how their tag is *set* — Tuenx a filled block, Agency an outlined frame, Gaphatch a letter-spaced underscore — with matching fill / hatch / dot markers on cards and bars. Colour is then free to mean exactly one thing: `alert`, `ready`, `pending`. The interface stays readable in greyscale and to colour-blind readers.
+Tokens in [`src/index.css`](src/index.css); division marks in [`src/lib/divisions.ts`](src/lib/divisions.ts).
 
-Type is one superfamily in three roles: **Plex Sans Condensed** for headings and figures, **Plex Mono** for tags, labels, and all data, **Plex Sans** for body copy.
+## Security posture
 
-Every ink tone clears WCAG AA against paper (17:1 / 8.3:1 / 4.6:1) — the smallest text is 10px mono and it sits on the lightest tone.
+Read this before exposing anything beyond localhost.
 
-Tokens live in [`src/index.css`](src/index.css); division marks in [`src/lib/divisions.ts`](src/lib/divisions.ts).
+| | |
+|---|---|
+| **Login bypass is ON** | `#/team` and `#/client` need no credentials. Guarded by `AUTH_BYPASS` **and** a loopback-only check, so it cannot be reached from another machine — but while it is on, anyone who reaches the server is an admin. |
+| **Client portal has no password** | An email address is the entire credential. Anyone who knows a client's address can read that client's invoices and contract value. Deliberate, per the founder; safe on localhost only. |
+| **Session cookie omits `Secure`** | It has to, on `http://localhost`. Must be added before serving over anything else. |
+| **No audit trail** | Nothing records who changed what. Phase 9. |
+| **Last write wins** | Two people editing one record will clobber each other. |
+
+Passwords themselves are handled properly: scrypt at the OWASP work factor, constant-time comparison, and a password change or deactivation deletes that account's sessions.
 
 ## Database
 
-SQLite via Prisma for local dev. Nothing in the schema uses a SQLite-only feature.
+SQLite via Prisma. Nothing in the schema uses a SQLite-only feature.
 
 Moving to Postgres/Supabase (TRD Phase 9) is:
 
@@ -101,25 +141,14 @@ Moving to Postgres/Supabase (TRD Phase 9) is:
 2. A new `DATABASE_URL`
 3. `npm run db:migrate`
 
-Enum-typed TRD fields are `String` columns, because Prisma has no native enum on SQLite. The allowed values are enforced by TypeScript unions in `src/types.ts` and validated at the API boundary. On Postgres they can become native enums without touching application code.
+Enum-typed TRD fields are `String` columns, because Prisma has no native enum on SQLite. Allowed values are TypeScript unions in `src/types.ts`, validated at the API boundary. On Postgres they can become native enums without touching application code.
 
-See [`docs/adr/0001-sqlite-from-phase-1.md`](docs/adr/0001-sqlite-from-phase-1.md) for why this is SQLite from Phase 1 rather than the artifact key-value store the TRD originally specified, and for every divergence from the TRD data model.
+See [`docs/adr/0001-sqlite-from-phase-1.md`](docs/adr/0001-sqlite-from-phase-1.md) for why this is SQLite from Phase 1, and every divergence from the TRD data model.
 
 ## Treasury accounting
 
-One rule worth knowing before reading the numbers: **allocations are excluded from balance, burn, and runway.**
+**Allocations are excluded from balance, burn, and runway.**
 
-An allocation is capital moved from the Tuenx level into a division. It is an internal transfer inside one group, so counting it as income or spend would double-count the same money. It is reported per division instead, because "where has capital been committed" is the question the parent entity actually asks — a division running a negative net while holding a large allocation is a funded product arm, not a problem.
+An allocation is capital moved from the Tuenx level into a division — an internal transfer inside one group, so counting it would double-count. It is reported per division instead, because "where has capital been committed" is the question the parent entity actually asks. A division running a negative net while holding a large allocation is a funded product arm, not a problem.
 
-Burn is averaged over a trailing 6 months rather than all time, so a large founding expense doesn't drag the average forever. Runway is `null` when income covers spend, rather than reporting a misleading infinity.
-
-## Known gaps
-
-Carried deliberately, not overlooked (TRD §5):
-
-- No authentication or per-person accounts
-- No audit trail — nothing records who changed what
-- Last write wins; two people editing one record will clobber each other
-- Divisions are hardcoded and not configurable
-
-All four are Phase 9 work, except the last, which stays as-is by decision.
+Burn is averaged over a trailing 6 months, so a large founding expense does not drag the average forever. Runway is `null` when income covers spend, rather than reporting a misleading infinity.

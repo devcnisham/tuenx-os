@@ -124,10 +124,17 @@ No new storage. Computed/aggregated views pulling from every module above — re
 
 ### Phase 9 — Backend migration
 
-- Move all storage keys above from `window.storage` JSON blobs into Postgres tables with proper foreign keys (mirrors the relationships already implied by `*Id` fields).
-- Add authentication (per-person accounts).
-- Add role-based permissions: Admin (full access) / Division lead (full access within division) / Member (scoped to assigned records).
-- Add an audit log table: `who changed what, when` — absent today, a real gap in the current build.
+- ~~Move all storage keys above from `window.storage` JSON blobs into Postgres tables~~ — **done differently.** The build went straight to a relational store (SQLite via Prisma) at Phase 1; see ADR-0001. The remaining move to Postgres is `provider` + `DATABASE_URL`.
+- ~~Add authentication (per-person accounts).~~ **Done 2026-08-03**, pulled forward because team and client portals were requested. scrypt-hashed passwords, server-side sessions, httpOnly cookies. See master plan §7.
+- Add role-based permissions: Admin / Division lead / Member. **Partial.** `admin` is real and gates account management and `/api/people`. `lead` and `member` are currently identical to each other — the division-scoped and assigned-only restrictions are still outstanding.
+- Add an audit log table: `who changed what, when` — **still absent.** The one part of Phase 9 not started.
+
+> **Also now in scope, and not in the original plan:** a read-only client-facing
+> portal (PRD §4 had ruled it out) and messaging (PRD §4 had ruled it out). Both
+> reversals are recorded in master plan §7.
+>
+> **A credential-free login bypass is currently enabled for development** —
+> `#/team` and `#/client` open with no password. See `docs/HANDOFF.md`.
 
 ## 4. Storage design (current phase, through Phase 8)
 

@@ -95,6 +95,8 @@ auditable.
 |---|---|---|---|---|
 | 2026-08-02 | Messaging | Out of scope — Slack covers it | In scope — channels + DMs | Slack cannot attach a conversation to a record. A thread about `AGY-I004` belongs on the invoice, not in a channel where it is lost a week later. |
 | 2026-08-02 | Phase 3 gate | Stop and review Phases 1–2 first | Lifted | Founder chose to keep building rather than review at the gate. |
+| 2026-08-02 | Authentication | Phase 9, last | Built now — team sign-in with hashed passwords, sessions, roles | Team and client portals were asked for, and neither is possible without an auth boundary. |
+| 2026-08-02 | Client-facing portal | Out of scope (PRD §4) | In scope — read-only, scoped to the client's own records | Founder asked for it. **The client portal has no password:** an email address is the entire credential. That is an authentication bypass by design and is safe only on localhost. |
 | 2026-08-02 | Design system | Dark "ops console", slate + amber/orange/teal | Light, warm canvas with white cards; divisions keep amber/orange/teal | Founder rejected the dark system on sight, then rejected a typography-only division encoding, then asked for more depth and space. Current state is the third pass. |
 
 **Still out of scope, unchanged:** payroll, tax filing, multi-tenancy, and

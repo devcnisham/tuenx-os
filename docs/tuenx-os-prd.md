@@ -24,7 +24,7 @@ Tuenx OS is the internal operating system for Tuenx Technologies — a single pl
 - **Not a generic product.** This stays Tuenx-internal; no multi-tenant support for other companies.
 - **Not payroll or tax/compliance software.** Integrate with a real provider later; don't build regulated financial infrastructure from scratch.
 - ~~**Not a messaging tool.** No chat/DM module — existing tools cover that.~~ **Reversed 2026-08-02** — messaging is in scope. See master plan §7. Channels and DMs, with conversations attachable to records.
-- **Not (yet) a client-facing portal.** All views in this PRD are internal-only.
+- ~~**Not (yet) a client-facing portal.** All views in this PRD are internal-only.~~ **Reversed 2026-08-02** — a read-only client portal exists, scoped to that client's own projects and invoices. See master plan §7. It currently has no password.
 
 ## 5. Users
 
@@ -34,7 +34,7 @@ Tuenx OS is the internal operating system for Tuenx Technologies — a single pl
 | Division lead | Full access within their division, read access to company-wide rollups |
 | Team member | Scoped to what's assigned to them (their tasks, their deals, their projects) |
 
-*(Note: today's build has no per-user login — anyone with the artifact link has full access. Role-based access becomes real in Phase 9, see TRD.)*
+*(Updated 2026-08-02: per-user login now exists. Team members sign in with email or username and a scrypt-hashed password. `admin` is enforced for account management; the fuller division-lead and member scoping is still Phase 9 work. Clients sign in with an email address and no password — see master plan §7.)*
 
 ## 6. Scope by phase
 

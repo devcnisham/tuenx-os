@@ -33,17 +33,25 @@ export function useResource<T>(load: () => Promise<T>, deps: readonly unknown[])
 
   const run = useCallback(() => {
     const current = ++generation.current
-    setLoading(true)
     setError(null)
+
+    // Only show a skeleton if the request is actually slow. A cached or fast
+    // response would otherwise flash one for a frame, which reads as jank even
+    // though it is the fast path.
+    const slow = setTimeout(() => {
+      if (generation.current === current) setLoading(true)
+    }, 120)
 
     loadRef
       .current()
       .then((result) => {
+        clearTimeout(slow)
         if (generation.current !== current) return
         setData(result)
         setLoading(false)
       })
       .catch((err: unknown) => {
+        clearTimeout(slow)
         if (generation.current !== current) return
         setError(err instanceof ApiError ? err.message : 'Something went wrong')
         setLoading(false)

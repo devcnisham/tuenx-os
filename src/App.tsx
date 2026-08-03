@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { href, useRoute, type ModuleId } from './lib/router.ts'
 import { useLayout } from './lib/layout.ts'
 import { mark } from './lib/divisions.ts'
-import { DIVISION_CODE, type Division } from './types.ts'
+import { DIVISION_CODE, ROLE_LABEL, type Division, type Viewer } from './types.ts'
+import { useSession } from './lib/session.ts'
 import { TagLegend } from './components/Tag.tsx'
 import { Icon, type IconName } from './components/Icon.tsx'
 import { TopBar } from './components/shell/TopBar.tsx'
@@ -22,6 +23,8 @@ import { Brainstorms } from './modules/Brainstorms.tsx'
 import { Messages } from './modules/Messages.tsx'
 import { Team } from './modules/Team.tsx'
 import { Products } from './modules/Products.tsx'
+import { SignIn } from './modules/SignIn.tsx'
+import { ClientPortal } from './modules/ClientPortal.tsx'
 
 /**
  * Nav, grouped by which part of the company a module serves. `owner` is the
@@ -120,6 +123,29 @@ function NavList({ active, onNavigate }: { active: ModuleId; onNavigate?: () => 
  * (TRD §6).
  */
 export function App() {
+  const { viewer, loading, setViewer, signOut } = useSession()
+
+  // Nothing renders until the session is known. Showing the dashboard first and
+  // bouncing to sign-in a moment later means every request in between 401s.
+  if (loading) {
+    return (
+      <div className="grid min-h-dvh place-items-center bg-canvas">
+        <p className="label-mono">Loading…</p>
+      </div>
+    )
+  }
+
+  if (!viewer) return <SignIn onSignedIn={setViewer} />
+
+  // A client gets a different shell entirely, not the dashboard with parts
+  // hidden. Hiding by CSS is not a boundary, and disabled nav invites trying.
+  if (viewer.kind === 'client') return <ClientPortal viewer={viewer} onSignOut={signOut} />
+
+  return <Dashboard viewer={viewer} onSignOut={signOut} />
+}
+
+/** The owner/admin and team dashboard — every module. */
+function Dashboard({ viewer, onSignOut }: { viewer: Viewer; onSignOut: () => void }) {
   const route = useRoute()
   const [layout, toggle] = useLayout()
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -156,10 +182,22 @@ export function App() {
             <div className="border-t border-rule px-4 py-4">
               <p className="label-mono mb-2">Tag key</p>
               <TagLegend />
-              <p className="mt-3 border-t border-rule pt-3 font-mono text-[10px] leading-relaxed text-faint">
-                Phases 1–4. No sign-in yet —<br />
-                accounts arrive in Phase 9.
-              </p>
+
+              <div className="mt-4 border-t border-rule pt-3">
+                <p className="truncate text-[13px] font-medium text-ink">
+                  {viewer.account?.name}
+                </p>
+                <p className="mt-0.5 font-mono text-[10px] text-faint">
+                  {viewer.account ? ROLE_LABEL[viewer.account.role] : ''}
+                </p>
+                <button
+                  type="button"
+                  onClick={onSignOut}
+                  className="mt-2 font-mono text-[10px] text-graphite underline-offset-2 transition-colors hover:text-ink hover:underline"
+                >
+                  Sign out
+                </button>
+              </div>
             </div>
           </aside>
         )}

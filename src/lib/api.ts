@@ -7,6 +7,8 @@
  * act on (TRD §6: visible error state, not silent data loss).
  */
 
+import { cacheKey, dedupe, invalidate, isFresh, peek } from './cache.ts'
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -53,15 +55,46 @@ const query = (params: Record<string, string | undefined>) => {
   return s ? `?${s}` : ''
 }
 
+/**
+ * Any write invalidates the whole cache.
+ *
+ * Blunt on purpose. Creating a task changes the task list, the overview
+ * totals, the calendar, any epic or sprint rollup, and the right rail;
+ * enumerating which of those to drop is how a cache starts lying. Clearing
+ * everything costs one refetch of whatever is on screen and can never be wrong.
+ */
+const afterWrite = <T>(result: T): T => {
+  invalidate()
+  return result
+}
+
 export const api = {
-  get: <T,>(path: string, params?: Record<string, string | undefined>) =>
-    request<T>(path + (params ? query(params) : '')),
+  /**
+   * Cached, stale-while-revalidate. Concurrent callers share one request, so
+   * two components mounting together fetch once.
+   */
+  get: <T,>(path: string, params?: Record<string, string | undefined>) => {
+    const key = cacheKey(path, params)
+    const url = path + (params ? query(params) : '')
+
+    if (isFresh(key)) {
+      const hit = peek<T>(key)
+      if (hit !== undefined) return Promise.resolve(hit)
+    }
+
+    return dedupe<T>(key, () => request<T>(url))
+  },
+
+  /** Cached value without a request, for painting a screen before it loads. */
+  peek: <T,>(path: string, params?: Record<string, string | undefined>) =>
+    peek<T>(cacheKey(path, params)),
 
   post: <T,>(path: string, body: unknown) =>
-    request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
+    request<T>(path, { method: 'POST', body: JSON.stringify(body) }).then(afterWrite),
 
   patch: <T,>(path: string, body: unknown) =>
-    request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
+    request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }).then(afterWrite),
 
-  del: (path: string) => request<void>(path, { method: 'DELETE' }),
+  del: (path: string) =>
+    request<void>(path, { method: 'DELETE' }).then(afterWrite),
 }

@@ -172,6 +172,91 @@ export const INVOICE_STATUS_LABEL: Record<InvoiceStatus, string> = {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 6 — People, ops, marketing
+// ---------------------------------------------------------------------------
+
+export const CANDIDATE_STAGES = [
+  'applied',
+  'screening',
+  'interview',
+  'offer',
+  'hired',
+  'passed',
+] as const
+export type CandidateStage = (typeof CANDIDATE_STAGES)[number]
+
+export const CANDIDATE_STAGE_LABEL: Record<CandidateStage, string> = {
+  applied: 'Applied',
+  screening: 'Screening',
+  interview: 'Interview',
+  offer: 'Offer',
+  hired: 'Hired',
+  passed: 'Passed',
+}
+
+/** Time off only. Payroll and tax stay permanently out of scope — master plan §4. */
+export const LEAVE_TYPES = ['holiday', 'sick', 'unpaid', 'parental'] as const
+export type LeaveType = (typeof LEAVE_TYPES)[number]
+
+export const LEAVE_TYPE_LABEL: Record<LeaveType, string> = {
+  holiday: 'Holiday',
+  sick: 'Sick',
+  unpaid: 'Unpaid',
+  parental: 'Parental',
+}
+
+export const LEAVE_STATUSES = ['requested', 'approved', 'declined'] as const
+export type LeaveStatus = (typeof LEAVE_STATUSES)[number]
+
+export const LEAVE_STATUS_LABEL: Record<LeaveStatus, string> = {
+  requested: 'Requested',
+  approved: 'Approved',
+  declined: 'Declined',
+}
+
+export const CAMPAIGN_STATUSES = ['planned', 'live', 'done'] as const
+export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number]
+
+export const CAMPAIGN_STATUS_LABEL: Record<CampaignStatus, string> = {
+  planned: 'Planned',
+  live: 'Live',
+  done: 'Done',
+}
+
+/** Named CONTRACT_KINDS because CONTRACT_TYPES is already the CRM retainer/project split. */
+export const CONTRACT_KINDS = ['client', 'vendor', 'employment', 'other'] as const
+export type ContractKind = (typeof CONTRACT_KINDS)[number]
+
+export const CONTRACT_KIND_LABEL: Record<ContractKind, string> = {
+  client: 'Client',
+  vendor: 'Vendor',
+  employment: 'Employment',
+  other: 'Other',
+}
+
+// ---------------------------------------------------------------------------
+// Phase 7 — Gaphatch customer-facing
+// ---------------------------------------------------------------------------
+
+export const TICKET_STATUSES = ['open', 'pending', 'resolved'] as const
+export type TicketStatus = (typeof TICKET_STATUSES)[number]
+
+export const TICKET_STATUS_LABEL: Record<TicketStatus, string> = {
+  open: 'Open',
+  pending: 'Pending',
+  resolved: 'Resolved',
+}
+
+export const SUBSCRIPTION_STATUSES = ['trial', 'active', 'churned'] as const
+export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number]
+
+export const SUBSCRIPTION_STATUS_LABEL: Record<SubscriptionStatus, string> = {
+  trial: 'Trial',
+  active: 'Active',
+  churned: 'Churned',
+}
+
+// ---------------------------------------------------------------------------
 // Phase 5 — Docs
 // ---------------------------------------------------------------------------
 
@@ -671,6 +756,73 @@ export interface Channel {
   lastMessage: Message | null
 }
 
+export interface Candidate {
+  id: string
+  tag: string
+  name: string
+  role: string
+  division: Division
+  stage: CandidateStage
+  source: string | null
+  notes: string | null
+  createdAt: string
+}
+
+export interface LeaveRequest {
+  id: string
+  tag: string
+  memberId: string
+  member: Pick<TeamMember, 'id' | 'tag' | 'name' | 'division'>
+  type: LeaveType
+  startDate: string
+  endDate: string
+  status: LeaveStatus
+  notes: string | null
+  createdAt: string
+}
+
+export interface Vendor {
+  id: string
+  tag: string
+  name: string
+  division: Division
+  monthlyCost: number
+  renewalDate: string | null
+  ownerId: string | null
+  owner: Pick<TeamMember, 'id' | 'tag' | 'name'> | null
+  notes: string | null
+  createdAt: string
+}
+
+export interface Campaign {
+  id: string
+  tag: string
+  scopeKind: string
+  division: Division
+  productId: string | null
+  product: Pick<Product, 'id' | 'tag' | 'name'> | null
+  title: string
+  channel: string
+  status: CampaignStatus
+  date: string
+  notes: string | null
+  createdAt: string
+}
+
+export interface CompanyContract {
+  id: string
+  tag: string
+  party: string
+  division: Division
+  type: ContractKind
+  value: number
+  startDate: string | null
+  endDate: string | null
+  fileRef: string | null
+  notes: string | null
+  createdAt: string
+}
+
 export interface FundEntry {
   id: string
   tag: string
@@ -800,3 +952,10 @@ export const isEpicStatus = oneOf(EPIC_STATUSES)
 export const isSprintStatus = oneOf(SPRINT_STATUSES)
 export const isRole = oneOf(ROLES)
 export const isTeam = oneOf(TEAMS)
+export const isCandidateStage = oneOf(CANDIDATE_STAGES)
+export const isLeaveType = oneOf(LEAVE_TYPES)
+export const isLeaveStatus = oneOf(LEAVE_STATUSES)
+export const isCampaignStatus = oneOf(CAMPAIGN_STATUSES)
+export const isContractKind = oneOf(CONTRACT_KINDS)
+export const isTicketStatus = oneOf(TICKET_STATUSES)
+export const isSubscriptionStatus = oneOf(SUBSCRIPTION_STATUSES)

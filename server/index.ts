@@ -4,6 +4,7 @@ import { attachViewer, requireTeam } from './auth.ts'
 import { authRouter } from './routes/auth.ts'
 import { portalRouter } from './routes/portal.ts'
 import { peopleRouter } from './routes/people.ts'
+import { peopleOpsRouter } from './routes/people-ops.ts'
 import { overviewRouter } from './routes/overview.ts'
 import { tasksRouter } from './routes/tasks.ts'
 import { contactsRouter } from './routes/contacts.ts'
@@ -66,6 +67,7 @@ app.use('/api/tasks', tasksRouter)
 app.use('/api/contacts', contactsRouter)
 app.use('/api/team', teamRouter)
 app.use('/api/people', peopleRouter)
+app.use('/api/ops', peopleOpsRouter)
 
 // Phase 2
 app.use('/api/products', productsRouter)

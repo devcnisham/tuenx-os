@@ -4,7 +4,7 @@ Live state of the build. Update this whenever a module is finished, a decision
 is reversed, or something is left half-built. It exists so a new session can
 pick up without re-reading the whole repository.
 
-**Last updated:** 2026-08-02
+**Last updated:** 2026-08-03
 
 ---
 
@@ -32,21 +32,39 @@ Run it with `npm run dev` (Vite 5173 + API 5174), after `npm run db:migrate && n
 | Planner | ✅ | ✅ | Quarter columns, load bar from rough sizes |
 | Brainstorms | ✅ | ✅ | Ideas promote into plan items |
 | Messages | ✅ | ✅ | Channels + DMs; record channels are the point of it |
+| Users | ✅ | ✅ | Admin-only. Accounts, roles, teams, workload, live sessions |
+| Sign-in | ✅ | ✅ | scrypt, server-side sessions. **Currently bypassed — see below** |
+| Client portal | ✅ | ✅ | Read-only, scoped. **No password by design** |
 | Links | ✅ | ✅ | Any record to any other |
 | Search | ✅ | ✅ | Global, `/` to focus |
+
+### ⚠️ Login is currently bypassed
+
+`#/team` and `#/client` open straight into their portals with no credentials,
+via `POST /api/auth/dev-session`. The founder asked for this while building.
+
+**While it is on, anyone who can reach the server is an admin.** It is guarded
+two ways — the `AUTH_BYPASS` env var and a loopback-only address check — so it
+cannot be reached from another machine. Turn it off with `AUTH_BYPASS=false`,
+or delete the `/dev-session` route: the real password login is untouched and
+still works.
+
+The client boundary still holds even with the bypass on — a client session
+entered this way still gets 403 from every internal route. Verified.
 
 ### Half-built — pick these up first
 
 - **Task depth** (`server/routes/work.ts`, commit `bf9a433`). Epics, sprints, subtasks, and time entries all have schema, migration, and endpoints. **No UI at all.** Tasks now returns `subtasks`, `epic`, `sprint`, `estimateHours`, and `loggedHours`, and the board lists roots only — but nothing renders them yet.
-- **Phases 6 and 7** — schema and migrations applied for Candidate, LeaveRequest, Vendor, Campaign, Contract, Ticket, MetricSnapshot, Customer. **No routes, no UI.**
+- **Phase 6** (`server/routes/people-ops.ts`) — candidates, leave, vendors, campaigns, and the contracts repository all have working endpoints. **No UI.**
+- **Phase 7** — Ticket, MetricSnapshot, and Customer have schema and migrations. **No routes, no UI.**
 
 ### Not started
 
 - Team workspaces (a per-team view aggregating that team's work)
 - Product/project update trackers
 - Grid/list layouts on modules other than Tasks and Docs
-- Dark mode toggle (requested, not built)
-- Separate message threads for individuals and for clients (requested, not built — current DMs are person-to-person only; nothing links a conversation to a CRM contact yet)
+- Threads, reactions, and mentions in Messages
+- Conversations bound to a CRM contact (the schema supports it via `recordType`/`recordId`; nothing creates one yet)
 - Phase 8 KPI dashboard
 - Phase 9 auth, permissions, audit log
 

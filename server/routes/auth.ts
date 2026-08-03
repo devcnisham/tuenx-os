@@ -9,7 +9,7 @@ import {
   setSessionCookie,
   verifyPassword,
 } from '../auth.ts'
-import { asBody, badRequest, notFound, oneOf, route, sent, str } from '../http.ts'
+import { HttpError, asBody, badRequest, notFound, oneOf, optionalId, route, sent, str } from '../http.ts'
 import { ROLES, isRole } from '../../src/types.ts'
 
 export const authRouter = Router()
@@ -139,6 +139,107 @@ authRouter.post(
         },
       },
     })
+  }),
+)
+
+/**
+ * Sign in without credentials. DEVELOPMENT ONLY.
+ *
+ * The founder asked to drop the login step for now, so `#/team` and `#/client`
+ * can be opened directly. This mints a real session for a chosen identity —
+ * the rest of the auth machinery is untouched, so re-enabling passwords is
+ * deleting this endpoint, not rebuilding anything.
+ *
+ * Refused unless AUTH_BYPASS is on AND the request came from loopback. Both
+ * checks matter: the flag alone would ship an open door the moment someone set
+ * NODE_ENV wrong, and the address check alone would allow it in production on
+ * the same host.
+ *
+ * While this is enabled, ANYONE who can reach the server is an admin.
+ */
+const BYPASS_ENABLED = process.env.AUTH_BYPASS !== 'false'
+
+const isLoopback = (ip: string | undefined) =>
+  ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1'
+
+authRouter.post(
+  '/dev-session',
+  route(async (req, res) => {
+    if (!BYPASS_ENABLED) throw badRequest('Credential-free sign-in is switched off')
+    if (!isLoopback(req.ip) && !isLoopback(req.socket.remoteAddress)) {
+      throw new HttpError(403, 'Credential-free sign-in is loopback-only')
+    }
+
+    const body = asBody(req.body)
+    const kind = body.kind === 'client' ? 'client' : 'team'
+
+    if (kind === 'team') {
+      // Whoever is admin — the point is to land on the owner dashboard.
+      const account =
+        (await prisma.userAccount.findFirst({
+          where: { role: 'admin', active: true },
+          include: { member: true },
+        })) ??
+        (await prisma.userAccount.findFirst({ where: { active: true }, include: { member: true } }))
+
+      if (!account) throw badRequest('No team account exists yet — run the seed')
+
+      const token = newSessionToken()
+      await prisma.session.create({
+        data: { token, kind: 'team', userAccountId: account.id, expiresAt: sessionExpiry() },
+      })
+      setSessionCookie(res, token)
+
+      res.json({
+        viewer: {
+          kind: 'team',
+          account: {
+            id: account.id,
+            role: account.role,
+            memberId: account.memberId,
+            name: account.member.name,
+            division: account.member.division,
+          },
+        },
+      })
+      return
+    }
+
+    const contactId = optionalId(body, 'contactId')
+    const account = contactId
+      ? await prisma.clientAccount.findFirst({
+          where: { contactId, active: true },
+          include: { contact: true },
+        })
+      : await prisma.clientAccount.findFirst({ where: { active: true }, include: { contact: true } })
+
+    if (!account) throw badRequest('No client account exists yet — run the seed')
+
+    const token = newSessionToken()
+    await prisma.session.create({
+      data: { token, kind: 'client', clientAccountId: account.id, expiresAt: sessionExpiry() },
+    })
+    setSessionCookie(res, token)
+
+    res.json({
+      viewer: {
+        kind: 'client',
+        client: {
+          id: account.id,
+          contactId: account.contactId,
+          name: account.contact.name,
+          company: account.contact.company,
+        },
+      },
+    })
+  }),
+)
+
+/** Lets the client decide whether to offer the credential-free door at all. */
+authRouter.get(
+  '/config',
+  route(async (_req, res) => {
+    res.json({ bypassEnabled: BYPASS_ENABLED })
   }),
 )
 

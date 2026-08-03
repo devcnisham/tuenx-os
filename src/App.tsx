@@ -4,6 +4,7 @@ import { useLayout } from './lib/layout.ts'
 import { mark } from './lib/divisions.ts'
 import { DIVISION_CODE, ROLE_LABEL, type Division, type Viewer } from './types.ts'
 import { useSession } from './lib/session.ts'
+import { api } from './lib/api.ts'
 import { TagLegend } from './components/Tag.tsx'
 import { Icon, type IconName } from './components/Icon.tsx'
 import { TopBar } from './components/shell/TopBar.tsx'
@@ -126,6 +127,45 @@ function NavList({ active, onNavigate }: { active: ModuleId; onNavigate?: () => 
  */
 export function App() {
   const { viewer, loading, setViewer, signOut } = useSession()
+  const [entering, setEntering] = useState(false)
+
+  /**
+   * `#/team` and `#/client` open straight into a portal without credentials.
+   *
+   * The founder asked to drop the login step for now. This mints a real session
+   * through the dev endpoint rather than faking a viewer in the browser, so
+   * every request afterwards is a normally authenticated one and the server's
+   * boundaries still apply — a client landing this way still cannot read
+   * anything but their own records.
+   */
+  useEffect(() => {
+    const wanted = window.location.hash.replace(/^#\/?/, '').split(/[/?]/)[0]
+    if (viewer || loading || entering) return
+    if (wanted !== 'team' && wanted !== 'client') return
+
+    setEntering(true)
+    api
+      .post<{ viewer: Viewer }>('/auth/dev-session', {
+        kind: wanted === 'client' ? 'client' : 'team',
+      })
+      .then((result) => {
+        setViewer(result.viewer)
+        window.location.hash = result.viewer.kind === 'client' ? '#/client' : '#/overview'
+      })
+      .catch(() => {
+        // Bypass switched off, or nothing seeded. Fall through to the sign-in
+        // screen rather than leaving a blank page.
+      })
+      .finally(() => setEntering(false))
+  }, [viewer, loading, entering, setViewer])
+
+  if (entering) {
+    return (
+      <div className="grid min-h-dvh place-items-center bg-canvas">
+        <p className="label-mono">Opening…</p>
+      </div>
+    )
+  }
 
   // Nothing renders until the session is known. Showing the dashboard first and
   // bouncing to sign-in a moment later means every request in between 401s.

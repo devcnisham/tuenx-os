@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { href, useRoute, type ModuleId } from './lib/router.ts'
 import { useLayout } from './lib/layout.ts'
 import { mark } from './lib/divisions.ts'
@@ -131,6 +131,16 @@ export function App() {
   const { viewer, loading, setViewer, signOut } = useSession()
   const [entering, setEntering] = useState(false)
 
+  // The bypass reacts to the hash, so it has to re-run when the hash changes —
+  // otherwise `#/client` typed while already on the team dashboard does nothing
+  // visible, because this component never re-renders on navigation.
+  const [hash, setHash] = useState(() => window.location.hash)
+  useEffect(() => {
+    const onChange = () => setHash(window.location.hash)
+    window.addEventListener('hashchange', onChange)
+    return () => window.removeEventListener('hashchange', onChange)
+  }, [])
+
   /**
    * `#/team` and `#/client` open straight into a portal without credentials.
    *
@@ -139,11 +149,16 @@ export function App() {
    * every request afterwards is a normally authenticated one and the server's
    * boundaries still apply — a client landing this way still cannot read
    * anything but their own records.
+   *
+   * It also swaps sides: `#/client` while signed in as the team mints a client
+   * session instead of being ignored, and the reverse. Being silently left on
+   * the dashboard you were already on is indistinguishable from a broken link.
    */
   useEffect(() => {
-    const wanted = window.location.hash.replace(/^#\/?/, '').split(/[/?]/)[0]
-    if (viewer || loading || entering) return
+    const wanted = hash.replace(/^#\/?/, '').split(/[/?]/)[0]
+    if (loading || entering) return
     if (wanted !== 'team' && wanted !== 'client') return
+    if (viewer?.kind === wanted) return
 
     setEntering(true)
     api
@@ -159,7 +174,16 @@ export function App() {
         // screen rather than leaving a blank page.
       })
       .finally(() => setEntering(false))
-  }, [viewer, loading, entering, setViewer])
+  }, [hash, viewer, loading, entering, setViewer])
+
+  /**
+   * Signing out has to leave the bypass route as well as the session, or the
+   * effect above mints a new one on the next tick and sign-out does nothing.
+   */
+  const handleSignOut = useCallback(() => {
+    window.location.hash = '#/overview'
+    void signOut()
+  }, [signOut])
 
   if (entering) {
     return (
@@ -183,9 +207,9 @@ export function App() {
 
   // A client gets a different shell entirely, not the dashboard with parts
   // hidden. Hiding by CSS is not a boundary, and disabled nav invites trying.
-  if (viewer.kind === 'client') return <ClientPortal viewer={viewer} onSignOut={signOut} />
+  if (viewer.kind === 'client') return <ClientPortal viewer={viewer} onSignOut={handleSignOut} />
 
-  return <Dashboard viewer={viewer} onSignOut={signOut} />
+  return <Dashboard viewer={viewer} onSignOut={handleSignOut} />
 }
 
 /** The owner/admin and team dashboard — every module. */

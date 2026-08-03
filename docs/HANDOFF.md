@@ -4,7 +4,7 @@
 re-reading the repository. Update it when a module is finished, a decision is
 reversed, or something is left half-built.
 
-**Last updated:** 2026-08-03 · 43 commits · working tree clean
+**Last updated:** 2026-08-03 · 50 commits · working tree clean
 
 ---
 
@@ -14,10 +14,11 @@ reversed, or something is left half-built.
 npm install && npm run db:migrate && npm run db:seed && npm run dev
 ```
 
-http://localhost:5173. Verified working from this state — 10 migrations applied,
-seed produces 9 team members, 14 tasks, 9 contacts, 3 products, 6 docs, 10 plan
-items, 6 ideas, 7 calendar entries, 11 messages, 6 accounts, 6 candidates, 5
-leave records, 7 vendors, 5 campaigns, 6 contracts.
+http://localhost:5173. Verified working from this state — 13 migrations applied,
+seed produces 9 team members, 19 tasks (14 roots + 5 subtasks), 9 contacts, 3
+products, 9 docs, 10 plan items, 6 ideas, 7 calendar entries, 11 messages, 6
+accounts, 6 candidates, 5 leave records, 7 vendors, 5 campaigns, 6 contracts, 3
+epics, 3 sprints, 6 time entries, 6 issues.
 
 **Run one dev stack, not two.** Vite now fails on a taken 5173 rather than
 walking to the next port — it used to land on 5174, bind `::1` while the API
@@ -31,12 +32,18 @@ migrations in this environment. Run it from a normal terminal.
 
 | Route | Opens |
 |---|---|
-| `#/team` | Owner/admin dashboard, no credentials |
 | `#/client` | Client portal, no credentials |
-| anything else | Sign-in screen |
+| anything else | Owner/admin dashboard, no credentials |
 
-Either link switches sides from the other portal — `#/client` while signed in
-as the team mints a client session rather than doing nothing.
+**Every route is bypassed now**, not just the two — asked for on 2026-08-03.
+The sign-in screen is only reached if the dev endpoint refuses. Either side
+swaps to the other: `#/client` while signed in as the team mints a client
+session rather than doing nothing.
+
+Sign-out warns that it will sign you straight back in, because it will.
+
+Hostname does the same job once deployed: `client.tuenx.com` opens the portal,
+`admin.` and `team.` the internal app. See `docs/DEPLOYING.md`.
 
 Real credentials still work: `nisham` / `11223344` (admin), `sara` / `tuenx1234`
 (member), `helen@northwind.co` (client, no password).
@@ -49,7 +56,7 @@ Real credentials still work: `nisham` / `11223344` (admin), `sara` / `tuenx1234`
 |---|---|
 | **Login bypass is ON** | `POST /api/auth/dev-session` mints a session with no credentials. Guarded by the `AUTH_BYPASS` env var **and** a loopback-only address check, so it cannot be reached from another machine. **While on, anyone who reaches the server is an admin.** Turn off with `AUTH_BYPASS=false`, or delete the route — the password login underneath is untouched. |
 | **Client portal has no password** | An email address is the entire credential. Anyone who knows a client's address can read that client's invoices and contract value. Deliberate, per the founder. Closing it is one column on `ClientAccount` and one comparison in `auth.ts`. |
-| **Session cookie omits `Secure`** | Required on `http://localhost`. Must be added before serving over anything else. |
+| **Session cookie needs `COOKIE_SECURE=true`** | `Secure` is now added whenever `COOKIE_SECURE=true` or `NODE_ENV=production`. It cannot be unconditional — on `http://localhost` a Secure cookie is never set at all. |
 
 The client boundary holds even with the bypass on — a client session entered via
 `#/client` still gets 403 from every internal route. Verified.
@@ -61,17 +68,18 @@ The client boundary holds even with the bypass on — a client session entered v
 | Module | API | UI | Notes |
 |---|---|---|---|
 | Overview | ✅ | ✅ | Comparative division ledger + Phase 3/4 roll-ups |
-| Tasks | ✅ | ✅ | Board/grid/list. **Depth fields exist in the API but not the UI** |
+| Tasks | ✅ | ✅ | Board/grid/list, with epic/sprint/subtask/hours on the card |
+| Sprints & Epics | ✅ | ✅ | Epics, sprints, workload. Time logs live on the task |
 | CRM | ✅ | ✅ | Includes Phase 3 contract terms |
 | Projects | ✅ | ✅ | Board by status, inherits client's division |
 | Invoices | ✅ | ✅ | Ledger, request-time overdue sweep |
 | Treasury | ✅ | ✅ | Allocations excluded from balance/burn |
 | Team | ✅ | ✅ | Roster, grouped by division |
 | Users | ✅ | ✅ | Admin-only. Accounts, roles, teams, workload, live sessions |
-| Products | ✅ | ✅ | Roadmap board + release log per product |
+| Products | ✅ | ✅ | Roadmap, releases, live/repo links, and an issues queue |
 | Docs | ✅ | ✅ | Body-searchable, staleness flag at 3 months |
 | OKRs | ✅ | ✅ | Progress derived from key results |
-| Calendar | ✅ | ✅ | Day/week/month, drag to reschedule, meeting planner |
+| Calendar | ✅ | ✅ | Time grid + mini-month, drag to reschedule, meeting planner |
 | Planner | ✅ | ✅ | Quarter columns, load bar from rough sizes |
 | Brainstorms | ✅ | ✅ | Ideas promote into plan items |
 | People & Ops | ✅ | ✅ | Phase 6 — hiring, time off, vendors, marketing, contracts, in five tabs |
@@ -85,21 +93,20 @@ The client boundary holds even with the bypass on — a client session entered v
 
 ## Pick these up first
 
-Everything here has working endpoints and no screens. Building the UI is the
-whole job — no schema or API work needed.
+### 1. Phase 7, the other two thirds
 
-### 1. Task depth — `server/routes/work.ts`
+`Ticket` is done — routes, UI, seed. **`MetricSnapshot` and `Customer` still
+have schema and migrations only**, so MRR, churn, and the subscriber base do
+not exist. Tag letters are reserved: `Z` metric, `U` customer.
 
-Epics, sprints, subtasks, and time entries. `GET /api/tasks` already returns
-`subtasks`, `epic`, `sprint`, `estimateHours`, and `loggedHours`, and the board
-lists roots only (`?includeSubtasks=true` opts out). Nothing renders any of it.
+Until customers exist, a ticket's reporter is free text.
 
-Endpoints: `/api/work/epics`, `/api/work/sprints`, `/api/work/time`.
+### 2. Compliance has no home
 
-### 2. Phase 7 — nothing yet
-
-`Ticket`, `MetricSnapshot`, and `Customer` have schema and migrations only.
-Needs routes as well as UI. Tag letters are already reserved: `S`, `Z`, `U`.
+The founder confirmed Tuenx handles legal, accounts, finance, **and
+compliance** for the group. The first three have modules. Compliance has
+nothing — no register of obligations, filings, or their deadlines. Smallest
+useful version is in `docs/tuenx-os-v2-scope.md` §6.
 
 ### 3. Smaller
 
@@ -114,10 +121,10 @@ Needs routes as well as UI. Tag letters are already reserved: `S`, `Z`, `U`.
 ### 4. The v2 scope list
 
 `docs/tuenx-os-v2-scope.md` maps the founder's 38-system Business OS list and
-the workflow diagrams (2026-08-03) against what exists. **Proposal, not agreed
-— nothing there is decided.** Three of the 38 contradict master plan §4, and
-its §5 holds five open questions that need the founder before any of it is
-built.
+the workflow diagrams (2026-08-03) against what exists. §5 records what was
+decided on the day; §6 holds what is still open. Payroll, tax filing, and
+multi-tenancy remain out — multi-tenancy was reversed into scope and then
+straight back out within the hour, both recorded in master plan §7.
 
 ---
 
@@ -136,7 +143,7 @@ built.
 
 ## Open questions for the founder
 
-- `Project.status` (`planning | active | on_hold | delivered`) was chosen here — the TRD leaves it unspecified.
+- **CI/CD was asked for and not built** — "ci and cd for the projects prducts" reads two ways: GitHub Actions for this repo, or a module inside Tuenx OS mirroring build and deploy status per product. Products now carry a `repoUrl`, which either reading needs. The repo is `github.com/devcnisham/tuenx-os`; nothing has been pushed to it.
 - Agency's real name is still a placeholder.
 - Real Google Workspace integration (Meet/Docs/Chat) needs a Google Cloud project, OAuth credentials, and consent scopes. Nothing built toward it; internal equivalents exist instead.
 - Whether `lead` and `member` should actually differ. Today they are identical — only `admin` is enforced.

@@ -107,9 +107,12 @@ async function main() {
       { title: 'Migrate Scholr staging to the new host', division: 'gaphatch', status: 'done', priority: 'medium', assignee: 'Luis Ferrer' },
     ]
 
+    // Ids are kept by title so the task-depth block below can attach epics,
+    // sprints, subtasks, and logged time without re-querying.
+    const taskIds: Record<string, string> = {}
     for (const task of tasks) {
       const tag = await allocateTag(tx, task.division, TAG_TYPE.task)
-      await tx.task.create({
+      const created = await tx.task.create({
         data: {
           tag,
           title: task.title,
@@ -120,6 +123,7 @@ async function main() {
           dueDate: task.dueDate ?? null,
         },
       })
+      taskIds[task.title] = created.id
     }
 
     // -- CRM ----------------------------------------------------------------
@@ -794,6 +798,131 @@ tracked separately and does not count against runway.`,
       }
     }
 
+    // -- Task depth: epics, sprints, subtasks, time --------------------------
+    //
+    // Deliberately partial. Only Gaphatch runs sprints, only two bodies of work
+    // are epics, and most tasks carry no estimate — which is the honest shape
+    // of a 9-person company and the case the UI has to look right in. A seed
+    // where every field is filled proves nothing about the empty states.
+    const epics: { key: string; title: string; division: Division; status: string; notes?: string }[] = [
+      { key: 'launch', title: 'Scholr public launch', division: 'gaphatch', status: 'in_progress', notes: 'Everything that has to be true before the beta flag comes off.' },
+      { key: 'rebrand', title: 'Northwind rebrand', division: 'agency', status: 'in_progress' },
+      { key: 'moveoff', title: 'Get the company off personal drives', division: 'tuenx', status: 'open' },
+    ]
+
+    const epicIds: Record<string, string> = {}
+    for (const epic of epics) {
+      const tag = await allocateTag(tx, epic.division, TAG_TYPE.epic)
+      const created = await tx.epic.create({
+        data: {
+          tag,
+          title: epic.title,
+          division: epic.division,
+          status: epic.status,
+          notes: epic.notes ?? null,
+        },
+      })
+      epicIds[epic.key] = created.id
+    }
+
+    const sprints: {
+      key: string
+      name: string
+      division: Division
+      status: string
+      goal: string
+      start: Date
+      end: Date
+    }[] = [
+      { key: 's12', name: 'Sprint 12', division: 'gaphatch', status: 'closed', goal: 'Staging on the new host, error budget agreed.', start: daysOut(-28), end: daysOut(-15) },
+      { key: 's13', name: 'Sprint 13', division: 'gaphatch', status: 'active', goal: 'Beta blocker list to zero.', start: daysOut(-14), end: daysOut(0) },
+      { key: 's14', name: 'Sprint 14', division: 'gaphatch', status: 'planned', goal: 'Launch readiness — monitoring, pricing page, comms.', start: daysOut(1), end: daysOut(14) },
+    ]
+
+    const sprintIds: Record<string, string> = {}
+    for (const sprint of sprints) {
+      const tag = await allocateTag(tx, sprint.division, TAG_TYPE.sprint)
+      const created = await tx.sprint.create({
+        data: {
+          tag,
+          name: sprint.name,
+          division: sprint.division,
+          status: sprint.status,
+          goal: sprint.goal,
+          startDate: sprint.start,
+          endDate: sprint.end,
+        },
+      })
+      sprintIds[sprint.key] = created.id
+    }
+
+    const assignments: { task: string; epic?: string; sprint?: string; estimate?: number }[] = [
+      { task: 'Scholr — close out the beta blocker list', epic: 'launch', sprint: 's13', estimate: 16 },
+      { task: 'Scholr — set up error monitoring before launch', epic: 'launch', sprint: 's14', estimate: 6 },
+      { task: 'Scholr — pricing page copy', epic: 'launch', sprint: 's14', estimate: 4 },
+      { task: 'Migrate Scholr staging to the new host', epic: 'launch', sprint: 's12', estimate: 8 },
+      { task: 'Vespor — scope the first build sprint', estimate: 3 },
+      { task: 'Northwind rebrand — second concept round', epic: 'rebrand', estimate: 12 },
+      { task: 'Move company docs off personal drives', epic: 'moveoff', estimate: 5 },
+    ]
+
+    for (const assignment of assignments) {
+      await tx.task.update({
+        where: { id: taskIds[assignment.task]! },
+        data: {
+          epicId: assignment.epic ? epicIds[assignment.epic]! : null,
+          sprintId: assignment.sprint ? sprintIds[assignment.sprint]! : null,
+          estimateHours: assignment.estimate ?? null,
+        },
+      })
+    }
+
+    // One level only. A subtask of a subtask means the parent should have been
+    // an epic — the API rejects it, and the seed shouldn't imply otherwise.
+    const subtasks: { parent: string; title: string; division: Division; status: string; assignee?: string }[] = [
+      { parent: 'Scholr — close out the beta blocker list', title: 'Fix the signup race on slow connections', division: 'gaphatch', status: 'done', assignee: 'Sara Okoye' },
+      { parent: 'Scholr — close out the beta blocker list', title: 'Session expiry logs the user out mid-form', division: 'gaphatch', status: 'in_progress', assignee: 'Sara Okoye' },
+      { parent: 'Scholr — close out the beta blocker list', title: 'Empty state on the class list', division: 'gaphatch', status: 'todo', assignee: 'Luis Ferrer' },
+      { parent: 'Northwind rebrand — second concept round', title: 'Three logo directions', division: 'agency', status: 'done', assignee: 'Priya Nair' },
+      { parent: 'Northwind rebrand — second concept round', title: 'Type pairing for the two survivors', division: 'agency', status: 'in_progress', assignee: 'Priya Nair' },
+    ]
+
+    for (const subtask of subtasks) {
+      const tag = await allocateTag(tx, subtask.division, TAG_TYPE.task)
+      await tx.task.create({
+        data: {
+          tag,
+          title: subtask.title,
+          division: subtask.division,
+          status: subtask.status,
+          priority: 'medium',
+          parentId: taskIds[subtask.parent]!,
+          assigneeId: subtask.assignee ? members[subtask.assignee]! : null,
+        },
+      })
+    }
+
+    const timeEntries: { task: string; member: string; hours: number; day: number; note?: string }[] = [
+      { task: 'Scholr — close out the beta blocker list', member: 'Sara Okoye', hours: 5.5, day: -4, note: 'Signup race' },
+      { task: 'Scholr — close out the beta blocker list', member: 'Sara Okoye', hours: 4, day: -3 },
+      { task: 'Scholr — close out the beta blocker list', member: 'Luis Ferrer', hours: 2, day: -2, note: 'Pairing on the session bug' },
+      { task: 'Migrate Scholr staging to the new host', member: 'Luis Ferrer', hours: 9, day: -17, note: 'Ran over — DNS propagation' },
+      { task: 'Northwind rebrand — second concept round', member: 'Priya Nair', hours: 6, day: -5 },
+      { task: 'Northwind rebrand — second concept round', member: 'Priya Nair', hours: 3.5, day: -1 },
+    ]
+
+    for (const entry of timeEntries) {
+      await tx.timeEntry.create({
+        data: {
+          taskId: taskIds[entry.task]!,
+          memberId: members[entry.member]!,
+          hours: entry.hours,
+          date: daysOut(entry.day),
+          note: entry.note ?? null,
+        },
+      })
+    }
+
     // -- People & Ops (Phase 6) ---------------------------------------------
     //
     // Hiring, time off, vendors, marketing, and the contracts repository. Still
@@ -963,7 +1092,7 @@ tracked separately and does not count against runway.`,
     }
   })
 
-  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount, msgCount, accountCount, candidateCount, vendorCount, contractCount] = await Promise.all([
+  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount, msgCount, accountCount, candidateCount, vendorCount, contractCount, epicCount, sprintCount, timeCount] = await Promise.all([
     prisma.teamMember.count(),
     prisma.task.count(),
     prisma.contact.count(),
@@ -977,10 +1106,13 @@ tracked separately and does not count against runway.`,
     prisma.candidate.count(),
     prisma.vendor.count(),
     prisma.contract.count(),
+    prisma.epic.count(),
+    prisma.sprint.count(),
+    prisma.timeEntry.count(),
   ])
 
   console.log(
-    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries, ${msgCount} messages, ${accountCount} accounts, ${candidateCount} candidates, ${vendorCount} vendors, ${contractCount} contracts.`,
+    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries, ${msgCount} messages, ${accountCount} accounts, ${candidateCount} candidates, ${vendorCount} vendors, ${contractCount} contracts, ${epicCount} epics, ${sprintCount} sprints, ${timeCount} time entries.`,
   )
 }
 

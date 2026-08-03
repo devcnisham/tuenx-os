@@ -20,6 +20,7 @@ export type ModuleId =
   | 'planner'
   | 'brainstorms'
   | 'messages'
+  | 'work'
   | 'users'
   | 'team'
   | 'ops'
@@ -34,6 +35,12 @@ export interface Route {
    * e.g. #/invoices?q=AGY-I004.
    */
   query: string
+  /**
+   * Board filters carried in the hash for the same reason: "the tasks in this
+   * sprint" is a link someone can send, not a sequence of clicks to describe.
+   */
+  epicId: string
+  sprintId: string
 }
 
 const MODULES: ModuleId[] = [
@@ -49,6 +56,7 @@ const MODULES: ModuleId[] = [
   'planner',
   'brainstorms',
   'messages',
+  'work',
   'users',
   'team',
   'ops',
@@ -60,10 +68,13 @@ function parse(hash: string): Route {
   const [first, second] = (path ?? '').split('/').filter(Boolean)
 
   const module = MODULES.find((m) => m === first) ?? 'overview'
+  const params = new URLSearchParams(search ?? '')
   return {
     module,
     productId: module === 'products' && second ? second : null,
-    query: new URLSearchParams(search ?? '').get('q') ?? '',
+    query: params.get('q') ?? '',
+    epicId: params.get('epic') ?? '',
+    sprintId: params.get('sprint') ?? '',
   }
 }
 

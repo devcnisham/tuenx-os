@@ -930,6 +930,8 @@ export interface SearchHit {
     | 'vendor'
     | 'campaign'
     | 'contract'
+    | 'epic'
+    | 'sprint'
   route: string
 }
 

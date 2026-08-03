@@ -95,6 +95,18 @@ const RESOLVERS = {
     find: (ids: string[]) =>
       prisma.campaign.findMany({ where: { id: { in: ids } }, select: { id: true, tag: true, title: true } }),
   },
+  epic: {
+    label: 'Epic',
+    route: '#/work',
+    find: (ids: string[]) =>
+      prisma.epic.findMany({ where: { id: { in: ids } }, select: { id: true, tag: true, title: true } }),
+  },
+  sprint: {
+    label: 'Sprint',
+    route: '#/work',
+    find: (ids: string[]) =>
+      prisma.sprint.findMany({ where: { id: { in: ids } }, select: { id: true, tag: true, name: true } }),
+  },
   contract: {
     label: 'Contract',
     route: '#/ops',

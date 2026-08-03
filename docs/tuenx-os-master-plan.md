@@ -98,6 +98,7 @@ auditable.
 | 2026-08-02 | Authentication | Phase 9, last | Built now — team sign-in with hashed passwords, sessions, roles | Team and client portals were asked for, and neither is possible without an auth boundary. |
 | 2026-08-02 | Client-facing portal | Out of scope (PRD §4) | In scope — read-only, scoped to the client's own records | Founder asked for it. **The client portal has no password:** an email address is the entire credential. That is an authentication bypass by design and is safe only on localhost. |
 | 2026-08-02 | Design system | Dark "ops console", slate + amber/orange/teal | Light, warm canvas with white cards; divisions keep amber/orange/teal | Founder rejected the dark system on sight, then rejected a typography-only division encoding, then asked for more depth and space. Current state is the third pass. |
+| 2026-08-03 | Multi-tenancy | Permanent non-goal (§4, PRD §4) | Briefly reversed, then **reinstated within the hour** | Founder answered "both" when asked whether SaaS Management meant Gaphatch's own customers or tenants inside Tuenx OS, then followed with "update only for the internal". Read as: keep Tuenx OS single-tenant. Nothing was built against the reversal. **Phase 7 customer billing is unaffected** — Gaphatch's own paying customers were always in scope and proceed. |
 
 **Still out of scope, unchanged:** payroll, tax filing, multi-tenancy, and
 making the division model configurable.

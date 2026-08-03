@@ -23,6 +23,8 @@ export interface SearchHit {
     | 'vendor'
     | 'campaign'
     | 'contract'
+    | 'epic'
+    | 'sprint'
   /** Hash route that opens the record's module. */
   route: string
 }
@@ -75,6 +77,8 @@ searchRouter.get(
       vendors,
       campaigns,
       contracts,
+      epics,
+      sprints,
     ] = await Promise.all([
       prisma.task.findMany({
         where: byTitleOrTag('title'),
@@ -159,6 +163,17 @@ searchRouter.get(
         },
         take: LIMIT_PER_KIND,
         orderBy: { createdAt: 'desc' },
+      }),
+      // Task depth. A sprint tag pasted into the box should open the sprint.
+      prisma.epic.findMany({
+        where: byTitleOrTag('title'),
+        take: LIMIT_PER_KIND,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.sprint.findMany({
+        where: byTitleOrTag('name'),
+        take: LIMIT_PER_KIND,
+        orderBy: { startDate: 'desc' },
       }),
     ])
 
@@ -256,6 +271,22 @@ searchRouter.get(
         detail: c.type,
         kind: 'contract' as const,
         route: '#/ops',
+      })),
+      ...epics.map((e) => ({
+        id: e.id,
+        tag: e.tag,
+        title: e.title,
+        detail: e.status,
+        kind: 'epic' as const,
+        route: `#/tasks?epic=${e.id}`,
+      })),
+      ...sprints.map((s) => ({
+        id: s.id,
+        tag: s.tag,
+        title: s.name,
+        detail: s.goal,
+        kind: 'sprint' as const,
+        route: `#/tasks?sprint=${s.id}`,
       })),
     ]
 

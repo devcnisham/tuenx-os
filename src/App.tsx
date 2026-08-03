@@ -28,6 +28,7 @@ import { SignIn } from './modules/SignIn.tsx'
 import { ClientPortal } from './modules/ClientPortal.tsx'
 import { Users } from './modules/Users.tsx'
 import { PeopleOps } from './modules/PeopleOps.tsx'
+import { Work } from './modules/Work.tsx'
 
 /**
  * Nav, grouped by which part of the company a module serves. `owner` is the
@@ -44,6 +45,7 @@ const NAV: {
     items: [
       { id: 'overview', label: 'Overview', owner: 'tuenx', icon: 'overview' },
       { id: 'tasks', label: 'Tasks', owner: 'tuenx', icon: 'tasks' },
+      { id: 'work', label: 'Sprints & Epics', owner: 'tuenx', icon: 'layoutBoard' },
       { id: 'crm', label: 'CRM', owner: 'tuenx', icon: 'crm' },
       { id: 'team', label: 'Team', owner: 'tuenx', icon: 'team' },
       { id: 'users', label: 'Users', owner: 'tuenx', icon: 'crm' },
@@ -287,6 +289,7 @@ function Dashboard({ viewer, onSignOut }: { viewer: Viewer; onSignOut: () => voi
             {route.module === 'team' && <Team />}
             {route.module === 'users' && <Users viewer={viewer} />}
             {route.module === 'ops' && <PeopleOps />}
+            {route.module === 'work' && <Work />}
             {route.module === 'products' && <Products productId={route.productId} />}
           </div>
         </main>

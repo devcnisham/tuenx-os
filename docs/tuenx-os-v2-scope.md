@@ -171,10 +171,14 @@ Ordered by value per unit of work, not by the numbering above:
 
 ---
 
-## 5. Open questions
+## 5. Answered 2026-08-03
 
-1. **SaaS/billing (22, 23)** — Gaphatch's own customers, or tenants inside Tuenx OS? The first is in scope today; the second is a permanent non-goal
-2. **Cap table (30)** — for Tuenx itself? Not excluded, not planned
-3. **Pipeline stages** — adopt the diagrams' stages and migrate, or leave the app as it is?
-4. **Tag alphabet** — 26 of 26 letters used. Two-letter codes, or shared letters?
-5. **`lead` vs `member`** — the PM row in the team diagram is the case for making them differ
+1. **SaaS/billing (22, 23) — Gaphatch's own customers only.** Answered "both", then corrected to "only for the internal". Phase 7 customer billing proceeds; **multi-tenancy stays out**, and Tuenx OS stays single-tenant. Master plan §7 records both the reversal and its reinstatement — nothing was built against it
+2. **Pipeline stages — adopt the diagrams' and migrate.** Both the delivery and sales pipelines
+3. **Build order — all four**, in the order listed in §4
+
+## 6. Still open
+
+1. **Cap table (30)** — for Tuenx itself? Not excluded, not planned
+2. **Tag alphabet** — 26 of 26 letters used. Phase 7's three types are the last free reservations (`S`, `Z`, `U`). Anything after that needs two-letter codes or shared letters
+3. **`lead` vs `member`** — the PM row in the team diagram is the case for making them differ

@@ -52,7 +52,9 @@ const WITH_RELATIONS = {
  * on the task — a stored total can disagree with its own entries, and the
  * entries are what say who spent the time and when.
  */
-async function withHours<T extends { id: string }>(tasks: T[]) {
+async function withHours<
+  T extends { id: string; subtasks?: { status: string }[]; _count?: { subtasks: number } },
+>(tasks: T[]) {
   if (tasks.length === 0) return []
   const logged = await prisma.timeEntry.groupBy({
     by: ['taskId'],
@@ -60,7 +62,17 @@ async function withHours<T extends { id: string }>(tasks: T[]) {
     _sum: { hours: true },
   })
   const byTask = new Map(logged.map((l) => [l.taskId, l._sum.hours ?? 0]))
-  return tasks.map((task) => ({ ...task, loggedHours: byTask.get(task.id) ?? 0 }))
+
+  return tasks.map(({ _count, ...task }) => ({
+    ...task,
+    loggedHours: byTask.get(task.id) ?? 0,
+    // `counts` rather than Prisma's `_count`: the client's Task type declares
+    // this shape, and done-of-total is the number a card actually shows.
+    counts: {
+      subtasks: _count?.subtasks ?? 0,
+      subtasksDone: (task.subtasks ?? []).filter((s) => s.status === 'done').length,
+    },
+  }))
 }
 
 /**
@@ -120,8 +132,11 @@ tasksRouter.get(
     if (typeof epicId === 'string' && epicId !== '') where.epicId = epicId
     if (typeof sprintId === 'string' && sprintId !== '') where.sprintId = sprintId
     // Subtasks are shown nested under their parent, so the top-level board
-    // lists only roots. `?includeSubtasks=true` opts out.
-    if (req.query.includeSubtasks !== 'true') where.parentId = null
+    // lists only roots. `?includeSubtasks=true` opts out, and `?parentId=` asks
+    // for one task's children directly.
+    const { parentId } = req.query
+    if (typeof parentId === 'string' && parentId !== '') where.parentId = parentId
+    else if (req.query.includeSubtasks !== 'true') where.parentId = null
     if (typeof dueBefore === 'string' && dueBefore !== '') {
       const d = new Date(dueBefore)
       if (!Number.isNaN(d.getTime())) where.dueDate = { lte: d }

@@ -42,6 +42,7 @@ const MODULE_TITLE: Record<ModuleId, string> = {
   planner: 'Planner',
   brainstorms: 'Brainstorms',
   messages: 'Messages',
+  work: 'Sprints & Epics',
   team: 'Team',
   ops: 'People & Ops',
   users: 'Users',

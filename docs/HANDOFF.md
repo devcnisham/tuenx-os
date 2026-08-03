@@ -4,7 +4,7 @@
 re-reading the repository. Update it when a module is finished, a decision is
 reversed, or something is left half-built.
 
-**Last updated:** 2026-08-03 · 40 commits · working tree clean
+**Last updated:** 2026-08-03 · 43 commits · working tree clean
 
 ---
 
@@ -16,7 +16,13 @@ npm install && npm run db:migrate && npm run db:seed && npm run dev
 
 http://localhost:5173. Verified working from this state — 10 migrations applied,
 seed produces 9 team members, 14 tasks, 9 contacts, 3 products, 6 docs, 10 plan
-items, 6 ideas, 7 calendar entries, 11 messages, 6 accounts.
+items, 6 ideas, 7 calendar entries, 11 messages, 6 accounts, 6 candidates, 5
+leave records, 7 vendors, 5 campaigns, 6 contracts.
+
+**Run one dev stack, not two.** Vite now fails on a taken 5173 rather than
+walking to the next port — it used to land on 5174, bind `::1` while the API
+held `127.0.0.1`, and proxy `/api` to itself. That loop made every request take
+10–20 seconds and read as "the app is slow".
 
 `npm run db:reset` **will not run under Claude Code** — Prisma blocks destructive
 migrations in this environment. Run it from a normal terminal.
@@ -28,6 +34,9 @@ migrations in this environment. Run it from a normal terminal.
 | `#/team` | Owner/admin dashboard, no credentials |
 | `#/client` | Client portal, no credentials |
 | anything else | Sign-in screen |
+
+Either link switches sides from the other portal — `#/client` while signed in
+as the team mints a client session rather than doing nothing.
 
 Real credentials still work: `nisham` / `11223344` (admin), `sara` / `tuenx1234`
 (member), `helen@northwind.co` (client, no password).
@@ -65,6 +74,7 @@ The client boundary holds even with the bypass on — a client session entered v
 | Calendar | ✅ | ✅ | Day/week/month, drag to reschedule, meeting planner |
 | Planner | ✅ | ✅ | Quarter columns, load bar from rough sizes |
 | Brainstorms | ✅ | ✅ | Ideas promote into plan items |
+| People & Ops | ✅ | ✅ | Phase 6 — hiring, time off, vendors, marketing, contracts, in five tabs |
 | Messages | ✅ | ✅ | Channels + DMs; record-bound channels are the point |
 | Sign-in | ✅ | ✅ | scrypt, server-side sessions. **Currently bypassed** |
 | Client portal | ✅ | ✅ | Read-only, scoped. **No password by design** |
@@ -86,21 +96,12 @@ lists roots only (`?includeSubtasks=true` opts out). Nothing renders any of it.
 
 Endpoints: `/api/work/epics`, `/api/work/sprints`, `/api/work/time`.
 
-### 2. Phase 6 — `server/routes/people-ops.ts`
-
-Candidates (hiring pipeline), leave, vendors, campaigns, and the contracts
-repository. All five have list/create/update/delete under `/api/ops/*`.
-Vendors return `monthlyTotal` and `annualTotal` alongside the list.
-
-Suggested shape: one "People & Ops" module with tabs, rather than five nav
-entries — they are small and related.
-
-### 3. Phase 7 — nothing yet
+### 2. Phase 7 — nothing yet
 
 `Ticket`, `MetricSnapshot`, and `Customer` have schema and migrations only.
 Needs routes as well as UI. Tag letters are already reserved: `S`, `Z`, `U`.
 
-### 4. Smaller
+### 3. Smaller
 
 - Grid/list layouts on modules other than Tasks and Docs (`useRecordLayout` + `LayoutSwitch` already exist — it is a per-module wiring job)
 - Threads, reactions, and mentions in Messages
@@ -109,6 +110,14 @@ Needs routes as well as UI. Tag letters are already reserved: `S`, `Z`, `U`.
 - Product/project update trackers
 - Phase 8 KPI dashboard
 - Phase 9 proper: real role scoping, audit log
+
+### 4. The v2 scope list
+
+`docs/tuenx-os-v2-scope.md` maps the founder's 38-system Business OS list and
+the workflow diagrams (2026-08-03) against what exists. **Proposal, not agreed
+— nothing there is decided.** Three of the 38 contradict master plan §4, and
+its §5 holds five open questions that need the founder before any of it is
+built.
 
 ---
 

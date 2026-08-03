@@ -1,0 +1,25 @@
+{
+  // Vercel type-checks the serverless function against the nearest tsconfig,
+  // and the repo's root one is a solution file holding only references — so
+  // the function build fell back to defaults and rejected every `.ts` import
+  // in server/, which is how the whole codebase is written.
+  //
+  // This is that config, not a second opinion about the code: same target,
+  // same resolution, same strictness as tsconfig.node.json.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "types": ["node"]
+  },
+  "include": ["./**/*.ts", "../server/**/*.ts", "../src/types.ts"]
+}

@@ -6,3 +6,5 @@ dist
 .DS_Store
 node_modules/.tmp
 .git.corrupt-backup/
+.vercel
+.env*

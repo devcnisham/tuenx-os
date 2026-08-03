@@ -3,9 +3,17 @@
 Written 2026-08-03, when the founder asked for `admin.tuenx.com`,
 `team.tuenx.com`, and `client.tuenx.com`.
 
-**Updated 2026-08-03 for the Vercel deploy.** The code side is done: Postgres,
-a serverless entry point, an admin bootstrap script, and CI. What is left needs
-a Vercel account and a database, which is yours to click.
+**Deployed 2026-08-03 to https://tuenx-os.vercel.app.** The site is live, the
+API answers, `AUTH_BYPASS=false`, and anonymous requests get 401. **It has no
+database yet** — anything that reads or writes returns a 500 until
+`DATABASE_URL` is set. That is one paste, described below.
+
+Three things had to be fixed to get the function running, in case a future
+deploy regresses: Vercel type-checks the function against the nearest tsconfig
+(hence `api/tsconfig.json`), it compiles the entry file but *nothing behind it*
+(hence the esbuild bundle in `scripts/bundle-api.mjs`), and the build must not
+require a database that does not exist yet (hence
+`scripts/migrate-if-configured.mjs`).
 
 ---
 
@@ -54,23 +62,24 @@ Done in the repo already: Postgres, `vercel.json`, and `api/index.ts` (one
 serverless function handing requests to the same Express app, so there is no
 second routing table to keep in step).
 
-1. **Import the repo** at vercel.com/new → `devcnisham/tuenx-os`. Name the
-   project `tuenx-os` to get `tuenx-os.vercel.app`.
-2. **Add a Postgres database** — Storage → Create → Postgres, then connect it
-   to the project. Vercel sets `DATABASE_URL` itself. Neon's free tier works
-   the same way if you would rather not use Vercel's.
-3. **Add two environment variables** (Settings → Environment Variables):
+Done: the project exists, `AUTH_BYPASS=false` and `COOKIE_SECURE=true` are set,
+and production is deployed and aliased to `tuenx-os.vercel.app`.
 
-   ```
-   AUTH_BYPASS=false
-   COOKIE_SECURE=true
-   ```
+**Left to do — one variable.** Add a Postgres and give the project its URL:
 
-   Optionally `GITHUB_TOKEN`, which raises the issue sync from 60 requests an
-   hour to 5,000 and lets it read private repositories.
+- **Vercel Postgres** — Storage → Create → Postgres → connect to `tuenx-os`.
+  Vercel sets `DATABASE_URL` itself.
+- **Or Supabase**, where three projects already exist under this account.
+  Create one for Tuenx OS, then Settings → Database → Connection string → URI,
+  and paste it as `DATABASE_URL` in Vercel. Use the pooled connection string
+  (port 6543): a serverless function opens a connection per invocation, and the
+  direct port runs out of them.
 
-The build command already runs `prisma migrate deploy`, so the schema is
-created on the first deploy. Then, once:
+Then redeploy, which runs `prisma migrate deploy` and creates the schema.
+Optionally add `GITHUB_TOKEN`, which raises the issue sync from 60 requests an
+hour to 5,000 and lets it read private repositories.
+
+After that:
 
 ```bash
 npm run create-admin -- --name "Nisham" --email nisham@tuenx.com --username nisham

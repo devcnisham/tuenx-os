@@ -3,10 +3,9 @@
 Written 2026-08-03, when the founder asked for `admin.tuenx.com`,
 `team.tuenx.com`, and `client.tuenx.com`.
 
-**Nothing here has been done.** DNS records and hosting accounts need
-credentials nobody has given this repo, and two of the steps below are things
-that have to be decided rather than run. The app-side half — a hostname
-choosing which portal opens — is built and committed.
+**Updated 2026-08-03 for the Vercel deploy.** The code side is done: Postgres,
+a serverless entry point, an admin bootstrap script, and CI. What is left needs
+a Vercel account and a database, which is yours to click.
 
 ---
 
@@ -17,12 +16,12 @@ data to anyone who finds the URL. In order of severity:
 
 | | What | Why it matters on a public domain |
 |---|---|---|
-| 1 | **The login bypass is on, for every route** | `POST /api/auth/dev-session` mints an admin session with no credentials. It refuses non-loopback addresses, so it fails once deployed — which means **nobody can get in at all**, since the app now expects it. Set `AUTH_BYPASS=false` and the password login underneath takes over. That login works and is tested. |
-| 2 | **The client portal has no password** | An email address is the entire credential. On localhost that is a deliberate decision (master plan §7). On `client.tuenx.com` it means anyone who guesses a client's email address reads that client's invoices and contract value. |
-| 3 | **Seed passwords are in the repo** | `tuenx1234`, and the founder's own `11223344`. Fine for a local demo database. Not fine anywhere else. Real accounts have to be created fresh. |
+| 1 | **The login bypass must be turned off** | `POST /api/auth/dev-session` mints an admin session with no credentials. It refuses non-loopback addresses, so it fails once deployed — which means **nobody can get in at all**, because the app now expects it. Set `AUTH_BYPASS=false`; the password login underneath takes over, and `npm run create-admin` makes the first account. |
+| 2 | **The client portal has no password** | An email address is the entire credential. **Confirmed as deliberate on 2026-08-03 and deployed anyway** — the founder's call, recorded here rather than quietly. Anyone who guesses a client's email address reads that client's invoices and contract value. |
+| 3 | **Seed passwords are in a public repo** | `tuenx1234`, and `11223344`. Fine for a local demo database, and `npm run db:seed` must never run against production. If `11223344` is used anywhere real, change it there — it is in public git history now. |
 
-Fixed already, so not on the list: the session cookie now carries `Secure`
-whenever `COOKIE_SECURE=true` or `NODE_ENV=production`.
+Fixed already: the session cookie carries `Secure` whenever `COOKIE_SECURE=true`
+or `NODE_ENV=production`, and the database is Postgres rather than a SQLite file.
 
 ---
 
@@ -49,19 +48,40 @@ three copies of a SQLite file would be three different companies.
 
 ## Steps you have to run
 
-### 1. Pick a host that runs Node and keeps a disk
+### 1. Vercel — three clicks and two environment variables
 
-This is not a static site. It is a Node/Express API plus a Vite build, and the
-database is a **SQLite file on disk**. That rules out the plain serverless
-tiers — their filesystems reset, so every deploy would silently lose the data.
+Done in the repo already: Postgres, `vercel.json`, and `api/index.ts` (one
+serverless function handing requests to the same Express app, so there is no
+second routing table to keep in step).
 
-Either:
+1. **Import the repo** at vercel.com/new → `devcnisham/tuenx-os`. Name the
+   project `tuenx-os` to get `tuenx-os.vercel.app`.
+2. **Add a Postgres database** — Storage → Create → Postgres, then connect it
+   to the project. Vercel sets `DATABASE_URL` itself. Neon's free tier works
+   the same way if you would rather not use Vercel's.
+3. **Add two environment variables** (Settings → Environment Variables):
 
-- **A container or VM** (Fly.io, Railway, Render, a small VPS) with a
-  persistent volume mounted where `DATABASE_URL` points. Simplest, keeps SQLite.
-- **Postgres**, which is a two-line change — `provider = "postgresql"` in
-  `prisma/schema.prisma` and a new `DATABASE_URL` — and then any host will do.
-  ADR-0001 anticipated this; nothing in the application code changes.
+   ```
+   AUTH_BYPASS=false
+   COOKIE_SECURE=true
+   ```
+
+   Optionally `GITHUB_TOKEN`, which raises the issue sync from 60 requests an
+   hour to 5,000 and lets it read private repositories.
+
+The build command already runs `prisma migrate deploy`, so the schema is
+created on the first deploy. Then, once:
+
+```bash
+npm run create-admin -- --name "Nisham" --email nisham@tuenx.com --username nisham
+```
+
+with `ADMIN_PASSWORD` set in the environment, pointed at the production
+`DATABASE_URL`.
+
+**Untested against a real Vercel build.** The configuration is written from the
+documented behaviour, not from a deploy that has run — the first one may need a
+nudge, most likely around how the function resolves `.ts` import extensions.
 
 ### 2. DNS, at your registrar
 

@@ -4,14 +4,15 @@
 re-reading the repository. Update it when a module is finished, a decision is
 reversed, or something is left half-built.
 
-**Last updated:** 2026-08-03 · 50 commits · working tree clean
+**Last updated:** 2026-08-03 · 58 commits · pushed to github.com/devcnisham/tuenx-os · working tree clean
 
 ---
 
 ## Start the app
 
 ```bash
-npm install && npm run db:migrate && npm run db:seed && npm run dev
+createdb tuenx_os          # Postgres now, not SQLite — see ADR-0001
+npm install && npx prisma migrate deploy && npm run db:seed && npm run dev
 ```
 
 http://localhost:5173. Verified working from this state — 13 migrations applied,
@@ -25,8 +26,9 @@ walking to the next port — it used to land on 5174, bind `::1` while the API
 held `127.0.0.1`, and proxy `/api` to itself. That loop made every request take
 10–20 seconds and read as "the app is slow".
 
-`npm run db:reset` **will not run under Claude Code** — Prisma blocks destructive
-migrations in this environment. Run it from a normal terminal.
+`prisma migrate dev` **will not run under Claude Code** — it is interactive and
+Prisma refuses. Generate SQL with `prisma migrate diff` and apply it with
+`prisma migrate deploy`, which is how the Postgres baseline was made.
 
 ### Getting in
 

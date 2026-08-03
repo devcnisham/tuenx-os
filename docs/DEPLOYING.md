@@ -97,40 +97,46 @@ client.tuenx.com   CNAME   <host target>
 Apex `tuenx.com` needs an A record (or ALIAS/ANAME) instead — CNAME is not
 valid at the apex.
 
-### 3. Environment
+### 3. The first account
 
-```
-AUTH_BYPASS=false          # non-negotiable off-machine
-COOKIE_SECURE=true         # or NODE_ENV=production
-DATABASE_URL=file:/data/prod.db   # or a postgres:// URL
-```
-
-### 4. First run
+Vercel's build runs `prisma migrate deploy`, so the schema exists after the
+first deploy — but the database is empty and there is no signup flow, because
+accounts are created by admins. `npm run create-admin` is the way in:
 
 ```bash
-npm ci
-npm run build
-npx prisma migrate deploy    # NOT `migrate dev`, and never `db:seed`
+ADMIN_PASSWORD='…' npm run create-admin -- \
+  --name "Nisham" --email nisham@tuenx.com --username nisham
 ```
 
-`npm run db:seed` is destructive and full of demo data. It must never run
-against production.
+Run against the production `DATABASE_URL`. It refuses a password under 12
+characters and refuses a username already taken; it overwrites nothing.
 
-### 5. Create the real accounts
+**Never run `npm run db:seed` against production.** It wipes every table and
+fills them with demo data. That is what it is for.
 
-There is no signup flow — accounts are created by an admin from the Users
-module. Which is a chicken-and-egg problem on an empty database: the first
-admin has to be inserted directly, with a hash from `hashPassword` in
-`server/auth.ts` rather than a plain string.
+---
 
-Worth building a one-off `npm run create-admin` script before this is needed.
-Not built yet.
+## Local development after the Postgres move
+
+`npm run db:migrate` and SQLite are gone. Locally you now need a Postgres:
+
+```bash
+createdb tuenx_os
+npx prisma migrate deploy
+npm run db:seed
+```
+
+`.env` on this machine already points at `postgresql://…/tuenx_os`. Pointing it
+at the deployed database instead works, and is a good way to lose production
+data to a stray `db:seed` — a separate local database is worth the one command.
 
 ---
 
 ## Not decided
 
-- **Whether the client portal gets a password before it is public.** It is one
-  column on `ClientAccount` and one comparison in `auth.ts`. The founder's call.
-- **Backups.** A SQLite file with no backup is one bad disk from losing the
-  company's records.
+- **Backups.** Vercel Postgres and Neon both snapshot on their paid tiers; the
+  free tiers do not. Nobody has decided what happens when the free tier is the
+  only copy of the company's records.
+- **The client portal password.** Confirmed deliberate on 2026-08-03 — deployed
+  open. Closing it later is one column on `ClientAccount` and one comparison in
+  `auth.ts`.

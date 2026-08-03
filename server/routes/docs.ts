@@ -1,9 +1,9 @@
 import { Router } from 'express'
 import type { Prisma } from '@prisma/client'
-import { prisma } from '../db.ts'
-import { allocateTag } from '../tags.ts'
-import { asBody, notFound, oneOf, optionalStr, route, sent, str } from '../http.ts'
-import { DIVISIONS, TAG_TYPE, isDivision } from '../../src/types.ts'
+import { prisma } from '../db'
+import { allocateTag } from '../tags'
+import { asBody, notFound, oneOf, optionalStr, route, sent, str } from '../http'
+import { DIVISIONS, TAG_TYPE, isDivision } from '../../src/types'
 
 export const docsRouter = Router()
 

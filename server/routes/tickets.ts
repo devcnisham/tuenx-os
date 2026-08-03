@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import type { Prisma } from '@prisma/client'
-import { prisma } from '../db.ts'
-import { allocateTag } from '../tags.ts'
+import { prisma } from '../db'
+import { allocateTag } from '../tags'
 import {
   asBody,
   badRequest,
@@ -12,8 +12,8 @@ import {
   route,
   sent,
   str,
-} from '../http.ts'
-import { fetchIssues, kindFor, parseRepo, priorityFor } from '../github.ts'
+} from '../http'
+import { fetchIssues, kindFor, parseRepo, priorityFor } from '../github'
 import {
   TAG_TYPE,
   TASK_PRIORITIES,
@@ -22,7 +22,7 @@ import {
   isTaskPriority,
   isTicketKind,
   isTicketStatus,
-} from '../../src/types.ts'
+} from '../../src/types'
 
 export const ticketsRouter = Router()
 

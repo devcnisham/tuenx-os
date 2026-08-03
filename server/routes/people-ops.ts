@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import type { Prisma } from '@prisma/client'
-import { prisma } from '../db.ts'
-import { allocateTag } from '../tags.ts'
+import { prisma } from '../db'
+import { allocateTag } from '../tags'
 import {
   asBody,
   badRequest,
@@ -15,7 +15,7 @@ import {
   route,
   sent,
   str,
-} from '../http.ts'
+} from '../http'
 import {
   CAMPAIGN_STATUSES,
   CANDIDATE_STAGES,
@@ -30,7 +30,7 @@ import {
   isDivision,
   isLeaveStatus,
   isLeaveType,
-} from '../../src/types.ts'
+} from '../../src/types'
 
 export const peopleOpsRouter = Router()
 

@@ -16,9 +16,9 @@
  * the username is taken.
  */
 import { PrismaClient } from '@prisma/client'
-import { allocateTag } from '../server/tags.ts'
-import { hashPassword } from '../server/auth.ts'
-import { TAG_TYPE } from '../src/types.ts'
+import { allocateTag } from '../server/tags'
+import { hashPassword } from '../server/auth'
+import { TAG_TYPE } from '../src/types'
 
 const prisma = new PrismaClient()
 

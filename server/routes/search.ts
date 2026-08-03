@@ -1,6 +1,6 @@
 import { Router } from 'express'
-import { prisma } from '../db.ts'
-import { route } from '../http.ts'
+import { prisma } from '../db'
+import { route } from '../http'
 
 export const searchRouter = Router()
 

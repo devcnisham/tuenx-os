@@ -1,9 +1,9 @@
 import { Router } from 'express'
 import type { Prisma } from '@prisma/client'
-import { prisma } from '../db.ts'
-import { GAPHATCH, allocateTag } from '../tags.ts'
-import { asBody, badRequest, notFound, oneOf, route, sent, str } from '../http.ts'
-import { ROADMAP_STATUSES, TAG_TYPE, isRoadmapStatus } from '../../src/types.ts'
+import { prisma } from '../db'
+import { GAPHATCH, allocateTag } from '../tags'
+import { asBody, badRequest, notFound, oneOf, route, sent, str } from '../http'
+import { ROADMAP_STATUSES, TAG_TYPE, isRoadmapStatus } from '../../src/types'
 
 export const roadmapRouter = Router()
 

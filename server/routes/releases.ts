@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import type { Prisma } from '@prisma/client'
-import { prisma } from '../db.ts'
-import { GAPHATCH, allocateTag } from '../tags.ts'
+import { prisma } from '../db'
+import { GAPHATCH, allocateTag } from '../tags'
 import {
   asBody,
   badRequest,
@@ -12,8 +12,8 @@ import {
   route,
   sent,
   str,
-} from '../http.ts'
-import { TAG_TYPE } from '../../src/types.ts'
+} from '../http'
+import { TAG_TYPE } from '../../src/types'
 
 export const releasesRouter = Router()
 

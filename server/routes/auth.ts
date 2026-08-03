@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { prisma } from '../db.ts'
+import { prisma } from '../db'
 import {
   clearSessionCookie,
   hashPassword,
@@ -8,9 +8,9 @@ import {
   sessionExpiry,
   setSessionCookie,
   verifyPassword,
-} from '../auth.ts'
-import { HttpError, asBody, badRequest, notFound, oneOf, optionalId, route, sent, str } from '../http.ts'
-import { ROLES, isRole } from '../../src/types.ts'
+} from '../auth'
+import { HttpError, asBody, badRequest, notFound, oneOf, optionalId, route, sent, str } from '../http'
+import { ROLES, isRole } from '../../src/types'
 
 export const authRouter = Router()
 

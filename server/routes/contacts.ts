@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import type { Prisma } from '@prisma/client'
-import { prisma } from '../db.ts'
-import { allocateTag } from '../tags.ts'
+import { prisma } from '../db'
+import { allocateTag } from '../tags'
 import {
   asBody,
   badRequest,
@@ -13,7 +13,7 @@ import {
   route,
   sent,
   str,
-} from '../http.ts'
+} from '../http'
 import {
   CONTACT_STAGES,
   CONTRACT_TYPES,
@@ -22,7 +22,7 @@ import {
   isContactStage,
   isContractType,
   isDivision,
-} from '../../src/types.ts'
+} from '../../src/types'
 
 /**
  * Phase 3 contract terms. All four are optional — a lead has no contract yet,

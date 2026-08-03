@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import type { Prisma } from '@prisma/client'
-import { prisma } from '../db.ts'
-import { GAPHATCH, allocateTag } from '../tags.ts'
+import { prisma } from '../db'
+import { GAPHATCH, allocateTag } from '../tags'
 import {
   asBody,
   notFound,
@@ -10,8 +10,8 @@ import {
   route,
   sent,
   str,
-} from '../http.ts'
-import { PRODUCT_STATUSES, TAG_TYPE, isProductStatus } from '../../src/types.ts'
+} from '../http'
+import { PRODUCT_STATUSES, TAG_TYPE, isProductStatus } from '../../src/types'
 
 export const productsRouter = Router()
 

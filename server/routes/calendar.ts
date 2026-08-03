@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import type { Prisma } from '@prisma/client'
-import { prisma } from '../db.ts'
+import { prisma } from '../db'
 import {
   asBody,
   badRequest,
@@ -12,15 +12,15 @@ import {
   route,
   sent,
   str,
-} from '../http.ts'
+} from '../http'
 import {
   DIVISIONS,
   ENTRY_KINDS,
   TAG_TYPE,
   isDivision,
   isEntryKind,
-} from '../../src/types.ts'
-import { allocateTag } from '../tags.ts'
+} from '../../src/types'
+import { allocateTag } from '../tags'
 
 export const calendarRouter = Router()
 

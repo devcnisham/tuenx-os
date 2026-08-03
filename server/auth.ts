@@ -1,8 +1,8 @@
 import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
 import { promisify } from 'node:util'
 import type { NextFunction, Request, Response } from 'express'
-import { prisma } from './db.ts'
-import { HttpError } from './http.ts'
+import { prisma } from './db'
+import { HttpError } from './http'
 
 /**
  * `promisify` picks the 3-argument overload of scrypt, which drops the options

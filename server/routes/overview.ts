@@ -1,7 +1,7 @@
 import { Router } from 'express'
-import { prisma } from '../db.ts'
-import { route } from '../http.ts'
-import { DIVISIONS, type Division } from '../../src/types.ts'
+import { prisma } from '../db'
+import { route } from '../http'
+import { DIVISIONS, type Division } from '../../src/types'
 
 export const overviewRouter = Router()
 

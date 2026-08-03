@@ -1,6 +1,6 @@
 import { Router } from 'express'
-import { prisma } from '../db.ts'
-import { asBody, badRequest, notFound, optionalStr, route, str } from '../http.ts'
+import { prisma } from '../db'
+import { asBody, badRequest, notFound, optionalStr, route, str } from '../http'
 
 export const linksRouter = Router()
 

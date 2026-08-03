@@ -10,9 +10,9 @@
  * depends on them.
  */
 import { PrismaClient } from '@prisma/client'
-import { allocateTag } from '../server/tags.ts'
-import { TAG_TYPE, type Division } from '../src/types.ts'
-import { hashPassword } from '../server/auth.ts'
+import { allocateTag } from '../server/tags'
+import { TAG_TYPE, type Division } from '../src/types'
+import { hashPassword } from '../server/auth'
 
 const prisma = new PrismaClient()
 

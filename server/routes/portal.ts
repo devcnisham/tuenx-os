@@ -1,7 +1,7 @@
 import { Router } from 'express'
-import { prisma } from '../db.ts'
-import { requireClient } from '../auth.ts'
-import { HttpError, route } from '../http.ts'
+import { prisma } from '../db'
+import { requireClient } from '../auth'
+import { HttpError, route } from '../http'
 
 export const portalRouter = Router()
 

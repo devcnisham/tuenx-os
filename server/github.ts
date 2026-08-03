@@ -1,4 +1,4 @@
-import { badRequest } from './http.ts'
+import { badRequest } from './http'
 
 /**
  * Pulling issues out of GitHub and into a product's queue.

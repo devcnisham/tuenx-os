@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import type { Prisma } from '@prisma/client'
-import { prisma } from '../db.ts'
-import { allocateTag } from '../tags.ts'
+import { prisma } from '../db'
+import { allocateTag } from '../tags'
 import {
   asBody,
   date,
@@ -12,7 +12,7 @@ import {
   route,
   sent,
   str,
-} from '../http.ts'
+} from '../http'
 import {
   DIVISIONS,
   FUND_TYPES,
@@ -20,7 +20,7 @@ import {
   isDivision,
   isFundType,
   type Division,
-} from '../../src/types.ts'
+} from '../../src/types'
 
 export const treasuryRouter = Router()
 

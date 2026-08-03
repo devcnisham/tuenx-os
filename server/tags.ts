@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client'
-import { DIVISION_CODE, type Division, type TagType } from '../src/types.ts'
+import { DIVISION_CODE, type Division, type TagType } from '../src/types'
 
 /**
  * Allocates the next division-coded ID tag — `AGY-T003`, `GPH-C012`.

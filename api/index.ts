@@ -6,4 +6,4 @@
  * boundary, same error handler. One function rather than a file per endpoint,
  * so there is no second copy of the routing table to keep in step.
  */
-export { default } from '../server/index.ts'
+export { default } from '../server/index'

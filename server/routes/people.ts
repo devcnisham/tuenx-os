@@ -1,7 +1,7 @@
 import { Router } from 'express'
-import { prisma } from '../db.ts'
-import { requireAdmin } from '../auth.ts'
-import { route } from '../http.ts'
+import { prisma } from '../db'
+import { requireAdmin } from '../auth'
+import { route } from '../http'
 
 export const peopleRouter = Router()
 

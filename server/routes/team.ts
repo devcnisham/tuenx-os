@@ -1,6 +1,6 @@
 import { Router } from 'express'
-import { prisma } from '../db.ts'
-import { allocateTag } from '../tags.ts'
+import { prisma } from '../db'
+import { allocateTag } from '../tags'
 import {
   asBody,
   notFound,
@@ -9,8 +9,8 @@ import {
   route,
   sent,
   str,
-} from '../http.ts'
-import { DIVISIONS, TAG_TYPE, TEAMS, isDivision, isTeam } from '../../src/types.ts'
+} from '../http'
+import { DIVISIONS, TAG_TYPE, TEAMS, isDivision, isTeam } from '../../src/types'
 
 export const teamRouter = Router()
 

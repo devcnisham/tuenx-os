@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import type { Prisma } from '@prisma/client'
-import { prisma } from '../db.ts'
-import { allocateTag } from '../tags.ts'
+import { prisma } from '../db'
+import { allocateTag } from '../tags'
 import {
   asBody,
   badRequest,
@@ -12,8 +12,8 @@ import {
   route,
   sent,
   str,
-} from '../http.ts'
-import { CHANNEL_KINDS, DIVISIONS, TAG_TYPE, isChannelKind, isDivision } from '../../src/types.ts'
+} from '../http'
+import { CHANNEL_KINDS, DIVISIONS, TAG_TYPE, isChannelKind, isDivision } from '../../src/types'
 
 export const messagesRouter = Router()
 

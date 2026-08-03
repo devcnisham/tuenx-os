@@ -24,6 +24,7 @@ import {
   Pill,
   Skeleton,
   type PillTone,
+  openable,
 } from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextAreaField, TextField } from '../components/Field.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
@@ -202,7 +203,10 @@ function IdeaCard({
   onPromote: () => void
 }) {
   return (
-    <article className="card-interactive relative overflow-hidden rounded-sm py-2.5 pr-2 pl-3.5">
+    <article
+      {...openable(onEdit)}
+      className="card-interactive relative cursor-pointer overflow-hidden rounded-sm py-2.5 pr-2 pl-3.5"
+    >
       <span
         className="absolute inset-y-0 left-0 w-[3px]"
         style={mark(idea.division).fill}

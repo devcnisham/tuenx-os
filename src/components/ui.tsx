@@ -222,3 +222,33 @@ export function LeaderRow({ label, value }: { label: ReactNode; value: ReactNode
     </div>
   )
 }
+
+/* -------------------------------------------------------------------------- */
+/* Card activation                                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Makes a whole card open its record, not just the title.
+ *
+ * A card that only responds on eight words of text is a target people miss —
+ * they click the tag, the assignee, the whitespace, and nothing happens. Spread
+ * this on the card container.
+ *
+ * Controls *inside* the card must stop propagation, or nudging a card along the
+ * board opens the form as well. `MoveButton` does this for every board.
+ */
+export function openable(onOpen: () => void) {
+  return {
+    role: 'button' as const,
+    tabIndex: 0,
+    onClick: onOpen,
+    onKeyDown: (e: React.KeyboardEvent) => {
+      // Enter and Space, because that is what a button does and this is
+      // pretending to be one.
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        onOpen()
+      }
+    },
+  }
+}

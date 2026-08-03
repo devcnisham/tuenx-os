@@ -24,7 +24,15 @@ import {
 import { useRecordLayout } from '../lib/recordLayout.ts'
 import { PageHeader, Toolbar } from '../components/PageHeader.tsx'
 import { LayoutSwitch } from '../components/LayoutSwitch.tsx'
-import { Button, ErrorState, Panel, Pill, Skeleton, type PillTone } from '../components/ui.tsx'
+import {
+  Button,
+  ErrorState,
+  Panel,
+  Pill,
+  Skeleton,
+  openable,
+  type PillTone,
+} from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextField } from '../components/Field.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
@@ -347,9 +355,10 @@ function TaskCard({
 
   return (
     <article
+      {...openable(onEdit)}
       draggable
       onDragStart={(e) => e.dataTransfer.setData('text/plain', task.id)}
-      className="group relative overflow-hidden rounded-sm border border-rule bg-surface py-2 pr-2 pl-3 transition-colors hover:border-ink"
+      className="group relative cursor-pointer overflow-hidden rounded-sm border border-rule bg-surface py-2 pr-2 pl-3 transition-colors hover:border-ink"
     >
       {/* Division marker — the same colour encoding as the tag. */}
       <span
@@ -483,7 +492,10 @@ function TaskRow({
   const due = task.dueDate ? dueLabel(task.dueDate) : null
 
   return (
-    <li className="relative flex flex-wrap items-center gap-x-3 gap-y-1 py-2 pr-3 pl-4">
+    <li
+      {...openable(onEdit)}
+      className="relative flex cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 py-2 pr-3 pl-4 transition-colors hover:bg-wash"
+    >
       <span
         className="absolute inset-y-0 left-0 w-[3px]"
         style={mark(task.division).fill}
@@ -555,7 +567,12 @@ export function MoveButton({
       type="button"
       aria-label={label}
       disabled={disabled}
-      onClick={onClick}
+      // The card itself opens the record now, so a nudge along the board must
+      // not also open the form.
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick()
+      }}
       className="rounded-xs border border-rule px-1.5 leading-4 text-graphite transition-colors enabled:hover:border-ink enabled:hover:text-ink disabled:opacity-25"
     >
       {children}

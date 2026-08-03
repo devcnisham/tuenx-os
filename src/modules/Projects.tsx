@@ -16,7 +16,7 @@ import {
   type ProjectStatus,
 } from '../types.ts'
 import { PageHeader, Toolbar } from '../components/PageHeader.tsx'
-import { Button, ErrorState, Panel, Pill, Skeleton } from '../components/ui.tsx'
+import { Button, ErrorState, Panel, Pill, Skeleton, openable } from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextField } from '../components/Field.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
@@ -219,9 +219,10 @@ function ProjectCard({
 
   return (
     <article
+      {...openable(onEdit)}
       draggable
       onDragStart={(e) => e.dataTransfer.setData('text/plain', project.id)}
-      className="relative overflow-hidden rounded-sm border border-rule bg-surface py-2 pr-2 pl-3 transition-colors hover:border-ink"
+      className="relative cursor-pointer overflow-hidden rounded-sm border border-rule bg-surface py-2 pr-2 pl-3 transition-colors hover:border-ink"
     >
       <span
         className="absolute inset-y-0 left-0 w-[3px]"

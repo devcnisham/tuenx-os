@@ -40,7 +40,16 @@ import {
   type Vendor,
 } from '../types.ts'
 import { PageHeader, Toolbar } from '../components/PageHeader.tsx'
-import { Button, EmptyState, ErrorState, Panel, Pill, Skeleton, Stat } from '../components/ui.tsx'
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  Panel,
+  Pill,
+  Skeleton,
+  Stat,
+  openable,
+} from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextAreaField, TextField } from '../components/Field.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { LinkedRecords, type LinkType } from '../components/LinkedRecords.tsx'
@@ -235,7 +244,10 @@ function CandidateCard({
   const index = CANDIDATE_STAGES.indexOf(candidate.stage)
 
   return (
-    <article className="relative overflow-hidden rounded-sm border border-rule bg-surface py-2 pr-2 pl-3 transition-colors hover:border-ink">
+    <article
+      {...openable(onEdit)}
+      className="relative cursor-pointer overflow-hidden rounded-sm border border-rule bg-surface py-2 pr-2 pl-3 transition-colors hover:border-ink"
+    >
       <span
         className="absolute inset-y-0 left-0 w-[3px]"
         style={mark(candidate.division).fill}
@@ -298,7 +310,11 @@ function StageButton({
       aria-label={label}
       title={label}
       disabled={disabled}
-      onClick={onClick}
+      // The card opens the record now, so a stage nudge must not also open it.
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick()
+      }}
       className="rounded-xs border border-rule px-1 leading-none text-graphite transition-colors hover:border-ink hover:text-ink disabled:opacity-25 disabled:hover:border-rule"
     >
       {children}

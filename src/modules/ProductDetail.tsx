@@ -31,6 +31,7 @@ import {
   Pill,
   Skeleton,
   type PillTone,
+  openable,
 } from '../components/ui.tsx'
 import { LinkedRecords } from '../components/LinkedRecords.tsx'
 import { SelectField, TextAreaField, TextField } from '../components/Field.tsx'
@@ -311,9 +312,10 @@ function RoadmapColumn({
             return (
               <article
                 key={item.id}
+                {...openable(() => onEdit(item))}
                 draggable
                 onDragStart={(e) => e.dataTransfer.setData('text/plain', item.id)}
-                className="relative overflow-hidden rounded-sm border border-rule bg-surface py-2 pr-2 pl-3 transition-colors hover:border-ink"
+                className="relative cursor-pointer overflow-hidden rounded-sm border border-rule bg-surface py-2 pr-2 pl-3 transition-colors hover:border-ink"
               >
                 {/* Roadmap items belong to Gaphatch products — the dotted mark. */}
                 <span

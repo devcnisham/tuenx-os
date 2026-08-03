@@ -26,6 +26,7 @@ import {
   Pill,
   Skeleton,
   type PillTone,
+  openable,
 } from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextAreaField, TextField } from '../components/Field.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
@@ -271,9 +272,10 @@ function PlanCard({ item, onEdit }: { item: PlanItem; onEdit: () => void }) {
 
   return (
     <article
+      {...openable(onEdit)}
       draggable
       onDragStart={(e) => e.dataTransfer.setData('text/plain', item.id)}
-      className={`card-interactive relative overflow-hidden rounded-sm py-2.5 pr-2 pl-3.5 ${
+      className={`card-interactive relative cursor-pointer overflow-hidden rounded-sm py-2.5 pr-2 pl-3.5 ${
         dimmed ? 'opacity-55' : ''
       }`}
     >

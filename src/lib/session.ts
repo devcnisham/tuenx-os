@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api } from './api.ts'
+import { api, SIGNED_OUT } from './api.ts'
 import type { Viewer } from '../types.ts'
 
 /**
@@ -29,6 +29,15 @@ export function useSession() {
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  // Any request rejected as unauthenticated means the session is gone — drop
+  // the viewer so the app returns to sign-in instead of showing a dashboard
+  // full of stale data and per-module errors.
+  useEffect(() => {
+    const onSignedOut = () => setViewer(null)
+    window.addEventListener(SIGNED_OUT, onSignedOut)
+    return () => window.removeEventListener(SIGNED_OUT, onSignedOut)
+  }, [])
 
   const signOut = useCallback(async () => {
     await api.post('/auth/logout', {}).catch(() => {})

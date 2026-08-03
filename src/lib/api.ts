@@ -9,6 +9,9 @@
 
 import { cacheKey, dedupe, invalidate, isFresh, peek } from './cache.ts'
 
+/** Fired when the server says the session is gone. Listened for by useSession. */
+export const SIGNED_OUT = 'tuenx:signed-out'
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -31,6 +34,19 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (res.status === 204) return undefined as T
+
+  /**
+   * A session that has gone away takes the whole app with it.
+   *
+   * Without this, an expired or wiped session leaves every module showing its
+   * own "Sign in to continue" error while the shell still renders stale cached
+   * data — the app looks broken rather than signed out. The auth routes are
+   * exempt: a wrong password is a 401 about the attempt, not about a session
+   * that has expired.
+   */
+  if (res.status === 401 && !path.startsWith('/auth/')) {
+    window.dispatchEvent(new Event(SIGNED_OUT))
+  }
 
   const text = await res.text()
   const payload: unknown = text ? JSON.parse(text) : null

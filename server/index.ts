@@ -16,6 +16,7 @@ import { calendarRouter } from './routes/calendar.ts'
 import { plannerRouter } from './routes/planner.ts'
 import { linksRouter } from './routes/links.ts'
 import { messagesRouter } from './routes/messages.ts'
+import { workRouter } from './routes/work.ts'
 import { searchRouter } from './routes/search.ts'
 
 /**
@@ -61,6 +62,7 @@ app.use('/api/calendar', calendarRouter)
 app.use('/api/planner', plannerRouter)
 app.use('/api/links', linksRouter)
 app.use('/api/messages', messagesRouter)
+app.use('/api/work', workRouter)
 
 // Cross-module
 app.use('/api/search', searchRouter)

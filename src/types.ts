@@ -72,6 +72,9 @@ export const TAG_TYPE = {
   // Messaging. `X` for channel — C, M, G, and H were already taken by
   // contact, member, campaign, and hire.
   channel: 'X',
+  // Task depth. `Y` for epic (E is a calendar entry), `W` for sprint.
+  epic: 'Y',
+  sprint: 'W',
 } as const
 export type TagType = (typeof TAG_TYPE)[keyof typeof TAG_TYPE]
 
@@ -103,6 +106,29 @@ export type ContactStage = (typeof CONTACT_STAGES)[number]
 export const CONTACT_STAGE_LABEL: Record<ContactStage, string> = {
   lead: 'Lead',
   proposal: 'Proposal',
+  active: 'Active',
+  closed: 'Closed',
+}
+
+// ---------------------------------------------------------------------------
+// Task depth — epics, sprints, subtasks, time
+// ---------------------------------------------------------------------------
+
+export const EPIC_STATUSES = ['open', 'in_progress', 'done', 'dropped'] as const
+export type EpicStatus = (typeof EPIC_STATUSES)[number]
+
+export const EPIC_STATUS_LABEL: Record<EpicStatus, string> = {
+  open: 'Open',
+  in_progress: 'In progress',
+  done: 'Done',
+  dropped: 'Dropped',
+}
+
+export const SPRINT_STATUSES = ['planned', 'active', 'closed'] as const
+export type SprintStatus = (typeof SPRINT_STATUSES)[number]
+
+export const SPRINT_STATUS_LABEL: Record<SprintStatus, string> = {
+  planned: 'Planned',
   active: 'Active',
   closed: 'Closed',
 }
@@ -340,6 +366,55 @@ export interface Task {
   projectId: string | null
   project: Pick<Project, 'id' | 'tag' | 'title'> | null
   dueDate: string | null
+  parentId: string | null
+  epicId: string | null
+  epic: Pick<Epic, 'id' | 'tag' | 'title'> | null
+  sprintId: string | null
+  sprint: Pick<Sprint, 'id' | 'tag' | 'name'> | null
+  estimateHours: number | null
+  createdAt: string
+  subtasks?: Task[]
+  /** Sum of logged time. Derived from the entries, never stored. */
+  loggedHours: number
+  counts?: { subtasks: number; subtasksDone: number }
+}
+
+export interface Epic {
+  id: string
+  tag: string
+  title: string
+  division: Division
+  status: EpicStatus
+  notes: string | null
+  createdAt: string
+  counts: { tasks: number; done: number }
+  estimateHours: number
+  loggedHours: number
+}
+
+export interface Sprint {
+  id: string
+  tag: string
+  name: string
+  division: Division
+  startDate: string
+  endDate: string
+  goal: string | null
+  status: SprintStatus
+  createdAt: string
+  counts: { tasks: number; done: number }
+  estimateHours: number
+  loggedHours: number
+}
+
+export interface TimeEntry {
+  id: string
+  taskId: string
+  memberId: string | null
+  member: Pick<TeamMember, 'id' | 'tag' | 'name'> | null
+  hours: number
+  date: string
+  note: string | null
   createdAt: string
 }
 
@@ -631,3 +706,5 @@ export const isPlanStatus = oneOf(PLAN_STATUSES)
 export const isPlanEffort = oneOf(PLAN_EFFORTS)
 export const isEntryKind = oneOf(ENTRY_KINDS)
 export const isChannelKind = oneOf(CHANNEL_KINDS)
+export const isEpicStatus = oneOf(EPIC_STATUSES)
+export const isSprintStatus = oneOf(SPRINT_STATUSES)

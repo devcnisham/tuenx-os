@@ -40,12 +40,96 @@ model Task {
   projectId  String?
   project    Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
   dueDate    DateTime?
-  createdAt  DateTime    @default(now())
+
+  /// Subtasks. Self-relation rather than a separate model — a subtask has
+  /// every property a task has, and splitting them would mean maintaining two
+  /// of everything. One level deep is enforced in the API: a tree nobody can
+  /// see the bottom of is worse than a flat list.
+  parentId String?
+  parent   Task?   @relation("Subtasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subtasks Task[]  @relation("Subtasks")
+
+  /// Epics group related work across projects. Nullable — most tasks aren't
+  /// part of one.
+  epicId String?
+  epic   Epic?   @relation(fields: [epicId], references: [id], onDelete: SetNull)
+
+  /// Sprints are optional. A team that doesn't run sprints leaves this null
+  /// and nothing about the board changes.
+  sprintId String?
+  sprint   Sprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+
+  /// Rough estimate in hours. Null means unestimated, which is different from
+  /// zero and should stay tellable apart.
+  estimateHours Float?
+
+  createdAt DateTime @default(now())
+
+  timeEntries TimeEntry[]
 
   @@index([division])
   @@index([status])
   @@index([assigneeId])
   @@index([projectId])
+  @@index([parentId])
+  @@index([epicId])
+  @@index([sprintId])
+}
+
+/// A body of work spanning many tasks, often across projects.
+model Epic {
+  id        String   @id @default(cuid())
+  tag       String   @unique
+  title     String
+  division  String // tuenx | agency | gaphatch
+  status    String // open | in_progress | done | dropped
+  notes     String?
+  createdAt DateTime @default(now())
+
+  tasks Task[]
+
+  @@index([division])
+  @@index([status])
+}
+
+/// A time-boxed run. Dates rather than a number of weeks, because teams skip
+/// weeks and a computed end date would lie about when the sprint actually ran.
+model Sprint {
+  id        String   @id @default(cuid())
+  tag       String   @unique
+  name      String
+  division  String // tuenx | agency | gaphatch
+  startDate DateTime
+  endDate   DateTime
+  goal      String?
+  status    String // planned | active | closed
+  createdAt DateTime @default(now())
+
+  tasks Task[]
+
+  @@index([division])
+  @@index([status])
+}
+
+/// Logged time against a task.
+///
+/// Stored as separate entries rather than a running total on the task, so the
+/// log can say who spent the time and on what day. A single `hoursSpent`
+/// column cannot answer either question.
+model TimeEntry {
+  id        String      @id @default(cuid())
+  taskId    String
+  task      Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  memberId  String?
+  member    TeamMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  hours     Float
+  date      DateTime
+  note      String?
+  createdAt DateTime    @default(now())
+
+  @@index([taskId])
+  @@index([memberId])
+  @@index([date])
 }
 
 /// TRD §2 Contact (CRM), plus the Phase 3 contract fields from TRD §3.
@@ -136,6 +220,7 @@ model TeamMember {
   ownedVendors    Vendor[]
   channelMembers  ChannelMember[]
   messages        Message[]
+  timeEntries     TimeEntry[]
 
   @@index([division])
 }

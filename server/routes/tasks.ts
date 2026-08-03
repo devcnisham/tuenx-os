@@ -5,6 +5,7 @@ import { allocateTag } from '../tags.ts'
 import {
   asBody,
   badRequest,
+  num,
   notFound,
   oneOf,
   optionalDate,
@@ -37,7 +38,46 @@ const PROJECT_SELECT = {
 const WITH_RELATIONS = {
   assignee: ASSIGNEE_SELECT,
   project: PROJECT_SELECT,
+  epic: { select: { id: true, tag: true, title: true } },
+  sprint: { select: { id: true, tag: true, name: true } },
+  subtasks: {
+    include: { assignee: ASSIGNEE_SELECT },
+    orderBy: { createdAt: 'asc' },
+  },
+  _count: { select: { subtasks: true } },
 } satisfies Prisma.TaskInclude
+
+/**
+ * Attaches logged hours, which are summed from time entries rather than stored
+ * on the task — a stored total can disagree with its own entries, and the
+ * entries are what say who spent the time and when.
+ */
+async function withHours<T extends { id: string }>(tasks: T[]) {
+  if (tasks.length === 0) return []
+  const logged = await prisma.timeEntry.groupBy({
+    by: ['taskId'],
+    where: { taskId: { in: tasks.map((t) => t.id) } },
+    _sum: { hours: true },
+  })
+  const byTask = new Map(logged.map((l) => [l.taskId, l._sum.hours ?? 0]))
+  return tasks.map((task) => ({ ...task, loggedHours: byTask.get(task.id) ?? 0 }))
+}
+
+/**
+ * Resolves a parent task, and refuses to nest more than one level.
+ *
+ * A tree nobody can see the bottom of is worse than a flat list — a subtask of
+ * a subtask is almost always a sign the parent should have been an epic.
+ */
+async function assertParentValid(parentId: string | null) {
+  if (parentId === null) return
+  const parent = await prisma.task.findUnique({
+    where: { id: parentId },
+    select: { id: true, parentId: true },
+  })
+  if (!parent) throw badRequest('`parentId` does not match a task')
+  if (parent.parentId) throw badRequest('Subtasks cannot be nested more than one level deep')
+}
 
 /** Rejects a projectId that doesn't resolve, rather than storing a dangling FK. */
 async function assertProjectExists(projectId: string | null) {
@@ -66,7 +106,8 @@ async function assertAssigneeExists(assigneeId: string | null) {
 tasksRouter.get(
   '/',
   route(async (req, res) => {
-    const { division, status, priority, assigneeId, dueBefore, projectId, q } = req.query
+    const { division, status, priority, assigneeId, dueBefore, projectId, epicId, sprintId, q } =
+      req.query
 
     const where: Prisma.TaskWhereInput = {}
     if (isDivision(division)) where.division = division
@@ -76,6 +117,11 @@ tasksRouter.get(
       where.assigneeId = assigneeId === 'unassigned' ? null : assigneeId
     }
     if (typeof projectId === 'string' && projectId !== '') where.projectId = projectId
+    if (typeof epicId === 'string' && epicId !== '') where.epicId = epicId
+    if (typeof sprintId === 'string' && sprintId !== '') where.sprintId = sprintId
+    // Subtasks are shown nested under their parent, so the top-level board
+    // lists only roots. `?includeSubtasks=true` opts out.
+    if (req.query.includeSubtasks !== 'true') where.parentId = null
     if (typeof dueBefore === 'string' && dueBefore !== '') {
       const d = new Date(dueBefore)
       if (!Number.isNaN(d.getTime())) where.dueDate = { lte: d }
@@ -93,7 +139,7 @@ tasksRouter.get(
       orderBy: [{ dueDate: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
     })
 
-    res.json(tasks)
+    res.json(await withHours(tasks))
   }),
 )
 
@@ -104,7 +150,12 @@ tasksRouter.post(
     const division = oneOf(body, 'division', isDivision, DIVISIONS)
     const assigneeId = optionalId(body, 'assigneeId')
     const projectId = optionalId(body, 'projectId')
-    await Promise.all([assertAssigneeExists(assigneeId), assertProjectExists(projectId)])
+    const parentId = optionalId(body, 'parentId')
+    await Promise.all([
+      assertAssigneeExists(assigneeId),
+      assertProjectExists(projectId),
+      assertParentValid(parentId),
+    ])
 
     const task = await prisma.$transaction(async (tx) => {
       const tag = await allocateTag(tx, division, TAG_TYPE.task)
@@ -117,13 +168,21 @@ tasksRouter.post(
           priority: oneOf(body, 'priority', isTaskPriority, TASK_PRIORITIES),
           assigneeId,
           projectId,
+          parentId,
+          epicId: optionalId(body, 'epicId'),
+          sprintId: optionalId(body, 'sprintId'),
+          estimateHours:
+            body.estimateHours === undefined || body.estimateHours === null || body.estimateHours === ''
+              ? null
+              : num(body, 'estimateHours'),
           dueDate: optionalDate(body, 'dueDate'),
         },
         include: WITH_RELATIONS,
       })
     })
 
-    res.status(201).json(task)
+    const [withLogged] = await withHours([task])
+    res.status(201).json(withLogged)
   }),
 )
 
@@ -141,6 +200,9 @@ tasksRouter.patch(
     if (sent(body, 'projectId')) {
       await assertProjectExists(optionalId(body, 'projectId'))
     }
+    if (sent(body, 'parentId')) {
+      await assertParentValid(optionalId(body, 'parentId'))
+    }
 
     const task = await prisma.task.update({
       where: { id: req.params.id },
@@ -157,12 +219,22 @@ tasksRouter.patch(
         }),
         ...(sent(body, 'assigneeId') && { assigneeId: optionalId(body, 'assigneeId') }),
         ...(sent(body, 'projectId') && { projectId: optionalId(body, 'projectId') }),
+        ...(sent(body, 'parentId') && { parentId: optionalId(body, 'parentId') }),
+        ...(sent(body, 'epicId') && { epicId: optionalId(body, 'epicId') }),
+        ...(sent(body, 'sprintId') && { sprintId: optionalId(body, 'sprintId') }),
+        ...(sent(body, 'estimateHours') && {
+          estimateHours:
+            body.estimateHours === null || body.estimateHours === ''
+              ? null
+              : num(body, 'estimateHours'),
+        }),
         ...(sent(body, 'dueDate') && { dueDate: optionalDate(body, 'dueDate') }),
       },
       include: WITH_RELATIONS,
     })
 
-    res.json(task)
+    const [withLogged] = await withHours([task])
+    res.json(withLogged)
   }),
 )
 

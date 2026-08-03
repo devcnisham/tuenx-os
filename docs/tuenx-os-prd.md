@@ -63,26 +63,34 @@ Tuenx OS is the internal operating system for Tuenx Technologies — a single pl
 - Objectives with key results, scoped to Tuenx, a division, or a specific Gaphatch product; tracked per quarter
 - Docs/knowledge base for SOPs, playbooks, onboarding, and policies, tagged by division
 
-### Phase 6 — People, ops, marketing
-- Hiring pipeline (open roles → candidates → stage)
-- Onboarding/offboarding checklists
-- Time-off tracking
-- Vendor & subscription tracker (what's paid for, renewal dates, owner)
-- Marketing (campaigns/content calendar), shared across Agency and Gaphatch
-- Company-wide contracts repository
+### Phase 6 — People, ops, marketing *(built 2026-08-03, one gap)*
+- Hiring pipeline (open roles → candidates → stage) ✅
+- Onboarding/offboarding checklists — **not built**, the one gap
+- Time-off tracking ✅
+- Vendor & subscription tracker (what's paid for, renewal dates, owner) ✅
+- Marketing (campaigns/content calendar), shared across Agency and Gaphatch ✅
+- Company-wide contracts repository ✅
 
-### Phase 7 — Gaphatch customer-facing
-- Support/helpdesk, activates once a product is live
-- Metrics: MRR, active users, churn, per product
-- Customer/subscriber base, per product
+All five live in one "People & Ops" module with tabs rather than five nav
+entries — they are small, related, and all about running the company rather
+than doing the work.
+
+### Phase 7 — Gaphatch customer-facing *(partial)*
+- Support/helpdesk ✅ — one queue for bugs, issues, and feature requests, on
+  the product they belong to. Pulls issues from the product's GitHub
+  repository, one-directionally
+- Metrics: MRR, active users, churn, per product — **schema only**
+- Customer/subscriber base, per product — **schema only**
 
 ### Phase 8 — Reporting
 - Company-wide KPI dashboard aggregating every module above
 
-### Phase 9 — Access & security
-- Individual logins per person
-- Role-based permissions (Admin / Division lead / Member)
-- Audit log of who changed what
+### Phase 9 — Access & security *(partial)*
+- Individual logins per person ✅ — scrypt, server-side sessions, httpOnly
+  cookies. **Bypassed locally on request; off in the deployment**
+- Role-based permissions (Admin / Division lead / Member) — partial. `admin` is
+  enforced; `lead` and `member` are still identical
+- Audit log of who changed what — **not started**. The last piece of Phase 9
 
 ## 7. Key workflows
 
@@ -101,6 +109,7 @@ Tuenx OS is the internal operating system for Tuenx Technologies — a single pl
 
 ## 9. Risks & open questions
 
-- **No auth today.** Acceptable at current team size (6–15, high trust), but a real gap — flagged explicitly, not accidentally ignored. Addressed in Phase 9.
+- ~~**No auth today.**~~ Built 2026-08-03. Two caveats replace it: the login bypass is on locally for every route, and **the client portal has no password** — confirmed deliberate and deployed that way.
+- **No audit log.** Last-write-wins, and no record of who changed what. The one part of Phase 9 not started.
 - **OKRs and Docs are only as useful as the discipline to keep them updated.** Worth revisiting after a month of real use — if they go stale, reconsider scope.
 - **Agency's name is still a placeholder.** Cosmetic now, but worth resolving before the tool is used daily.

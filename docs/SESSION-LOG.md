@@ -80,3 +80,99 @@ Seed accounts use `tuenx1234`. The founder's own account was set to
 `nisham@tuenx.com` / `nisham` / `11223344` on request. Both are weak and fine
 for a seeded local database — they are not how a real account should be created,
 and the seed says so.
+
+---
+
+# Session two — 2026-08-03
+
+Started as "read the docs and continue the work". Became fourteen requests
+arriving faster than they could be finished, and ended with the app deployed.
+
+## The founder's requests, in order
+
+1. Continue from HANDOFF → Phase 6 UI
+2. A 38-system "Business OS" list, as v2 scope
+3. "fix all the errors and loading it should load and display fast"
+4. Two workflow diagrams — delivery pipeline, sales pipeline, team structure, templates
+5. "i want also to see the team and client portal give the link"
+6. "now lets bypass all the logins"
+7. A Google-Calendar-style calendar
+8. "update only for the internal"
+9. Subdomains on tuenx.com
+10. "ci and cd for the projects prducts"
+11. "tuenx handels all the legal accounts finance compliance and all"
+12. Links, features, issues and bugs on product cards; pull them from the repo
+13. Push to GitHub, fix every page, make cards clickable
+14. Deploy to Vercel
+
+## The slowness was not the app
+
+The loudest complaint — every page taking ten to twenty seconds — turned out to
+have nothing to do with the code. A second `npm run dev` had left Vite bound to
+`[::1]:5174`, the API's port on the other address family. macOS resolves
+`localhost` to `::1` first, so `/api` requests reached Vite, which proxied them
+to `localhost:5174` — itself. The loop resolved eventually rather than failing,
+so it presented as "slow app" rather than "two dev servers".
+
+Measured before and after: 13–21s → 1–23ms. `strictPort` now makes the second
+stack fail loudly instead.
+
+**Lesson:** the reported symptom named the wrong subsystem. `/api/health`
+taking 13 seconds — an endpoint that touches nothing — was the tell, and
+checking it first would have saved twenty minutes of reading module code.
+
+## Conflicts flagged rather than silently resolved
+
+| Conflict | Resolution |
+|---|---|
+| 38-system list vs master plan §4 non-goals | Three flagged as conflicts (payroll, tax, multi-tenancy) and not built. Mapped the rest in `tuenx-os-v2-scope.md` |
+| "SaaS Management" — Gaphatch's customers, or tenants in Tuenx OS? | Asked. Answered "both", so multi-tenancy was reversed into scope — then "update only for the internal" arrived and it was reversed back out within the hour. Both recorded in §7; nothing was built against either |
+| Delivery diagram vs `Project.status` | Diagram won. `active` had been doing the work of four stages. ADR-0002 |
+| Client portal password before a public deploy | Asked. Founder chose to deploy it open. Recorded, deployed |
+
+## Four deploys to get one working
+
+Vercel needed three separate fixes, each found by deploying and reading the
+logs rather than by guessing:
+
+1. **TS5097 on every `.ts` import.** Vercel type-checks the function against
+   the nearest tsconfig; the repo root is a solution file with only references,
+   so it fell back to defaults. Added `api/tsconfig.json`.
+2. **`ERR_MODULE_NOT_FOUND: /var/task/server/index.ts`.** The entry was
+   compiled to `.js`, the import specifier was not rewritten.
+3. **Same error without the extension.** The real cause: Vercel compiles the
+   entry file and *nothing behind it*, so no `server/*.js` ever existed.
+   Dropping extensions had only changed the error message. Fixed by bundling
+   the whole server with esbuild.
+
+**Lesson:** step 2's fix looked correct and was not. The error changing shape
+was mistaken for progress; the second identical failure is what forced the
+right diagnosis.
+
+## Mistakes worth knowing about
+
+- **Two records moved one stage on their own**, once on the hiring board and
+  once on projects. Reads were proven not to mutate — a read-only pass over
+  every endpoint left the data unchanged — and the data was correct after
+  reseeding. Most likely a stray click of mine during browser verification. It
+  was reported rather than quietly reseeded away, and it has not recurred.
+- **A JSX className was truncated by a careless scripted edit**, twice, leaving
+  an unterminated string. Caught by typecheck immediately, but a slower way to
+  make a small change than opening the file.
+- **The seed's delete list was missed** when Phase 6 tables were added. It
+  matters more than it looks: the seed clears `TagCounter`, so leftover rows
+  would collide with reallocated tags on the next run.
+
+## What was verified rather than assumed
+
+- Every endpoint, on SQLite and again on Postgres — 21 of them, all 200
+- Tag allocation under concurrency, on Postgres: three simultaneous creates,
+  three distinct tags
+- The auth boundary at every step: anonymous 401, client-session 403 on
+  candidates, vendors, contracts, tickets — and again against the deployment
+- GitHub sync against real repositories: 147 issues in, re-sync created 0 and
+  updated 147, hand-written tickets untouched
+- SSRF refusal on the sync: `http://127.0.0.1:5174/...` and a non-GitHub host
+  both rejected
+- Card clicks on all six boards, by driving the browser rather than reasoning
+  about the JSX

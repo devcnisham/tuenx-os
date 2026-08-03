@@ -8,7 +8,7 @@ Future state (Phase 9): migrate to a real backend once individual logins and per
 
 This TRD assumes the artifact-based approach through Phase 8, with migration as the final phase.
 
-> **Superseded — see `docs/adr/0001-sqlite-from-phase-1.md`.** The v2 build replaces `window.storage` with SQLite + Prisma from Phase 1. Sections 4 and 5 (limitations 1–3) below describe the artifact build and no longer apply. The entity definitions in sections 2 and 3 remain authoritative.
+> **Superseded — see `docs/adr/0001-sqlite-from-phase-1.md`.** The v2 build replaces `window.storage` with SQLite + Prisma from Phase 1, and **SQLite was replaced by Postgres on 2026-08-03** when the app was deployed to Vercel, whose filesystem cannot hold a database file. Sections 4 and 5 (limitations 1–3) below describe the artifact build and no longer apply. The entity definitions in sections 2 and 3 remain authoritative, with the additions recorded in §3 below.
 
 ## 2. Current data model (built)
 
@@ -32,6 +32,7 @@ Storage: each entity type lives under one shared storage key as a JSON array (`t
 ```
 Product
   id, name, status (planning | building | live), description, createdAt
+  + url, repoUrl                              ← added 2026-08-03
 
 RoadmapItem
   id, productId, title, status (backlog | building | shipped), createdAt
@@ -47,9 +48,14 @@ New storage keys: `products`, `roadmap`, `releases`.
 ```
 Contact — add fields:
   contractType (retainer | project), contractValue, startDate, endDate
+  stage widened 2026-08-03 to the founder's sales pipeline:
+    lead | discovery | proposal | signed | onboarding | active | closed | lost
 
 Project
   id, contactId, title, status, dueDate
+  status rewritten 2026-08-03 to the delivery pipeline — ADR-0002:
+    kickoff | build | qa | handoff | support | closed
+  + onHold (boolean) — stalled work keeps the stage it stalled in
 
 Invoice
   id, contactId, amount, status (draft | sent | paid | overdue), issueDate, dueDate
@@ -108,6 +114,8 @@ New storage keys: `candidates`, `leave-requests`, `vendors`, `campaigns`, `contr
 ```
 Ticket
   id, productId, customerContact, subject, status, priority, createdAt
+  + kind (bug | issue | feature), body, customerId,
+    externalId ("gh:1234"), externalUrl        ← added 2026-08-03
 
 MetricSnapshot
   id, productId, date, mrr, activeUsers, churnRate
@@ -117,6 +125,15 @@ Customer
 ```
 
 New storage keys: `tickets`, `metrics`, `customers`.
+
+**Built:** `Ticket` only. `MetricSnapshot` and `Customer` have schema and
+migrations and no routes.
+
+`kind` was added because the founder asked for features, issues, and bugs
+together; they share one queue because they compete for the same engineer.
+`externalId` is unique per product, which is what makes a re-sync from GitHub
+update rather than duplicate — NULL is exempt, so hand-written tickets are
+unaffected.
 
 ### Phase 8 — KPI dashboard
 
@@ -128,6 +145,12 @@ No new storage. Computed/aggregated views pulling from every module above — re
 - ~~Add authentication (per-person accounts).~~ **Done 2026-08-03**, pulled forward because team and client portals were requested. scrypt-hashed passwords, server-side sessions, httpOnly cookies. See master plan §7.
 - Add role-based permissions: Admin / Division lead / Member. **Partial.** `admin` is real and gates account management and `/api/people`. `lead` and `member` are currently identical to each other — the division-scoped and assigned-only restrictions are still outstanding.
 - Add an audit log table: `who changed what, when` — **still absent.** The one part of Phase 9 not started.
+- ~~Recommended: Supabase (Postgres + built-in auth)~~ — **done 2026-08-03, half of it.** Postgres yes; the auth is this app's own, since it was built before the migration and works. The move was `provider` plus a URL, exactly as ADR-0001 predicted.
+
+**Not in the original data model, built anyway:** `Epic`, `Sprint`, `TimeEntry`,
+and `Task.parentId` (task depth); `CalendarEntry`, `PlanItem`, `Idea`,
+`RecordLink`, `Channel`, `ChannelMember`, `Message`, `UserAccount`,
+`ClientAccount`, `Session`, `TagCounter`.
 
 > **Also now in scope, and not in the original plan:** a read-only client-facing
 > portal (PRD §4 had ruled it out) and messaging (PRD §4 had ruled it out). Both

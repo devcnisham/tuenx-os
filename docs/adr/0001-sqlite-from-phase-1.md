@@ -45,3 +45,41 @@ Use **SQLite + Prisma from Phase 1**. TRD §4 (storage design) and §5 limitatio
 - Type letters: `T` task, `C` contact, `M` team member, `P` product, `R` roadmap item, `V` release.
 - Sequence: zero-padded to 3 digits, counted **per division per type** — confirmed by the founder. `AGY-T001` and `GPH-T001` both exist and are distinct records.
 - Allocation is server-side inside a transaction (see `server/tags.ts`), so concurrent creates cannot collide. This closes TRD §4's client-generated-ID risk ahead of schedule.
+
+---
+
+## Follow-up: the Postgres swap happened, 2026-08-03
+
+This ADR claimed the move to Postgres would be `provider` plus a new
+`DATABASE_URL`, with no application-code change. That claim was tested when the
+app was deployed to Vercel, whose filesystem is ephemeral and cannot hold a
+database file.
+
+**It held.** The whole change was:
+
+```prisma
+- provider = "sqlite"
++ provider = "postgresql"
+```
+
+plus a Postgres `DATABASE_URL`. No route, module, or query changed.
+
+The reason it held is the decision recorded above: every TRD-enum field is a
+`String` column whose allowed values live in `src/types.ts` and are checked at
+the API boundary. Had those been SQLite-native constructs — or had the schema
+leaned on SQLite's type affinity — this would have been a rewrite instead of a
+one-line diff.
+
+**What did have to change:**
+
+- The fifteen SQLite migrations are dialect-specific and would not run on
+  Postgres. They are archived under `docs/migrations-sqlite-archive/` and
+  replaced by a single Postgres baseline. History kept, not deleted.
+- Local development now needs a Postgres rather than a file. That is a real
+  cost this ADR did not weigh: `createdb` and a connection string, where
+  before there was nothing to install.
+
+**Verified rather than assumed:** the baseline applies to an empty database,
+the seed runs clean, all 21 endpoints answer 200, and three concurrent creates
+still produce three distinct tags — the transactional tag allocator behaves the
+same on Postgres, which was the one thing genuinely worth re-checking.

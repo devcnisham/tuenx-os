@@ -1,6 +1,9 @@
 # Tuenx OS — v2 scope map
 
-**Status: proposal, not agreed.** Nothing here has been built or decided. It
+**Status: partly built now.** Written as a proposal on 2026-08-03; the founder
+answered the same day and several items shipped. §5 records what was decided,
+§6 what is still open. Kept as written rather than rewritten, so the reasoning
+behind each recommendation stays checkable against what was then built. It
 maps the 38-system "Business OS" list (founder, 2026-08-03) and the workflow
 diagrams sent with it against what Tuenx OS already is, so the next decision is
 made against facts rather than a wish list.
@@ -56,7 +59,7 @@ some types share. Worth resolving before, not during, the next module.
 
 | # | System | Missing |
 |---|---|---|
-| 3 | Project Management | **Epics, sprints, subtasks, time and workload have endpoints and no screens.** Gantt/timeline/dependencies absent |
+| 3 | Project Management | ~~Epics, sprints, subtasks, time and workload have endpoints and no screens~~ — **built 2026-08-03.** Gantt/timeline/dependencies still absent |
 | 9 | HRMS | Employees ✅, recruitment ✅, leave ✅. Onboarding/offboarding checklists, performance reviews, attendance absent. Payroll ⛔ |
 | 10 | Finance | Income/expense/invoices/cash position ✅ via Treasury + Invoices. Budgets, P&L, banking absent. Tax ⛔ |
 | 14 | Sales | Pipeline ✅. Forecasting, commission, quotes absent |
@@ -70,8 +73,8 @@ some types share. Worth resolving before, not during, the next module.
 
 | # | System | Phase |
 |---|---|---|
-| 6 | Issue & Bug Tracking | 7 — `Ticket` has schema and migration, no routes |
-| 12 | Customer Support | 7 — same |
+| 6 | Issue & Bug Tracking | ✅ **built 2026-08-03** — one queue per product, with GitHub sync |
+| 12 | Customer Support | ✅ same queue. Metrics and the customer base are still schema-only |
 | 15 | Analytics & BI | 8 |
 | 19 | Security (audit log) | 9 |
 | 32 | Innovation | Brainstorms exists; research/experiments/MVP tracking would extend it |
@@ -94,7 +97,7 @@ do. Unless the same kind of answer exists here, the integration beats the rebuil
 
 | # | System | Why |
 |---|---|---|
-| 5 | Engineering (repos, PRs, CI/CD) | GitHub already is this. A read-only mirror of build/deploy status on the product page is worth it; a second code review tool is not |
+| 5 | Engineering (repos, PRs, CI/CD) | GitHub already is this — and the recommendation was taken, in the direction predicted: products carry `url` and `repoUrl`, and issues sync one-directionally from GitHub. CI is GitHub Actions, CD is Vercel. **The build/deploy mirror on the product page is still the open half** |
 | 20 | DevOps (docker, k8s, scaling) | Vercel/host dashboards. Same argument |
 | 21 | API Management | Belongs with whatever serves the API |
 | 26 | Inventory | No physical stock at 6–15 people, services + SaaS |
@@ -161,13 +164,14 @@ three seeded Docs. They need no new model. Cheapest useful thing on this page.
 
 Ordered by value per unit of work, not by the numbering above:
 
-1. **Task depth UI** — epics, sprints, subtasks, time, workload. Endpoints all exist. No schema work. Biggest single gap between what the API can do and what a person can see
-2. **Templates as seeded docs** — an afternoon, no model
-3. **Delivery + sales pipeline stages** — matches the app to how the Agency runs. Migration + mapping existing rows
-4. **Phase 7** — tickets, metrics, customers. Schema exists, routes and UI do not. Unblocks MRR/churn on the executive dashboard
-5. **Onboarding/offboarding checklists + performance reviews** — the named HRMS gaps that aren't payroll
-6. **Phase 8 KPI dashboard** — wants Phase 7 data to be worth building
+1. ~~**Task depth UI**~~ — ✅ built
+2. ~~**Templates as seeded docs**~~ — ✅ built
+3. ~~**Delivery + sales pipeline stages**~~ — ✅ built, ADR-0002
+4. **Phase 7** — ✅ tickets. ❌ metrics and customers, so MRR and churn still cannot be shown
+5. **Onboarding/offboarding checklists + performance reviews** — the named HRMS gaps that aren't payroll. Untouched
+6. **Phase 8 KPI dashboard** — wants Phase 7's metrics to be worth building
 7. **Audit log** — Phase 9, and the last thing standing between this and "who changed what"
+8. **Compliance register** — added after the founder confirmed Tuenx owns compliance. Nothing exists
 
 ---
 

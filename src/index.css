@@ -73,25 +73,31 @@
 /**
  * Dark theme.
  *
- * Not the light tokens inverted. Inverting produces pure black and blown-out
- * accents; this raises the surfaces off a near-black canvas so the same
- * elevation language still reads, and lifts each division hue to the tint that
- * stays legible on a dark ground rather than the ink-safe cut used on paper.
+ * True black canvas, with cards a few points above it. Black rather than a
+ * charcoal grey because the founder asked for black, and because on OLED it
+ * costs nothing to draw. The surfaces still have to be *slightly* lighter than
+ * the canvas or the elevation language collapses and every panel edge
+ * disappears.
  *
- * Shadows do almost nothing on a dark ground, so cards separate by surface
- * lightness instead, with a hairline to hold the edge.
+ * Not the light tokens inverted. Inverting blows out the accents; each division
+ * hue is lifted to the tint that stays legible on black rather than the
+ * ink-safe cut used on paper.
+ *
+ * Shadows do almost nothing on black, so cards separate by surface lightness
+ * with a hairline ring holding the edge.
  */
 :root[data-theme='dark'] {
-  --color-canvas: #0e1013;
-  --color-surface: #17191d;
-  --color-wash: #1e2126;
-  --color-rule: #2b2f36;
-  --color-rule-soft: #23262c;
+  /* True black canvas. Cards sit just above it so elevation still reads. */
+  --color-canvas: #000000;
+  --color-surface: #0c0c0e;
+  --color-wash: #141417;
+  --color-rule: #262629;
+  --color-rule-soft: #1b1b1e;
 
-  /* Never pure white — it vibrates against a dark ground at body size. */
-  --color-ink: #e9ebee;
-  --color-graphite: #a8aeb8;
-  --color-faint: #7c8490;
+  /* Never pure white — it vibrates against black at body size. */
+  --color-ink: #ededee;
+  --color-graphite: #a6a6ac;
+  --color-faint: #78787f;
 
   /* Division hues, lifted for a dark ground. */
   --color-tuenx: #f5b13d;

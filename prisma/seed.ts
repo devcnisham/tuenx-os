@@ -280,7 +280,93 @@ async function main() {
     }
 
     // -- Docs (Phase 5) -----------------------------------------------------
+    //
+    // The three "Templates & Reference Docs" from the founder's workflow
+    // diagram (2026-08-03) are seeded here as Docs rather than built as a
+    // template module. They are content: a doc already has a division, a
+    // category, full-text search, and a staleness flag, which is everything a
+    // template needs and more than a new model would start with.
     const docs: { title: string; division: Division; category: string; body: string }[] = [
+      {
+        title: 'Contract / SOW skeleton',
+        division: 'tuenx',
+        category: 'Template',
+        body: `Copy this into every client agreement. Legal sits with Tuenx, not
+with the division doing the work — so this is the group's template, and Agency
+does not keep its own.
+
+  1.  Parties and effective date
+  2.  Scope of work — and, explicitly, what is excluded
+  3.  Timeline and milestones
+  4.  Payment terms and late fees
+  5.  Revisions and change orders
+  6.  IP transfer on final payment
+  7.  Confidentiality and termination
+  8.  Warranty period and liability cap
+
+Two of these are where the money goes wrong, so they are not optional:
+
+EXCLUSIONS. "Scope" without "not in scope" is not a scope. Every dispute
+this company has had started with something the client assumed was included.
+
+CHANGE ORDERS. Write the mechanism down — what triggers one, who signs it,
+and what it costs. Without it, revisions are free forever.
+
+IP transfers ON FINAL PAYMENT, not on delivery. That sentence is the only
+leverage left once the work is handed over.
+
+File the signed copy in People & Ops → Contracts, and link it to the client.`,
+      },
+      {
+        title: 'Requirements doc template',
+        division: 'agency',
+        category: 'Template',
+        body: `Fill this in at kickoff, before anyone opens a design tool. A
+project sitting in Kickoff & requirements is waiting on this document.
+
+  Client background and goals
+  Target audience
+  Site / app structure and pages
+  Design preferences and brand assets
+  Content ownership — who writes it, and by when
+  Integrations needed (CRM, analytics, payments)
+  Technical and hosting requirements
+  Success metrics and timeline
+  Point of contact and who signs off
+
+CONTENT OWNERSHIP is the line that decides whether the project ships on
+time. "The client will provide copy" with no date is how a build sits at
+90% for six weeks.
+
+WHO SIGNS OFF has to be one named person. Two approvers means every round
+goes twice.`,
+      },
+      {
+        title: 'Outreach message templates',
+        division: 'agency',
+        category: 'Template',
+        body: `Three shapes, for the three conversations worth having. All of
+them are short on purpose.
+
+COLD MESSAGE (LinkedIn)
+  Reference something real and specific about them — not "I love your work".
+  Name one problem you can see from the outside.
+  Soft call to action: a question, or fifteen minutes. Not a pitch deck.
+
+REFERRAL PARTNER
+  Aim at agencies that do not compete: a copywriter, a photographer, a
+  developer who does not design. Propose mutual referrals, and say what you
+  would send them first.
+
+FOLLOW-UP
+  Share one useful insight about their business.
+  Never send "just checking in" — it asks the other person to do the work of
+  remembering why you are talking.
+
+Every one of these lands a contact in the CRM at New lead. If it is not in
+the CRM it did not happen.`,
+      },
+
       {
         title: 'How we tag records',
         division: 'tuenx',

@@ -1117,6 +1117,63 @@ export interface KpiDivisionRow {
   netCash: number
 }
 
+// ---------------------------------------------------------------------------
+// Phase 9 — audit trail
+// ---------------------------------------------------------------------------
+
+export const AUDIT_ACTIONS = [
+  'create',
+  'update',
+  'delete',
+  'sign_in',
+  'sign_in_failed',
+  'sign_out',
+  'portal_access',
+  'dev_session',
+] as const
+export type AuditAction = (typeof AUDIT_ACTIONS)[number]
+
+export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
+  create: 'Created',
+  update: 'Updated',
+  delete: 'Deleted',
+  sign_in: 'Signed in',
+  sign_in_failed: 'Sign-in failed',
+  sign_out: 'Signed out',
+  portal_access: 'Portal access',
+  dev_session: 'Dev session',
+}
+
+export interface AuditEntry {
+  id: string
+  at: string
+  actorId: string | null
+  /** Denormalised, so the row still means something once an account is gone. */
+  actorName: string
+  actorRole: string
+  action: AuditAction
+  /** API resource — `tasks`, `ops/leave`, or `auth` for session events. */
+  resource: string
+  recordId: string | null
+  recordTag: string | null
+  /** `{ field: { from, to } }`. Null on creates and deletes. */
+  changes: Record<string, { from: unknown; to: unknown }> | null
+  ip: string | null
+}
+
+export interface AuditPage {
+  entries: AuditEntry[]
+  hasMore: boolean
+  /** Pass back as `before` to page. Keyset, not offset. */
+  nextCursor: string | null
+}
+
+export interface AuditFacets {
+  resources: { value: string; count: number }[]
+  actions: { value: string; count: number }[]
+  actors: { id: string; name: string; count: number }[]
+}
+
 export interface Kpi {
   generatedAt: string
   headline: {

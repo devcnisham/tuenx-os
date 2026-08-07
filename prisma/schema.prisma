@@ -845,6 +845,48 @@ model Session {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 9 — audit trail
+// ---------------------------------------------------------------------------
+
+/// Who changed what, when. TRD §9, and the last piece of Phase 9.
+///
+/// Deliberately has no division tag. Every other record carries one because
+/// people refer to it by name; nobody says "go and look at TNX-?012". An audit
+/// row is evidence, not a record you cite — which is also why it sidesteps the
+/// exhausted tag-letter alphabet entirely.
+///
+/// The actor's name and role are denormalised on purpose. A log that says
+/// "account 7f3a deleted the Halcyon contract" is worthless once account 7f3a
+/// is gone, and deleting the account is exactly what someone covering their
+/// tracks would do.
+model AuditEntry {
+  id   String   @id @default(cuid())
+  at   DateTime @default(now())
+
+  actorId   String?
+  actorName String
+  actorRole String
+
+  /// create | update | delete | sign_in | sign_in_failed | sign_out | portal_access
+  action String
+  /// The API resource — `tasks`, `invoices`, … or `auth` for session events.
+  resource String
+
+  recordId  String?
+  recordTag String?
+
+  /// Field-level diff, `{ field: { from, to } }`. Null for creates and deletes,
+  /// where the whole record is the change.
+  changes Json?
+
+  ip String?
+
+  @@index([at])
+  @@index([resource, recordId])
+  @@index([actorId])
+}
+
+// ---------------------------------------------------------------------------
 // Infrastructure
 // ---------------------------------------------------------------------------
 

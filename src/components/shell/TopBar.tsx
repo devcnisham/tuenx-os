@@ -32,6 +32,7 @@ const PANEL_LABEL: Record<Panel, string> = {
 const MODULE_TITLE: Record<ModuleId, string> = {
   overview: 'Overview',
   kpi: 'KPIs',
+  audit: 'Audit log',
   tasks: 'Tasks',
   crm: 'CRM',
   projects: 'Projects',

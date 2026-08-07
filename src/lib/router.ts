@@ -26,6 +26,7 @@ export type ModuleId =
   | 'ops'
   | 'products'
   | 'kpi'
+  | 'audit'
 
 export interface Route {
   module: ModuleId
@@ -47,6 +48,7 @@ export interface Route {
 const MODULES: ModuleId[] = [
   'overview',
   'kpi',
+  'audit',
   'tasks',
   'crm',
   'projects',

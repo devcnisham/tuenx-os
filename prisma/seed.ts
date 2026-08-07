@@ -58,6 +58,9 @@ async function main() {
   await prisma.objective.deleteMany()
   await prisma.doc.deleteMany()
   await prisma.fundEntry.deleteMany()
+  // Phase 9. Cleared with everything else: an audit trail of records that no
+  // longer exist is noise, and the seed is a wipe not a migration.
+  await prisma.auditEntry.deleteMany()
   await prisma.tagCounter.deleteMany()
 
   await prisma.$transaction(async (tx) => {

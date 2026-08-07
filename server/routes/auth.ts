@@ -10,6 +10,7 @@ import {
   verifyPassword,
 } from '../auth'
 import { HttpError, asBody, badRequest, notFound, oneOf, optionalId, route, sent, str } from '../http'
+import { recordAuthEvent } from '../audit'
 import { ROLES, isRole } from '../../src/types'
 
 export const authRouter = Router()
@@ -61,7 +62,19 @@ authRouter.post(
       account?.passwordHash ?? DUMMY.hash,
     )
 
-    if (!account || !ok || !account.active) throw badRequest(LOGIN_FAILED)
+    if (!account || !ok || !account.active) {
+      // Recorded before the throw: a run of failed sign-ins against one
+      // identifier is exactly what an audit log exists to surface, and the
+      // write middleware never sees a 400.
+      await recordAuthEvent(req, 'sign_in_failed', {
+        id: account?.id ?? null,
+        // The typed identifier, not a resolved name — on a failure there may be
+        // no account, and what was attempted is the useful part.
+        name: identifier,
+        role: account?.role ?? 'unknown',
+      })
+      throw badRequest(LOGIN_FAILED)
+    }
 
     const token = newSessionToken()
     await prisma.$transaction([
@@ -73,6 +86,12 @@ authRouter.post(
         data: { lastLoginAt: new Date() },
       }),
     ])
+
+    await recordAuthEvent(req, 'sign_in', {
+      id: account.id,
+      name: account.member.name,
+      role: account.role,
+    })
 
     setSessionCookie(res, token)
     res.json({
@@ -247,6 +266,12 @@ authRouter.post(
   '/logout',
   route(async (req, res) => {
     if (req.viewer) {
+      const actor = req.viewer.account
+      await recordAuthEvent(req, 'sign_out', {
+        id: actor?.id ?? null,
+        name: actor?.name ?? req.viewer.client?.name ?? 'client',
+        role: actor?.role ?? 'client',
+      })
       await prisma.session.delete({ where: { id: req.viewer.sessionId } }).catch(() => {})
     }
     clearSessionCookie(res)

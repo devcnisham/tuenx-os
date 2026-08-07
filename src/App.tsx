@@ -12,6 +12,7 @@ import { RightRail } from './components/shell/RightRail.tsx'
 import { StatusBar } from './components/shell/StatusBar.tsx'
 import { Overview } from './modules/Overview.tsx'
 import { Kpi } from './modules/Kpi.tsx'
+import { Audit } from './modules/Audit.tsx'
 import { Tasks } from './modules/Tasks.tsx'
 import { Crm } from './modules/Crm.tsx'
 import { Projects } from './modules/Projects.tsx'
@@ -39,7 +40,15 @@ import { Work } from './modules/Work.tsx'
  */
 const NAV: {
   group: string
-  items: { id: ModuleId; label: string; owner: Division; icon: IconName }[]
+  items: {
+    id: ModuleId
+    label: string
+    owner: Division
+    icon: IconName
+    /** Hidden from the rail for anyone else. The API refuses them regardless —
+        this only saves them clicking into a 403. */
+    adminOnly?: boolean
+  }[]
 }[] = [
   {
     group: 'Group',
@@ -51,6 +60,7 @@ const NAV: {
       { id: 'crm', label: 'CRM', owner: 'tuenx', icon: 'crm' },
       { id: 'team', label: 'Team', owner: 'tuenx', icon: 'team' },
       { id: 'users', label: 'Users', owner: 'tuenx', icon: 'crm' },
+      { id: 'audit', label: 'Audit log', owner: 'tuenx', icon: 'clock', adminOnly: true },
       { id: 'ops', label: 'People & Ops', owner: 'tuenx', icon: 'inbox' },
       { id: 'treasury', label: 'Treasury', owner: 'tuenx', icon: 'treasury' },
       { id: 'docs', label: 'Docs', owner: 'tuenx', icon: 'docs' },
@@ -91,14 +101,24 @@ function portalForHost(): 'team' | 'client' {
   return window.location.hostname.split('.')[0] === 'client' ? 'client' : 'team'
 }
 
-function NavList({ active, onNavigate }: { active: ModuleId; onNavigate?: () => void }) {
+function NavList({
+  active,
+  isAdmin,
+  onNavigate,
+}: {
+  active: ModuleId
+  isAdmin: boolean
+  onNavigate?: () => void
+}) {
   return (
     <nav className="space-y-5">
       {NAV.map(({ group, items }) => (
         <div key={group}>
           <p className="label-mono mb-1.5 px-4">{group}</p>
           <div className="space-y-0.5">
-            {items.map((item) => {
+            {items
+              .filter((item) => !item.adminOnly || isAdmin)
+              .map((item) => {
               const isActive = item.id === active
               return (
                 <a
@@ -269,7 +289,11 @@ function Dashboard({ viewer, onSignOut }: { viewer: Viewer; onSignOut: () => voi
 
       {drawerOpen && (
         <div className="border-b border-rule py-2 lg:hidden">
-          <NavList active={route.module} onNavigate={() => setDrawerOpen(false)} />
+          <NavList
+            active={route.module}
+            isAdmin={viewer.account?.role === 'admin'}
+            onNavigate={() => setDrawerOpen(false)}
+          />
           <div className="mt-3 border-t border-rule px-4 pt-3">
             <p className="label-mono mb-2">Tag key</p>
             <TagLegend />
@@ -281,7 +305,7 @@ function Dashboard({ viewer, onSignOut }: { viewer: Viewer; onSignOut: () => voi
         {layout.left && (
           <aside className="hidden w-56 shrink-0 flex-col overflow-y-auto border-r border-rule lg:flex">
             <div className="flex-1 py-3">
-              <NavList active={route.module} />
+              <NavList active={route.module} isAdmin={viewer.account?.role === 'admin'} />
             </div>
             <div className="border-t border-rule px-4 py-4">
               <p className="label-mono mb-2">Tag key</p>
@@ -310,6 +334,7 @@ function Dashboard({ viewer, onSignOut }: { viewer: Viewer; onSignOut: () => voi
           <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
             {route.module === 'overview' && <Overview />}
             {route.module === 'kpi' && <Kpi />}
+            {route.module === 'audit' && <Audit />}
             {route.module === 'tasks' && <Tasks />}
             {route.module === 'crm' && <Crm />}
             {route.module === 'projects' && <Projects />}

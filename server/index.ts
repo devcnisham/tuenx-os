@@ -1,6 +1,8 @@
 import express from 'express'
 import { errorHandler } from './http'
-import { attachViewer, requireTeam } from './auth'
+import { attachViewer, requireTeam, requireAdmin } from './auth'
+import { requireWriteAccess } from './scope'
+import { auditWrites } from './audit'
 import { authRouter } from './routes/auth'
 import { portalRouter } from './routes/portal'
 import { peopleRouter } from './routes/people'
@@ -27,6 +29,7 @@ import { metricsRouter } from './routes/metrics'
 import { workRouter } from './routes/work'
 import { searchRouter } from './routes/search'
 import { kpiRouter } from './routes/kpi'
+import { auditLogRouter } from './routes/audit-log'
 
 /**
  * Tuenx OS API.
@@ -64,6 +67,14 @@ app.use('/api/portal', portalRouter)
 // --- Team gate -------------------------------------------------------------
 // Everything past this point needs a signed-in team session.
 app.use('/api', requireTeam)
+
+// Phase 9. Order matters: scope first so a refused write is never recorded as
+// one that happened, then audit so everything that gets through is logged.
+// Both sit here rather than inside each router — a router added later cannot
+// forget to opt in, which is the same reason `requireTeam` is a position
+// rather than a call.
+app.use('/api', requireWriteAccess)
+app.use('/api', auditWrites)
 
 // Phase 1
 app.use('/api/overview', overviewRouter)
@@ -108,6 +119,10 @@ app.use('/api/search', searchRouter)
 
 // Phase 8 — read-only aggregation across every module above
 app.use('/api/kpi', kpiRouter)
+
+// Phase 9 — the audit trail, readable by admins only. Read-only by
+// construction: there is no write route, and there never should be.
+app.use('/api/audit', requireAdmin, auditLogRouter)
 
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'Unknown endpoint' })

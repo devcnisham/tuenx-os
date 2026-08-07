@@ -22,7 +22,7 @@ Of the 38 systems, roughly:
 |---|---|---|
 | ✅ Built | 12 | Exists and is used |
 | 🟡 Partial | 9 | Real, missing a named piece |
-| ⬜ Planned | 6 | Already in the phase plan, not started |
+| ⬜ Planned | 6 | Already in the phase plan. **All six have since shipped** — see §6 |
 | ⛔ Conflicts | 3 | Contradicts a locked non-goal |
 | ➖ Not recommended | 8 | Better served by the tool that already does it |
 
@@ -60,14 +60,14 @@ some types share. Worth resolving before, not during, the next module.
 | # | System | Missing |
 |---|---|---|
 | 3 | Project Management | ~~Epics, sprints, subtasks, time and workload have endpoints and no screens~~ — **built 2026-08-03.** Gantt/timeline/dependencies still absent |
-| 9 | HRMS | Employees ✅, recruitment ✅, leave ✅. Onboarding/offboarding checklists, performance reviews, attendance absent. Payroll ⛔ |
+| 9 | HRMS | Employees ✅, recruitment ✅, leave ✅, onboarding/offboarding checklists ✅. Performance reviews and attendance absent. Payroll ⛔ |
 | 10 | Finance | Income/expense/invoices/cash position ✅ via Treasury + Invoices. Budgets, P&L, banking absent. Tax ⛔ |
 | 14 | Sales | Pipeline ✅. Forecasting, commission, quotes absent |
-| 15 | Analytics & BI | Overview is a live dashboard; the company-wide KPI board is Phase 8 |
-| 19 | Security | Auth ✅, roles partial (`lead` = `member` today), **audit log absent** — the one part of Phase 9 not started |
+| 15 | Analytics & BI | Overview is a live dashboard and the company-wide KPI board ✅ shipped 2026-08-03. Ad-hoc querying and exports absent |
+| 19 | Security | Auth ✅, division-scoped roles ✅, audit log ✅ — all of Phase 9 done 2026-08-03. Devices, backups, and monitoring are still IT's problem, not this app's |
 | 18 | IT | User accounts and permissions ✅. Devices, backups, monitoring absent |
 | 35 | Knowledge Management | Docs ✅. Templates and FAQs are content, not a module |
-| 38 | Executive Dashboard | Overview covers today; MRR/ARR/churn need Phase 7 data to exist first |
+| 38 | Executive Dashboard | Overview, the KPI board, and per-product MRR/churn ✅ all shipped 2026-08-03 |
 
 ### Planned, in the phase order already
 
@@ -148,10 +148,11 @@ plus `lost`. This is a real migration of existing rows and needs your go-ahead.
 
 ### Team structure — already supported
 
-`Owner → PM → Dev 1, Dev 2` maps onto the existing roles and teams. The gap is
-that `lead` and `member` are currently identical in code — the PM row in that
-diagram is exactly the case that makes them differ, and it is already listed as
-an open question in `HANDOFF.md`.
+`Owner → PM → Dev 1, Dev 2` maps onto the existing roles and teams. The PM row
+was the case for making `lead` and `member` differ, and **they now do** as of
+2026-08-03: a lead writes inside their own division, a member writes only what
+is assigned to them. Whether that is too strict for nine people is a question
+for real use rather than for design — see `HANDOFF.md`.
 
 ### Templates — content, not a module
 

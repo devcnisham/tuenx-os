@@ -21,11 +21,18 @@ createdb tuenx_os          # Postgres now, not SQLite — see ADR-0001
 npm install && npx prisma migrate deploy && npm run db:seed && npm run dev
 ```
 
-http://localhost:5173. Verified working from this state — 13 migrations applied,
-seed produces 9 team members, 19 tasks (14 roots + 5 subtasks), 9 contacts, 3
-products, 9 docs, 10 plan items, 6 ideas, 7 calendar entries, 11 messages, 6
-accounts, 6 candidates, 5 leave records, 7 vendors, 5 campaigns, 6 contracts, 3
-epics, 3 sprints, 6 time entries, 6 issues.
+http://localhost:5173. Verified working from this state on 2026-08-03 — **5
+migrations** applied (the Postgres baseline plus four since; the SQLite ones are
+archived in `docs/migrations-sqlite-archive/`), and the seed produces:
+
+> 9 team members, 19 tasks (14 roots + 5 subtasks), 9 contacts, 3 products,
+> 9 docs, 10 plan items, 6 ideas, 7 calendar entries, 11 messages, 6 accounts,
+> 6 candidates, 7 vendors, 6 contracts, 3 epics, 3 sprints, 6 time entries,
+> 6 issues, 7 customers, 4 metric snapshots, 12 compliance obligations,
+> 2 checklist runs.
+
+If those numbers do not match after a seed, something is wrong — the seed is
+deterministic apart from dates, which are relative to today.
 
 **Run one dev stack, not two.** Vite now fails on a taken 5173 rather than
 walking to the next port — it used to land on 5174, bind `::1` while the API
@@ -35,8 +42,15 @@ held `127.0.0.1`, and proxy `/api` to itself. That loop made every request take
 `prisma migrate dev` **will not run under Claude Code** — it is interactive and
 Prisma refuses. Generate SQL with `prisma migrate diff --from-migrations
 prisma/migrations --to-schema-datamodel prisma/schema.prisma --script`, save it
-as a migration folder by hand, and apply with `prisma migrate deploy`. That is
-how the Postgres baseline and the last three migrations were made.
+as a migration folder by hand, and apply with `npm run db:deploy`. That is how
+the Postgres baseline and every migration since was made.
+
+Two things that are not obvious and both cost time here:
+
+- `prisma/migrations/migration_lock.toml` must exist, or `migrate diff` refuses
+  with "could not determine the connector".
+- `--from-migrations` needs a shadow database: `createdb tuenx_os_shadow` once,
+  then pass `--shadow-database-url postgresql://$USER@localhost:5432/tuenx_os_shadow`.
 
 ### Getting in
 
@@ -91,7 +105,7 @@ remove it from git history.
 | Treasury | ✅ | ✅ | Allocations excluded from balance/burn |
 | Team | ✅ | ✅ | Roster, grouped by division |
 | Users | ✅ | ✅ | Admin-only. Accounts, roles, teams, workload, live sessions |
-| Products | ✅ | ✅ | Roadmap, releases, live/repo links, issues queue, GitHub sync |
+| Products | ✅ | ✅ | Roadmap, releases, live/repo links, issues queue, GitHub issue + build sync |
 | Customers | ✅ | ✅ | Per product. Reporters on tickets resolve to a real subscriber |
 | Metrics | ✅ | ✅ | MRR/actives/churn snapshots, one per product per date |
 | KPIs | ✅ | ✅ | Phase 8. Read-only rollup, health list, 12-month trend |
@@ -100,13 +114,13 @@ remove it from git history.
 | Calendar | ✅ | ✅ | Time grid + mini-month, drag to reschedule, meeting planner |
 | Planner | ✅ | ✅ | Quarter columns, load bar from rough sizes |
 | Brainstorms | ✅ | ✅ | Ideas promote into plan items |
-| People & Ops | ✅ | ✅ | Phase 6 — hiring, time off, vendors, marketing, contracts, in five tabs |
+| People & Ops | ✅ | ✅ | Phase 6 — hiring, **onboarding**, time off, vendors, marketing, contracts, in six tabs |
 | Messages | ✅ | ✅ | Channels + DMs; record-bound channels are the point |
 | Sign-in | ✅ | ✅ | scrypt, server-side sessions. **Currently bypassed** |
 | Role scoping | ✅ | — | Phase 9. Middleware below requireTeam; fails closed |
 | Audit log | ✅ | ✅ | Phase 9. Admin-only, read-only, field-level diffs |
 | Compliance | ✅ | ✅ | Obligations register. Recurrence rolls forward, not closed |
-| Onboarding | ✅ | ✅ | Templates + runs, in People & Ops. Runs copy their steps |
+| Onboarding | ✅ | ✅ | Templates + runs, a tab in People & Ops. Runs copy their steps |
 | Builds (CD) | ✅ | ✅ | GitHub Actions mirrored per product. Cached, one-directional |
 | Client portal | ✅ | ✅ | Read-only, scoped. **No password by design** |
 | Links | ✅ | ✅ | Any record to any other |
@@ -116,8 +130,8 @@ remove it from git history.
 
 ## Pick these up first
 
-Ordered by what unblocks the most. Items 1 and 3 need the founder, not effort —
-do not start them on a guess.
+Ordered by what unblocks the most. Item 1 needs the founder, not effort — do
+not start it on a guess.
 
 ### 1. Give the deployment a database — needs the founder
 
@@ -144,14 +158,13 @@ outstanding.** Phases 1–9, compliance, and onboarding checklists are all built
 What is left is the list below, the deployment database above, and whatever the
 founder asks for next.
 
-
-
 - Grid/list layouts on modules other than Tasks and Docs (`useRecordLayout` + `LayoutSwitch` already exist — a per-module wiring job)
 - Threads, reactions, and mentions in Messages
 - Conversations bound to a CRM contact — `Channel.recordType`/`recordId` support it; nothing creates one yet
 - Team workspaces (a per-team view aggregating that team's work)
 - Product/project update trackers
-- Customers are not yet linkable via `links.ts` `RESOLVERS`, and metrics deliberately are not (a snapshot is a reading, not a record you cross-reference)
+- **Customers, checklist runs, and builds are not in `links.ts` `RESOLVERS`** — a per-type entry each, roughly ten lines. Metrics and audit rows deliberately stay out: a snapshot is a reading and an audit row is evidence, neither is a record anyone cross-references
+- No test suite. Verification is by exercising the API and opening the app, which is honest but does not scale — if anything here grows, this is the gap that will hurt first
 
 ### 3. The v2 scope list
 
@@ -176,25 +189,31 @@ straight back out within the hour, both recorded in master plan §7.
 - **Calendar is deadlines, not appointments** for derived events; user-created entries carry times. Contract end dates are not draggable.
 - **Messaging and the client portal were non-goals** and were reversed into scope — master plan §7.
 - **Any write clears the whole API cache.** Enumerating what to drop is how a cache starts lying.
+- **Not every record gets a tag.** Audit rows, checklist lines, and mirrored builds have none. The test is whether a person would ever cite the thing by name: nobody says "TNX-??014 is blocked", they say "Rafa's onboarding". Tag codes are scarce enough not to spend on things nobody quotes.
+- **Mirrored GitHub data is cached, never fetched on page load.** 60 requests an hour unauthenticated does not survive a page that fetches on render. Sync is a deliberate act and the UI states how stale it is.
+- **An obligation is not a task.** Marking a compliance item done advances its due date rather than closing it, and rolls forward from the *due date* rather than today — otherwise every deadline drifts a little further each cycle.
+- **A checklist run copies its steps.** Editing a template must never change a run in progress; the run is the record of what was actually asked for.
+- **Roles are enforced as middleware, and fail closed.** Scoping lives below `requireTeam` rather than in each router, so a new router cannot forget it.
 
 ---
 
 ## Open questions for the founder
 
 - **Do `lead` and `member` now behave as you want?** Phase 9 implemented PRD §5 literally: a lead writes only inside their own division, a member writes only records assigned to them. That is stricter than a 9-person team may want in practice — a member cannot currently fix a typo on someone else's task. Worth a week of real use before deciding.
-- **CI/CD, half answered.** GitHub Actions runs typecheck, build, and `prisma validate` on every push; Vercel deploys from the same branch. The other reading — build and deploy status *mirrored into Tuenx OS per product* — is not built. `repoUrl` exists to hang it off.
+- ~~**CI/CD, half answered.**~~ **Fully answered 2026-08-03.** GitHub Actions runs typecheck, build, and `prisma validate` on every push; Vercel deploys from the same branch; and build status is now mirrored per product on the product page. Nothing outstanding here unless you want deploy status from Vercel too, which would need a Vercel token.
 - Agency's real name is still a placeholder.
 - Real Google Workspace integration (Meet/Docs/Chat) needs a Google Cloud project, OAuth credentials, and consent scopes. Nothing built toward it; internal equivalents exist instead.
-- Whether `lead` and `member` should actually differ. Today they are identical — only `admin` is enforced.
 
 ---
 
 ## Conventions
 
-Full detail in `CLAUDE.md`. The four that catch people out:
+Full detail in `CLAUDE.md`. The ones that catch people out:
 
 1. **Route position is the security boundary.** Anything mounted below `app.use('/api', requireTeam)` in `server/index.ts` is default-deny.
 2. **Tags are allocated server-side in a transaction.** Never client-side, never reissued. All 26 single letters are used, so **new record types get two-letter codes** — compliance was the first (`TNX-CO001`). The allocator does not care about length; only add the `TAG_TYPE` entry.
 3. **`src/types.ts` is imported by the server too** — shared vocabulary goes there.
 4. **The seed is ordered.** A block referencing another entity must come after it. This has bitten once already.
 5. **Relative imports under `server/`, `api/`, `prisma/` carry no extension.** Vercel emits the specifier verbatim and Node cannot resolve `./db.ts` at runtime. Client imports keep theirs — Vite bundles them.
+6. **A new router must be added to `SCOPE_POLICY` in `server/scope.ts`.** Anything missing from that table is denied to everyone but an admin — deliberately, so the omission shows up as a 403 rather than a hole. Writes below `requireTeam` are also audited automatically; neither is opt-in.
+7. **Check CI after pushing.** `gh run list --limit 1`. It was red for the repository's entire history and nothing local caught it, because `typecheck` and `build` both pass on a machine that has a `.env`.

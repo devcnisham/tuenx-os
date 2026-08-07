@@ -1,5 +1,8 @@
 # Session log — 2026-08-02 to 2026-08-03
 
+> **This file is history, not state.** Entries describe what was true when they
+> were written. For what is true now, read `HANDOFF.md`.
+
 What happened in the first build session, and why. Kept separate from
 `HANDOFF.md`, which is the *current state*; this is the *history* behind it.
 
@@ -237,6 +240,8 @@ labels are uppercased by CSS, not in the source.
 
 Phase 8 and Phase 9 were not started. Each is a several-hour chunk and the
 session preferred to land Phase 7 verified over leaving two things half-built.
+*(Both shipped later the same day — see the entries below. This log is history;
+`HANDOFF.md` is the current state.)*
 
 Compliance was raised with the founder as a tag-letter decision — all 26 letters
 are taken — and the question was **dismissed without a choice**, so it remains

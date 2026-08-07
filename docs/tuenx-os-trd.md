@@ -143,8 +143,8 @@ No new storage. Computed/aggregated views pulling from every module above — re
 
 - ~~Move all storage keys above from `window.storage` JSON blobs into Postgres tables~~ — **done differently.** The build went straight to a relational store (SQLite via Prisma) at Phase 1; see ADR-0001. The remaining move to Postgres is `provider` + `DATABASE_URL`.
 - ~~Add authentication (per-person accounts).~~ **Done 2026-08-03**, pulled forward because team and client portals were requested. scrypt-hashed passwords, server-side sessions, httpOnly cookies. See master plan §7.
-- Add role-based permissions: Admin / Division lead / Member. **Partial.** `admin` is real and gates account management and `/api/people`. `lead` and `member` are currently identical to each other — the division-scoped and assigned-only restrictions are still outstanding.
-- Add an audit log table: `who changed what, when` — **still absent.** The one part of Phase 9 not started.
+~~- Add role-based permissions: Admin / Division lead / Member.~~ **Done 2026-08-03.** A lead writes inside their own division; a member writes only records assigned to them. Enforced as middleware below `requireTeam` (`server/scope.ts`) rather than per router, and it fails closed — a resource missing from the policy table is denied to everyone but an admin.
+~~- Add an audit log table: `who changed what, when`~~ — **done 2026-08-03.** Every create, update, and delete with a field-level diff, plus sign-ins and failed sign-ins. Admin-only and read-only; there is no write route and there should not be. Deliberately untagged — an audit row is evidence, not a record anyone cites.
 - ~~Recommended: Supabase (Postgres + built-in auth)~~ — **done 2026-08-03, half of it.** Postgres yes; the auth is this app's own, since it was built before the migration and works. The move was `provider` plus a URL, exactly as ADR-0001 predicted.
 
 **Not in the original data model, built anyway:** `Epic`, `Sprint`, `TimeEntry`,

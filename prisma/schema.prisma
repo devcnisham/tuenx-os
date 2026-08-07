@@ -244,6 +244,7 @@ model TeamMember {
   account         UserAccount?
 
   @@index([division])
+  complianceItems ComplianceItem[]
 }
 
 // ---------------------------------------------------------------------------
@@ -842,6 +843,58 @@ model Session {
   @@index([userAccountId])
   @@index([clientAccountId])
   @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Compliance — the fourth thing Tuenx handles for the group
+// ---------------------------------------------------------------------------
+
+/// A standing obligation: a filing, a licence, a renewal, an audit.
+///
+/// The founder confirmed (2026-08-03) that Tuenx handles legal, accounts,
+/// finance, **and** compliance for the group. The first three had homes — the
+/// contracts repository, Treasury, Invoices. This is the fourth.
+///
+/// The point of the model is `recurrence` + `nextDueDate`. An obligation is not
+/// a task: a task is done once and closed, whereas a VAT return is due again
+/// the moment you file it. Marking one done advances the date instead of
+/// closing the record, so the register is never empty and never lies about
+/// what is coming.
+///
+/// First record type to use a **two-letter tag code** (`CO`), because all
+/// twenty-six single letters were taken. `server/tags.ts` allocates on a
+/// (division, type) pair and never cared how long `type` is.
+model ComplianceItem {
+  id       String @id @default(cuid())
+  tag      String @unique
+  title    String
+  division String // tuenx | agency | gaphatch
+
+  /// filing | licence | insurance | tax | data_protection | employment | other
+  category String
+  /// Who requires it — HMRC, Companies House, the ICO. Free text: the list of
+  /// bodies a small group answers to is not knowable in advance.
+  authority String?
+
+  ownerId String?
+  owner   TeamMember? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  /// once | monthly | quarterly | annual
+  recurrence  String
+  nextDueDate DateTime
+  /// When it was last satisfied. Null means never — which is different from
+  /// "not due yet" and should stay tellable apart.
+  lastDoneAt DateTime?
+
+  /// Set once a `once` obligation is met. Recurring ones never retire.
+  retired Boolean @default(false)
+
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([division])
+  @@index([nextDueDate])
+  @@index([ownerId])
 }
 
 // ---------------------------------------------------------------------------

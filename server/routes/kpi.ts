@@ -85,6 +85,8 @@ kpiRouter.get(
       keyResultCounts,
       openCandidates,
       liveCampaigns,
+      overdueObligations,
+      unownedObligations,
     ] = await Promise.all([
       prisma.invoice.aggregate({ where: { status: 'paid' }, _sum: { amount: true } }),
       prisma.invoice.aggregate({
@@ -174,6 +176,16 @@ kpiRouter.get(
       prisma.keyResult.groupBy({ by: ['status'], _count: { _all: true } }),
       prisma.candidate.count({ where: { stage: { notIn: ['hired', 'passed'] } } }),
       prisma.campaign.count({ where: { status: 'live' } }),
+      // Compliance. A missed filing costs money in a way a missed task does
+      // not, so overdue obligations are their own line rather than folded in
+      // with everything else that has a date.
+      prisma.complianceItem.findMany({
+        where: { retired: false, nextDueDate: { lt: now } },
+        select: { id: true, tag: true, title: true, authority: true },
+        orderBy: { nextDueDate: 'asc' },
+        take: 5,
+      }),
+      prisma.complianceItem.count({ where: { retired: false, ownerId: null } }),
     ])
 
     /* ---------------------------------------------------------------- money */
@@ -315,6 +327,32 @@ kpiRouter.get(
         tone: 'alert',
         route: '#/tasks',
         records: overdueTaskList.map((t) => ({ tag: t.tag, label: t.title })),
+      })
+    }
+
+    if (overdueObligations.length > 0) {
+      health.push({
+        key: 'compliance-overdue',
+        label: 'Compliance obligations overdue',
+        value: String(overdueObligations.length),
+        detail: 'A missed filing costs money a missed task does not',
+        tone: 'alert',
+        route: '#/compliance',
+        records: overdueObligations.map((o) => ({ tag: o.tag, label: o.title })),
+      })
+    }
+
+    if (unownedObligations > 0) {
+      health.push({
+        key: 'compliance-unowned',
+        label: 'Obligations with nobody responsible',
+        value: String(unownedObligations),
+        // The most common way a filing is missed is that everyone assumed
+        // somebody else had it.
+        detail: 'Nobody is named, so nobody is reminded',
+        tone: 'watch',
+        route: '#/compliance',
+        records: [],
       })
     }
 

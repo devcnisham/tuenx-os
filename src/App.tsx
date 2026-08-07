@@ -13,6 +13,7 @@ import { StatusBar } from './components/shell/StatusBar.tsx'
 import { Overview } from './modules/Overview.tsx'
 import { Kpi } from './modules/Kpi.tsx'
 import { Audit } from './modules/Audit.tsx'
+import { Compliance } from './modules/Compliance.tsx'
 import { Tasks } from './modules/Tasks.tsx'
 import { Crm } from './modules/Crm.tsx'
 import { Projects } from './modules/Projects.tsx'
@@ -62,6 +63,7 @@ const NAV: {
       { id: 'users', label: 'Users', owner: 'tuenx', icon: 'crm' },
       { id: 'audit', label: 'Audit log', owner: 'tuenx', icon: 'clock', adminOnly: true },
       { id: 'ops', label: 'People & Ops', owner: 'tuenx', icon: 'inbox' },
+      { id: 'compliance', label: 'Compliance', owner: 'tuenx', icon: 'alert' },
       { id: 'treasury', label: 'Treasury', owner: 'tuenx', icon: 'treasury' },
       { id: 'docs', label: 'Docs', owner: 'tuenx', icon: 'docs' },
       { id: 'okrs', label: 'OKRs', owner: 'tuenx', icon: 'okrs' },
@@ -335,6 +337,7 @@ function Dashboard({ viewer, onSignOut }: { viewer: Viewer; onSignOut: () => voi
             {route.module === 'overview' && <Overview />}
             {route.module === 'kpi' && <Kpi />}
             {route.module === 'audit' && <Audit />}
+            {route.module === 'compliance' && <Compliance />}
             {route.module === 'tasks' && <Tasks />}
             {route.module === 'crm' && <Crm />}
             {route.module === 'projects' && <Projects />}

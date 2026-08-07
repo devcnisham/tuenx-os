@@ -31,6 +31,7 @@ export const CALENDAR_KINDS = [
   'invoice',
   'release',
   'contract',
+  'compliance',
   'entry',
 ] as const
 export type CalendarKind = (typeof CALENDAR_KINDS)[number]
@@ -85,7 +86,7 @@ calendarRouter.get(
 
     const range = { gte: start, lte: end }
 
-    const [tasks, projects, invoices, releases, contracts, entries] = await Promise.all([
+    const [tasks, projects, invoices, releases, contracts, obligations, entries] = await Promise.all([
       prisma.task.findMany({
         where: { dueDate: range },
         include: { assignee: { select: { name: true } } },
@@ -105,6 +106,12 @@ calendarRouter.get(
       // Contract end dates — a renewal nobody saw coming is the expensive kind.
       prisma.contact.findMany({
         where: { endDate: range, contractType: { not: null } },
+      }),
+      // Compliance deadlines. Retired obligations are history and would only
+      // clutter the grid.
+      prisma.complianceItem.findMany({
+        where: { nextDueDate: range, retired: false },
+        include: { owner: { select: { name: true } } },
       }),
       // Entries people created themselves. A multi-day entry counts as
       // overlapping the window if either end falls inside it.
@@ -175,6 +182,19 @@ calendarRouter.get(
         division: c.division,
         open: true,
         route: '#/crm',
+      })),
+      ...obligations.map((c) => ({
+        id: c.id,
+        tag: c.tag,
+        date: day(c.nextDueDate),
+        title: c.title,
+        detail: c.authority ?? c.owner?.name ?? 'Unowned',
+        kind: 'compliance' as const,
+        division: c.division,
+        // Always open: an obligation on the calendar is one still to be met.
+        // Meeting it moves the date rather than closing the record.
+        open: true,
+        route: '#/compliance',
       })),
       ...entries.flatMap((e) => {
         // A multi-day entry occupies every day it spans, so it reads as a band

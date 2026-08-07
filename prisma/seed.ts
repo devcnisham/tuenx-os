@@ -60,6 +60,7 @@ async function main() {
   await prisma.fundEntry.deleteMany()
   // Phase 9. Cleared with everything else: an audit trail of records that no
   // longer exist is noise, and the seed is a wipe not a migration.
+  await prisma.complianceItem.deleteMany()
   await prisma.auditEntry.deleteMany()
   await prisma.tagCounter.deleteMany()
 
@@ -1276,9 +1277,58 @@ tracked separately and does not count against runway.`,
         },
       })
     }
+    // -- Compliance ---------------------------------------------------------
+    // A plausible register for a small UK-shaped group: statutory filings,
+    // the things insurers and regulators ask for, and one deliberately
+    // unowned item, because that is how obligations actually get missed.
+    const obligations: {
+      title: string
+      division: Division
+      category: string
+      authority?: string
+      owner?: string
+      recurrence: string
+      dueInDays: number
+      lastDoneDaysAgo?: number
+      notes?: string
+    }[] = [
+      { title: 'VAT return', division: 'tuenx', category: 'tax', authority: 'HMRC', owner: 'Dev Rao', recurrence: 'quarterly', dueInDays: 18, lastDoneDaysAgo: 74 },
+      { title: 'Confirmation statement', division: 'tuenx', category: 'filing', authority: 'Companies House', owner: 'Aria Sen', recurrence: 'annual', dueInDays: 96, lastDoneDaysAgo: 269 },
+      { title: 'Annual accounts', division: 'tuenx', category: 'filing', authority: 'Companies House', owner: 'Dev Rao', recurrence: 'annual', dueInDays: 141 },
+      { title: 'Corporation tax return', division: 'tuenx', category: 'tax', authority: 'HMRC', owner: 'Dev Rao', recurrence: 'annual', dueInDays: 210 },
+      // Overdue on purpose, so the KPI health list and the register have
+      // something real to show on a fresh database.
+      { title: 'PAYE year-end submission', division: 'tuenx', category: 'employment', authority: 'HMRC', owner: 'Aria Sen', recurrence: 'annual', dueInDays: -9, notes: 'Late. Chase before the penalty tier steps up.' },
+      { title: 'ICO data protection fee', division: 'tuenx', category: 'data_protection', authority: 'ICO', recurrence: 'annual', dueInDays: 41, notes: 'Nobody owns this yet — it is the one most likely to be missed.' },
+      { title: 'Professional indemnity renewal', division: 'agency', category: 'insurance', authority: 'Hiscox', owner: 'Maya Iqbal', recurrence: 'annual', dueInDays: 27, lastDoneDaysAgo: 338 },
+      { title: 'Employers liability renewal', division: 'tuenx', category: 'insurance', owner: 'Aria Sen', recurrence: 'annual', dueInDays: 63 },
+      { title: 'Client data retention review', division: 'agency', category: 'data_protection', owner: 'Maya Iqbal', recurrence: 'quarterly', dueInDays: 7, lastDoneDaysAgo: 84 },
+      { title: 'Subprocessor list review', division: 'gaphatch', category: 'data_protection', owner: 'Kenji Mori', recurrence: 'quarterly', dueInDays: 33, lastDoneDaysAgo: 58, notes: 'Scholr goes live with school data — this stops being optional then.' },
+      { title: 'Right to work checks for new starters', division: 'tuenx', category: 'employment', owner: 'Aria Sen', recurrence: 'monthly', dueInDays: 3, lastDoneDaysAgo: 28 },
+      { title: 'Register Gaphatch as a data controller', division: 'gaphatch', category: 'filing', authority: 'ICO', owner: 'Kenji Mori', recurrence: 'once', dueInDays: 52 },
+    ]
+
+    for (const o of obligations) {
+      const tag = await allocateTag(tx, o.division, TAG_TYPE.compliance)
+      await tx.complianceItem.create({
+        data: {
+          tag,
+          title: o.title,
+          division: o.division,
+          category: o.category,
+          authority: o.authority ?? null,
+          ownerId: o.owner ? members[o.owner] : null,
+          recurrence: o.recurrence,
+          nextDueDate: daysOut(o.dueInDays),
+          lastDoneAt: o.lastDoneDaysAgo ? daysOut(-o.lastDoneDaysAgo) : null,
+          notes: o.notes ?? null,
+        },
+      })
+    }
   })
 
-  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount, msgCount, accountCount, candidateCount, vendorCount, contractCount, epicCount, sprintCount, timeCount, ticketCount, customerCount, metricCount] = await Promise.all([
+
+  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount, msgCount, accountCount, candidateCount, vendorCount, contractCount, epicCount, sprintCount, timeCount, ticketCount, customerCount, metricCount, complianceCount] = await Promise.all([
     prisma.teamMember.count(),
     prisma.task.count(),
     prisma.contact.count(),
@@ -1298,10 +1348,11 @@ tracked separately and does not count against runway.`,
     prisma.ticket.count(),
     prisma.customer.count(),
     prisma.metricSnapshot.count(),
+    prisma.complianceItem.count(),
   ])
 
   console.log(
-    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries, ${msgCount} messages, ${accountCount} accounts, ${candidateCount} candidates, ${vendorCount} vendors, ${contractCount} contracts, ${epicCount} epics, ${sprintCount} sprints, ${timeCount} time entries, ${ticketCount} issues, ${customerCount} customers, ${metricCount} metric snapshots.`,
+    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries, ${msgCount} messages, ${accountCount} accounts, ${candidateCount} candidates, ${vendorCount} vendors, ${contractCount} contracts, ${epicCount} epics, ${sprintCount} sprints, ${timeCount} time entries, ${ticketCount} issues, ${customerCount} customers, ${metricCount} metric snapshots, ${complianceCount} compliance obligations.`,
   )
 }
 

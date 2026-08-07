@@ -75,6 +75,12 @@ export const TAG_TYPE = {
   // Task depth. `Y` for epic (E is a calendar entry), `W` for sprint.
   epic: 'Y',
   sprint: 'W',
+  // Compliance. The first **two-letter** code: all twenty-six single letters
+  // were taken by the time this module existed. `server/tags.ts` allocates on a
+  // (division, type) pair and never cared how long `type` is, so nothing else
+  // had to change — and `divisionFromTag` reads the first three characters,
+  // which is the division prefix either way.
+  compliance: 'CO',
 } as const
 export type TagType = (typeof TAG_TYPE)[keyof typeof TAG_TYPE]
 
@@ -1118,6 +1124,80 @@ export interface KpiDivisionRow {
 }
 
 // ---------------------------------------------------------------------------
+// Compliance register
+// ---------------------------------------------------------------------------
+
+export const COMPLIANCE_CATEGORIES = [
+  'filing',
+  'licence',
+  'insurance',
+  'tax',
+  'data_protection',
+  'employment',
+  'other',
+] as const
+export type ComplianceCategory = (typeof COMPLIANCE_CATEGORIES)[number]
+
+export const COMPLIANCE_CATEGORY_LABEL: Record<ComplianceCategory, string> = {
+  filing: 'Filing',
+  licence: 'Licence',
+  insurance: 'Insurance',
+  tax: 'Tax',
+  data_protection: 'Data protection',
+  employment: 'Employment',
+  other: 'Other',
+}
+
+/**
+ * `once` is the odd one out and earns its place: an obligation met exactly
+ * once — a registration, a one-off audit — retires instead of rolling forward.
+ */
+export const RECURRENCES = ['once', 'monthly', 'quarterly', 'annual'] as const
+export type Recurrence = (typeof RECURRENCES)[number]
+
+export const RECURRENCE_LABEL: Record<Recurrence, string> = {
+  once: 'One-off',
+  monthly: 'Monthly',
+  quarterly: 'Quarterly',
+  annual: 'Annual',
+}
+
+/** How many months a completed obligation rolls forward. `once` never does. */
+export const RECURRENCE_MONTHS: Record<Recurrence, number | null> = {
+  once: null,
+  monthly: 1,
+  quarterly: 3,
+  annual: 12,
+}
+
+export interface ComplianceItem {
+  id: string
+  tag: string
+  title: string
+  division: Division
+  category: ComplianceCategory
+  authority: string | null
+  ownerId: string | null
+  owner: Pick<TeamMember, 'id' | 'tag' | 'name' | 'division'> | null
+  recurrence: Recurrence
+  nextDueDate: string
+  /** Null means never satisfied — different from "not due yet". */
+  lastDoneAt: string | null
+  retired: boolean
+  notes: string | null
+  createdAt: string
+}
+
+export interface ComplianceSummary {
+  overdue: number
+  dueSoon: number
+  upcoming: number
+  retired: number
+  /** Nobody named as responsible. The most common way an obligation is missed. */
+  unowned: number
+}
+
+// ---------------------------------------------------------------------------
 // Phase 9 — audit trail
 // ---------------------------------------------------------------------------
 
@@ -1222,6 +1302,7 @@ export interface SearchHit {
     | 'sprint'
     | 'ticket'
     | 'customer'
+    | 'compliance'
   route: string
 }
 
@@ -1263,3 +1344,5 @@ export const isContractKind = oneOf(CONTRACT_KINDS)
 export const isTicketKind = oneOf(TICKET_KINDS)
 export const isTicketStatus = oneOf(TICKET_STATUSES)
 export const isSubscriptionStatus = oneOf(SUBSCRIPTION_STATUSES)
+export const isComplianceCategory = oneOf(COMPLIANCE_CATEGORIES)
+export const isRecurrence = oneOf(RECURRENCES)

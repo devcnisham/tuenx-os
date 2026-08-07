@@ -28,6 +28,7 @@ export interface SearchHit {
     | 'sprint'
     | 'ticket'
     | 'customer'
+    | 'compliance'
   /** Hash route that opens the record's module. */
   route: string
 }
@@ -84,6 +85,7 @@ searchRouter.get(
       sprints,
       tickets,
       customers,
+      obligations,
     ] = await Promise.all([
       prisma.task.findMany({
         where: byTitleOrTag('title'),
@@ -206,6 +208,18 @@ searchRouter.get(
         take: LIMIT_PER_KIND,
         include: { product: { select: { id: true, name: true } } },
         orderBy: { since: 'desc' },
+      }),
+      // Compliance obligations, findable by what they are or who demands them.
+      prisma.complianceItem.findMany({
+        where: {
+          OR: [
+            { title: { contains: term, mode: 'insensitive' } },
+            { authority: { contains: term, mode: 'insensitive' } },
+            { tag: { contains: term.toUpperCase() } },
+          ],
+        },
+        take: LIMIT_PER_KIND,
+        orderBy: { nextDueDate: 'asc' },
       }),
     ])
 
@@ -335,6 +349,14 @@ searchRouter.get(
         detail: `${SUBSCRIPTION_STATUS_LABEL[c.subscriptionStatus as SubscriptionStatus]} · ${c.product.name}`,
         kind: 'customer' as const,
         route: `#/products/${c.productId}`,
+      })),
+      ...obligations.map((o) => ({
+        id: o.id,
+        tag: o.tag,
+        title: o.title,
+        detail: o.authority ?? 'Compliance',
+        kind: 'compliance' as const,
+        route: '#/compliance',
       })),
     ]
 

@@ -26,6 +26,7 @@ export type LinkType =
   | 'epic'
   | 'sprint'
   | 'ticket'
+  | 'compliance'
 
 interface Link {
   linkId: string
@@ -54,6 +55,7 @@ const KIND_TO_LINK: Partial<Record<SearchHit['kind'], LinkType>> = {
   epic: 'epic',
   sprint: 'sprint',
   ticket: 'ticket',
+  compliance: 'compliance',
 }
 
 /**

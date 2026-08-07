@@ -33,6 +33,7 @@ const MODULE_TITLE: Record<ModuleId, string> = {
   overview: 'Overview',
   kpi: 'KPIs',
   audit: 'Audit log',
+  compliance: 'Compliance',
   tasks: 'Tasks',
   crm: 'CRM',
   projects: 'Projects',

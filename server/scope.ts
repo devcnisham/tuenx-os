@@ -84,6 +84,11 @@ const POLICY: Record<string, Policy> = {
   'ops/campaigns': { model: 'campaign', division: 'record' },
   'ops/contracts': { model: 'contract', division: 'record' },
 
+  // Compliance. Owner-writable as well as division-writable: the person
+  // responsible for a filing has to be able to mark it done, whichever arm
+  // they sit in.
+  compliance: { model: 'complianceItem', division: 'record', owners: ['ownerId'] },
+
   // Phase 7 — Gaphatch only
   tickets: { model: 'ticket', division: 'gaphatch' },
   customers: { model: 'customer', division: 'gaphatch' },

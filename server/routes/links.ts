@@ -95,6 +95,12 @@ const RESOLVERS = {
     find: (ids: string[]) =>
       prisma.campaign.findMany({ where: { id: { in: ids } }, select: { id: true, tag: true, title: true } }),
   },
+  compliance: {
+    label: 'Obligation',
+    route: '#/compliance',
+    find: (ids: string[]) =>
+      prisma.complianceItem.findMany({ where: { id: { in: ids } }, select: { id: true, tag: true, title: true } }),
+  },
   ticket: {
     label: 'Issue',
     route: '#/products',

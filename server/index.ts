@@ -30,6 +30,7 @@ import { workRouter } from './routes/work'
 import { searchRouter } from './routes/search'
 import { kpiRouter } from './routes/kpi'
 import { auditLogRouter } from './routes/audit-log'
+import { complianceRouter } from './routes/compliance'
 
 /**
  * Tuenx OS API.
@@ -83,6 +84,9 @@ app.use('/api/contacts', contactsRouter)
 app.use('/api/team', teamRouter)
 app.use('/api/people', peopleRouter)
 app.use('/api/ops', peopleOpsRouter)
+// Compliance — the fourth thing Tuenx handles for the group, after legal,
+// accounts, and finance.
+app.use('/api/compliance', complianceRouter)
 
 // Phase 2
 app.use('/api/products', productsRouter)

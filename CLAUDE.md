@@ -55,7 +55,7 @@ server/
   tags.ts     division-coded ID allocation (transactional)
   github.ts   issue sync — and the only place a repo URL is parsed
   http.ts     error handling + hand-rolled body validation
-  routes/     23 routers
+  routes/     25 routers
 src/
   types.ts    shared vocabulary — imported by BOTH client and server
   lib/        api client, cache, useResource, router, theme, layout, divisions
@@ -121,6 +121,7 @@ This started as a SQLite constraint and turned out to be the decision that made 
 - **`links.ts`** — polymorphic links between any two records. The database cannot enforce a polymorphic target, so the API validates both ends on write and reads drop anything since deleted.
 - **`calendar.ts`** — projects deadlines out of tasks/projects/invoices/releases/contracts, read-only, plus user-created entries. Never store a duplicate date; derive it.
 - **`search.ts`** — one lookup across every record type.
+- **`metrics.ts`** — MRR is typed, never derived. A `Customer` carries no price, so `/metrics/derive/:productId` returns only active users and churn, and states its own basis. Do not invent a seat price to fill in revenue.
 - **`useResource`** — every module loads its own data with its own loading and error state, per TRD §6. One module failing must not blank the others.
 
 ### Design system

@@ -4,7 +4,7 @@
 re-reading the repository. Update it when a module is finished, a decision is
 reversed, or something is left half-built.
 
-**Last updated:** 2026-08-03 · Phase 7 complete · working tree clean
+**Last updated:** 2026-08-03 · Phases 1–7 complete · working tree clean
 
 | | |
 |---|---|
@@ -110,7 +110,10 @@ remove it from git history.
 
 ## Pick these up first
 
-### 1. Give the deployment a database
+Ordered by what unblocks the most. Items 1 and 3 need the founder, not effort —
+do not start them on a guess.
+
+### 1. Give the deployment a database — needs the founder
 
 `tuenx-os.vercel.app` is live and every route that touches data returns 500,
 because `DATABASE_URL` is not set. One variable — Vercel Postgres, or a
@@ -118,45 +121,86 @@ Supabase project's **pooled** string (port 6543; the direct port runs out of
 connections under serverless). Then redeploy, and `npm run create-admin` for
 the first account. `docs/DEPLOYING.md` has the detail.
 
-### 2. Phase 8 — the KPI dashboard
+**A session cannot do this alone.** It needs the founder's Vercel or Supabase
+account and a secret. Ask; do not attempt a workaround.
 
-Phase 7 is **done** as of 2026-08-03: tickets, customers, and metrics all have
-routes, UI, seed, and search. Nothing in phases 1–7 is outstanding.
+### 2. Phase 8 — the KPI dashboard  ← start here
 
-Phase 8 adds no new records — it is a read-only aggregation across every module
-already built, so it needs no tag letter. That makes it the cheapest remaining
-phase and the obvious next one.
+The cheapest remaining phase and the obvious next one. It adds **no new
+records**, so it needs no tag letter and no migration: a read-only aggregation
+across every module already built.
 
-**One thing to know about metrics before extending them:** MRR is typed, never
-derived. A `Customer` carries no price, so `GET /metrics/derive/:productId`
-returns only active users and churn, and prints its own basis — that churn is a
-share of all non-trial subscribers all-time, not a period rate. A period rate
-needs a subscription-history table, which does not exist. Do not quietly invent
-a seat price to fill in revenue.
+Everything it needs already exists. `server/routes/overview.ts` is the closest
+model — it aggregates in SQL rather than pulling whole tables and reducing in
+the client, and Phase 8 should do the same or it will get slow the moment the
+tables fill up.
 
-### 3. Compliance has no home — and needs a tag-letter decision first
+Sources to pull from, all already built:
+
+| Area | Where the numbers are |
+|---|---|
+| Work | `/api/overview`, `/api/work` (epics, sprints, workload) |
+| Sales | `/api/contacts` — pipeline by stage, `isContactOpen` excludes closed and lost |
+| Delivery | `/api/projects` — board by status, `onHold` is a flag not a stage |
+| Cash | `/api/invoices`, `/api/treasury` — **allocations are excluded from balance, burn, and runway** |
+| Product | `/api/metrics/summary` — latest reading per product with deltas |
+| Support | `/api/tickets` — one queue for bugs, issues, and features |
+
+**Before extending metrics:** MRR is typed, never derived. A `Customer` carries
+no price, so `GET /metrics/derive/:productId` returns only active users and
+churn, and prints its own basis — that churn is a share of all non-trial
+subscribers all-time, not a period rate. A period rate needs a
+subscription-history table, which does not exist. Do not quietly invent a seat
+price to fill in revenue on a dashboard.
+
+### 3. Compliance — blocked on a tag-letter decision
 
 The founder confirmed Tuenx handles legal, accounts, finance, **and
 compliance** for the group. The first three have modules. Compliance has
 nothing — no register of obligations, filings, or their deadlines. Smallest
 useful version is in `docs/tuenx-os-v2-scope.md` §6.
 
-**Blocked on a decision, not on effort.** All twenty-six tag letters are
-taken, so a compliance record needs either a two-letter code or a shared
-letter. Per CLAUDE.md that is a call to make before starting the module
-rather than halfway through it.
+**Blocked on a decision, not on effort.** All twenty-six tag letters are taken,
+so a compliance record needs a scheme. The four options were put to the founder
+on 2026-08-03 and **none was chosen** — the question was dismissed, so it is
+still open:
 
-### 4. Smaller
+| Option | Cost |
+|---|---|
+| Two-letter codes for new types (`TNX-CO001`) | Widest tag chip, parser handles both widths, existing tags untouched |
+| Share a letter, disambiguate by division | Cheapest, but breaks "the letter tells you the type" and will bite the next module |
+| Fold compliance into `Contract` | No tag cost, but filings and statutory deadlines are not agreements |
+| Defer compliance entirely | Wait for a real obligation register to model against |
 
-- Grid/list layouts on modules other than Tasks and Docs (`useRecordLayout` + `LayoutSwitch` already exist — it is a per-module wiring job)
+Raise it again before writing any code. Per CLAUDE.md this is a call to make
+before starting the module, not halfway through — tags are identity and are
+never reissued, so a wrong choice is permanent for every record created under
+it.
+
+### 4. Phase 9 proper — role scoping and audit log
+
+Auth, sessions, and `requireAdmin` exist. What does not:
+
+- **Real role scoping.** `lead` and `member` are identical today; only `admin`
+  is enforced. Whether they *should* differ is an open question for the founder
+  (see below) — settle that before building the scoping.
+- **Audit log.** Nothing records who changed what. Last-write-wins throughout.
+  A new table, and it does not obviously need a division tag — an audit row is
+  not a record someone refers to by name.
+- **Turn off the login bypass.** `AUTH_BYPASS` plus a loopback check guards it
+  and production already sets it false, but the local default is on.
+
+### 5. Smaller, all unblocked
+
+- Grid/list layouts on modules other than Tasks and Docs (`useRecordLayout` + `LayoutSwitch` already exist — a per-module wiring job)
 - Threads, reactions, and mentions in Messages
 - Conversations bound to a CRM contact — `Channel.recordType`/`recordId` support it; nothing creates one yet
 - Team workspaces (a per-team view aggregating that team's work)
 - Product/project update trackers
-- Phase 9 proper: real role scoping, audit log
 - A CD half for the products themselves — build/deploy status mirrored onto a product page, now that `repoUrl` exists to hang it off
+- Customers are not yet linkable via `links.ts` `RESOLVERS`, and metrics deliberately are not (a snapshot is a reading, not a record you cross-reference)
 
-### 5. The v2 scope list
+### 6. The v2 scope list
 
 `docs/tuenx-os-v2-scope.md` maps the founder's 38-system Business OS list and
 the workflow diagrams (2026-08-03) against what exists. §5 records what was
@@ -184,6 +228,7 @@ straight back out within the hour, both recorded in master plan §7.
 
 ## Open questions for the founder
 
+- **How should compliance records be tagged?** All 26 letters are taken. Four options were put on 2026-08-03 and the question was dismissed without a choice. Compliance cannot start until this is settled — see "Pick these up first" §3.
 - **CI/CD, half answered.** GitHub Actions runs typecheck, build, and `prisma validate` on every push; Vercel deploys from the same branch. The other reading — build and deploy status *mirrored into Tuenx OS per product* — is not built. `repoUrl` exists to hang it off.
 - Agency's real name is still a placeholder.
 - Real Google Workspace integration (Meet/Docs/Chat) needs a Google Cloud project, OAuth credentials, and consent scopes. Nothing built toward it; internal equivalents exist instead.

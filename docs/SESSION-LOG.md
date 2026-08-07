@@ -176,3 +176,68 @@ right diagnosis.
   both rejected
 - Card clicks on all six boards, by driving the browser rather than reasoning
   about the JSX
+
+---
+
+# Session 2 — 2026-08-03 (continued)
+
+Short session. Picked up from a clean tree at 20 commits and closed out the one
+phase that still had schema without code.
+
+## What landed
+
+**Phase 7 completes.** `MetricSnapshot` and `Customer` had migrations only, so
+MRR, churn, and the subscriber base did not exist. Both now have routes
+(`server/routes/customers.ts`, `server/routes/metrics.ts`), UI
+(`src/modules/ProductMetrics.tsx`, mounted on the product page between Issues
+and Releases), seed data, and a place in global search. Tag letters `U` and `Z`
+were already reserved, so no decision was needed.
+
+## Two judgment calls worth knowing about
+
+**MRR is typed, never derived.** A `Customer` carries no price, so what a
+subscriber pays is not knowable from this database. `/metrics/derive/:productId`
+returns only the two figures the base can support — active users and churn —
+and prints its own basis alongside them, because that churn is a share of all
+non-trial subscribers *all-time*, not a period rate. A period rate needs a
+subscription-history table that does not exist. Filling revenue in from a
+guessed seat price would have been the easy version and a lie on a dashboard.
+
+**Metrics are snapshots, not a live calculation.** A product's MRR on the 1st of
+last month is a fact that should not change because someone churned today, and
+comparing months is the entire point. One row per product per date, enforced by
+the schema. A duplicate date is refused *by name* — "GPH-Z004 already covers
+that date" — rather than as a bare unique-constraint violation, because the
+useful thing to know is which row to go and edit.
+
+**The seed now creates customers before tickets.** A reporter who turns out to
+be a tracked subscriber resolves to the real record; anyone else keeps their
+free-text line. That closes the "until customers exist, a ticket's reporter is
+free text" note that had been sitting in HANDOFF.
+
+## Verified rather than assumed
+
+- List, create, patch, delete on both new resources, against the running API
+- The negative cases: 401 anonymous, 400 on an unknown `productId`, 400 on an
+  out-of-set subscription status, 400 on a duplicate snapshot date
+- `/metrics/summary` deltas against the seeded series, and `/metrics/derive`
+  against the seeded base — 3 active, 40% churned, matching the latest snapshot
+- Global search finds a customer by name
+- The product page in the browser: both sections render, ticket counts show
+  (Ashfield 2, Lattice 1), and the snapshot form's derive panel populates
+
+## One false alarm, recorded so it isn't re-investigated
+
+The derive panel appeared to be missing from the snapshot form. It was not —
+`label-mono` uppercases its heading and the check regex was case-sensitive. No
+bug. Worth remembering when grepping rendered text in this codebase: the mono
+labels are uppercased by CSS, not in the source.
+
+## Left deliberately undone
+
+Phase 8 and Phase 9 were not started. Each is a several-hour chunk and the
+session preferred to land Phase 7 verified over leaving two things half-built.
+
+Compliance was raised with the founder as a tag-letter decision — all 26 letters
+are taken — and the question was **dismissed without a choice**, so it remains
+open and blocking. See HANDOFF "Pick these up first" §3.

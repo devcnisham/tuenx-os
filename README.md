@@ -69,7 +69,7 @@ There is no test suite. Verification is done by running the app and exercising t
 
 Beyond the original phases: Calendar, Planner, Brainstorms, Messages, Users administration, cross-record links, global search, the client portal, and task depth (epics, sprints, subtasks, time, workload).
 
-**Every phase in the original plan is complete.** Onboarding checklists and a compliance register are the named gaps. Compliance is unblocked as of 2026-08-03: new record types get two-letter tag codes (`TNX-CO001`), since all twenty-six single letters are taken.
+**Every phase in the original plan is complete**, plus the compliance register. Onboarding checklists are the one named gap left.
 
 ## Shape of the code
 
@@ -85,7 +85,7 @@ server/
   tags.ts        Division-coded ID allocation
   github.ts      Issue sync — and the only place a repo URL is parsed
   http.ts        Error handling and body validation
-  routes/        27 routers
+  routes/        28 routers
 src/
   types.ts       Shared vocabulary — imported by client AND server
   lib/           API client, cache, per-resource loader, router, theme, layout
@@ -113,9 +113,11 @@ Every record carries a division-coded tag — `AGY-T003`, `GPH-C012`.
 | `H` candidate (hire) | `L` leave | `N` vendor | `G` campaign |
 | `A` contract (agreement) | `S` ticket (support) | `Z` metric | `U` customer |
 | `B` idea (brainstorm) | `Q` plan item (quarter) | `E` calendar entry | `X` channel |
-| `Y` epic | `W` sprint | | |
+| `Y` epic | `W` sprint | `CO` compliance | |
 
 Several letters are non-obvious because the intuitive one was taken — `J` for project because `P` is the product, `Z` for metric because `M` is member and `E` is a calendar entry.
+
+All twenty-six single letters are now used, so **new record types get two-letter codes**. Compliance was the first: `TNX-CO001`. The allocator works on a `(division, type)` pair and does not care how long `type` is, and the division prefix is still the first three characters — so nothing else had to change.
 
 Allocation happens server-side inside a transaction ([`server/tags.ts`](server/tags.ts)), so concurrent creates cannot collide. Tags are never reissued or renumbered: moving someone from Agency to Gaphatch keeps their `AGY-M004` — the tag is identity, not a category label.
 

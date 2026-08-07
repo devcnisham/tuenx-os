@@ -55,7 +55,7 @@ server/
   tags.ts     division-coded ID allocation (transactional)
   github.ts   issue sync — and the only place a repo URL is parsed
   http.ts     error handling + hand-rolled body validation
-  routes/     27 routers
+  routes/     28 routers
 src/
   types.ts    shared vocabulary — imported by BOTH client and server
   lib/        api client, cache, useResource, router, theme, layout, divisions
@@ -100,9 +100,12 @@ Every record carries a division-coded tag: `AGY-T003`. `<DIVISION>-<TYPE><SEQ>`,
 
 Allocation is server-side inside a transaction (`server/tags.ts`). **Never generate a tag client-side.** Tags are never reissued or renumbered — a tag is identity, not a category label.
 
-Type letters live in `TAG_TYPE` in `src/types.ts`. **All twenty-six are taken** —
-a new record type needs two-letter codes or a shared letter, and that is a
-decision to raise before starting the module, not during it. Several are counter-intuitive because the obvious letter was gone — `J` project (P is product), `Z` metric (M is member, E is calendar entry), `X` channel, `Y` epic, `W` sprint, `H` candidate, `A` contract, `B` idea, `Q` plan item. Adding a type means picking a free letter and commenting why.
+Type letters live in `TAG_TYPE` in `src/types.ts`. **All twenty-six single
+letters are taken**, so a new record type gets a **two-letter code** — decided
+2026-08-03, and compliance was the first (`CO`, giving `TNX-CO001`). Nothing
+structural has to change for one: `allocateTag` works on a `(division, type)`
+pair and never cared how long `type` is, and `divisionFromTag` reads the first
+three characters, which is the division prefix either way. Several are counter-intuitive because the obvious letter was gone — `J` project (P is product), `Z` metric (M is member, E is calendar entry), `X` channel, `Y` epic, `W` sprint, `H` candidate, `A` contract, `B` idea, `Q` plan item. Adding a type means picking a free letter and commenting why.
 
 ### Enums as string columns
 

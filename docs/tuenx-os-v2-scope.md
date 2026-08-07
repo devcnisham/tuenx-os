@@ -183,12 +183,15 @@ Ordered by value per unit of work, not by the numbering above:
 
 ## 6. Still open
 
-1. **Compliance has no module.** The founder confirmed (2026-08-03) that Tuenx
+1. ~~**Compliance has no module.**~~ **Built 2026-08-03.** `ComplianceItem` with
+   an owner, a recurrence, and a next-due date, projected onto the calendar
+   exactly as the note asked. Marking one done advances the date rather than
+   closing it. Original note: The founder confirmed (2026-08-03) that Tuenx
    handles legal, accounts, finance, and compliance for the whole group. The
    first three have homes — the contracts repository, Treasury, Invoices. There
    is no register of obligations, filings, or their deadlines. Smallest useful
    version: a `ComplianceItem` with an owner, a recurrence, and a next-due
    date, projected onto the calendar the way every other deadline already is
 2. **Cap table (30)** — for Tuenx itself? Not excluded, not planned
-2. **Tag alphabet** — 26 of 26 letters used. Phase 7's three types are the last free reservations (`S`, `Z`, `U`). Anything after that needs two-letter codes or shared letters
-3. **`lead` vs `member`** — the PM row in the team diagram is the case for making them differ
+2. ~~**Tag alphabet**~~ **Resolved 2026-08-03: two-letter codes.** Compliance took `CO`, the first of them. `server/tags.ts` allocates on a (division, type) pair and never cared how long `type` is, so nothing structural changed
+3. ~~**`lead` vs `member`**~~ **Made to differ in Phase 9**, per PRD §5: a lead writes inside their own division, a member writes only records assigned to them. Whether that is too strict for nine people is now a question for real use, not for design

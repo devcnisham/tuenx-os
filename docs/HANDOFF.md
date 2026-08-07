@@ -4,7 +4,7 @@
 re-reading the repository. Update it when a module is finished, a decision is
 reversed, or something is left half-built.
 
-**Last updated:** 2026-08-03 · Phases 1–9 complete · working tree clean
+**Last updated:** 2026-08-03 · Phases 1–9 and compliance complete · working tree clean
 
 | | |
 |---|---|
@@ -105,6 +105,7 @@ remove it from git history.
 | Sign-in | ✅ | ✅ | scrypt, server-side sessions. **Currently bypassed** |
 | Role scoping | ✅ | — | Phase 9. Middleware below requireTeam; fails closed |
 | Audit log | ✅ | ✅ | Phase 9. Admin-only, read-only, field-level diffs |
+| Compliance | ✅ | ✅ | Obligations register. Recurrence rolls forward, not closed |
 | Client portal | ✅ | ✅ | Read-only, scoped. **No password by design** |
 | Links | ✅ | ✅ | Any record to any other |
 | Search | ✅ | ✅ | Global, `/` to focus |
@@ -127,36 +128,13 @@ the first account. `docs/DEPLOYING.md` has the detail.
 **A session cannot do this alone.** It needs the founder's Vercel or Supabase
 account and a secret. Ask; do not attempt a workaround.
 
-### 2. Compliance — the last named module  ← start here
+### 2. Smaller, all unblocked  ← pick from here
 
-Phases 1–9 shipped 2026-08-03. Nothing in the original plan is outstanding, so
-this is the next real piece of work.
+Every phase in the original plan is built, and so is compliance. Nothing named
+in the master plan or the v2 scope list is outstanding except the items below
+and the deployment database above.
 
-The founder confirmed Tuenx handles legal, accounts, finance, **and
-compliance** for the group. The first three have modules. Compliance has
-nothing — no register of obligations, filings, or their deadlines. Smallest
-useful version is in `docs/tuenx-os-v2-scope.md` §6.
 
-**Decided 2026-08-03: two-letter codes for new record types.** All twenty-six
-single letters are taken, so anything new gets two — compliance is `CO`,
-producing `TNX-CO001`. Existing tags keep their single letter and are never
-reissued; only the parser has to handle both widths. The alternatives and what
-each would have cost:
-
-| Option | Cost |
-|---|---|
-| Two-letter codes for new types (`TNX-CO001`) | Widest tag chip, parser handles both widths, existing tags untouched |
-| Share a letter, disambiguate by division | Cheapest, but breaks "the letter tells you the type" and will bite the next module |
-| Fold compliance into `Contract` | No tag cost, but filings and statutory deadlines are not agreements |
-| Defer compliance entirely | Wait for a real obligation register to model against |
-
-`server/tags.ts` allocates on a `(division, type)` pair and does not care how
-many characters `type` is, so the work is the `TAG_TYPE` entry in
-`src/types.ts` and the prefix parser in `src/lib/divisions.ts` — not the
-allocator. Tags are identity and are never reissued, so the format is
-permanent for every record created under it.
-
-### 3. Smaller, all unblocked
 
 - Grid/list layouts on modules other than Tasks and Docs (`useRecordLayout` + `LayoutSwitch` already exist — a per-module wiring job)
 - Threads, reactions, and mentions in Messages
@@ -166,7 +144,7 @@ permanent for every record created under it.
 - A CD half for the products themselves — build/deploy status mirrored onto a product page, now that `repoUrl` exists to hang it off
 - Customers are not yet linkable via `links.ts` `RESOLVERS`, and metrics deliberately are not (a snapshot is a reading, not a record you cross-reference)
 
-### 4. The v2 scope list
+### 3. The v2 scope list
 
 `docs/tuenx-os-v2-scope.md` maps the founder's 38-system Business OS list and
 the workflow diagrams (2026-08-03) against what exists. §5 records what was
@@ -207,7 +185,7 @@ straight back out within the hour, both recorded in master plan §7.
 Full detail in `CLAUDE.md`. The four that catch people out:
 
 1. **Route position is the security boundary.** Anything mounted below `app.use('/api', requireTeam)` in `server/index.ts` is default-deny.
-2. **Tags are allocated server-side in a transaction.** Never client-side, never reissued.
+2. **Tags are allocated server-side in a transaction.** Never client-side, never reissued. All 26 single letters are used, so **new record types get two-letter codes** — compliance was the first (`TNX-CO001`). The allocator does not care about length; only add the `TAG_TYPE` entry.
 3. **`src/types.ts` is imported by the server too** — shared vocabulary goes there.
 4. **The seed is ordered.** A block referencing another entity must come after it. This has bitten once already.
 5. **Relative imports under `server/`, `api/`, `prisma/` carry no extension.** Vercel emits the specifier verbatim and Node cannot resolve `./db.ts` at runtime. Client imports keep theirs — Vite bundles them.

@@ -332,3 +332,44 @@ sign-in-failed.
 strict. PRD §5 was implemented literally, so a member cannot fix a typo on
 someone else's task. That may be wrong for a 9-person team — worth a week of use
 before deciding.
+
+## Compliance — the fourth thing Tuenx handles
+
+Built immediately after Phase 9, which is what unblocked it: the tag-letter
+question had to be settled first.
+
+**The modelling decision that matters: an obligation is not a task.** A task is
+done once and closed. A VAT return is due again the moment you file it. So
+"mark done" advances `nextDueDate` rather than setting a status, and the
+register never empties.
+
+**And it rolls forward from the due date, not from today.** A return filed
+three days late is still due on the same day next quarter. Advancing from the
+completion date would let every deadline drift a little further each cycle
+until it quietly detached from the statutory one — a bug that would take a year
+to become visible and would then be a fine. The confirm dialog names the date
+it is rolling from, so nobody has to infer it.
+
+A `once` obligation retires instead of rolling, and a second completion is
+refused with a 400 rather than silently doing nothing.
+
+**First two-letter tag code.** `CO`, giving `TNX-CO001`. Worth recording how
+cheap it was: `allocateTag` works on a `(division, type)` pair and never cared
+how long `type` is, and `divisionFromTag` reads the first three characters,
+which is the division prefix either way. The entire change was one `TAG_TYPE`
+entry. The alphabet exhaustion had been carried as a blocker in HANDOFF for
+several sessions and turned out to cost nothing to resolve — worth remembering
+before treating a documented blocker as expensive.
+
+**Wired into what already existed rather than standing alone:** calendar
+projection (read-only, never a second copy of the date), KPI health as its own
+alert line, global search, and links. The unowned-obligation warning is
+deliberate — the most common way a filing is missed is that everyone assumed
+somebody else had it, so the seed ships one unowned item to make the warning
+real on a fresh database.
+
+**Verified:** quarterly roll-forward lands on the exact expected date; a
+one-off retires and refuses a second completion; scoping holds (403 for an
+out-of-division lead and for a non-owning member, 200 admin, 401 anonymous);
+both enum validators reject; calendar returns 6 events in-window; KPI returns
+both health rows; search finds it by title.

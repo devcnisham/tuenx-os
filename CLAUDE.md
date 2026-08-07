@@ -213,6 +213,10 @@ A change is not done when it typechecks. Before the commit:
 5. Push, then `gh run list --limit 1`. CI was red for this repository's entire
    history and nothing local caught it
 
+A Stop hook runs the same check automatically when a turn ends — it blocks on a
+real failure and reminds when source changed without the handoff. It is a
+backstop, not the process: run the steps above yourself.
+
 `npm run check:docs` verifies what a script can: counts quoted in prose, routers
 that exist but are never mounted, modules with no title or no screen, and the
 three link tables that must agree. It cannot tell you whether the prose is

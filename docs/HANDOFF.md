@@ -247,6 +247,14 @@ slipping through:
   mapping pointing at a resolver that does not exist
 - a mounted route absent from `SCOPE_POLICY`, which silently makes it admin-only
 
+A **Stop hook** (`.claude/settings.json` → `scripts/session-stop.mjs`) runs the
+same check when a Claude Code turn ends. Two severities on purpose:
+
+- the check failing **blocks** — it is a mechanical fact, never a judgement call
+- source changed with `docs/HANDOFF.md` untouched only **reminds**, because
+  sometimes that is correct (a rename, a comment) and a gate would train people
+  to route around it
+
 It found four live instances of the link bug the moment it was written —
 objectives, calendar entries, plan items, and ideas had been linkable but
 unfindable since they shipped. It cannot check whether the prose is *true*; that

@@ -4,7 +4,7 @@
 re-reading the repository. Update it when a module is finished, a decision is
 reversed, or something is left half-built.
 
-**Last updated:** 2026-08-03 · every named module built · working tree clean
+**Last updated:** 2026-08-03 · every named module built · CI green · working tree clean
 
 | | |
 |---|---|
@@ -107,6 +107,7 @@ remove it from git history.
 | Audit log | ✅ | ✅ | Phase 9. Admin-only, read-only, field-level diffs |
 | Compliance | ✅ | ✅ | Obligations register. Recurrence rolls forward, not closed |
 | Onboarding | ✅ | ✅ | Templates + runs, in People & Ops. Runs copy their steps |
+| Builds (CD) | ✅ | ✅ | GitHub Actions mirrored per product. Cached, one-directional |
 | Client portal | ✅ | ✅ | Read-only, scoped. **No password by design** |
 | Links | ✅ | ✅ | Any record to any other |
 | Search | ✅ | ✅ | Global, `/` to focus |
@@ -131,6 +132,13 @@ account and a secret. Ask; do not attempt a workaround.
 
 ### 2. Smaller, all unblocked  ← pick from here
 
+> **CI was red for the repository's entire history until 2026-08-03.** `npx
+> prisma validate` resolves `env()` in the datasource before parsing, so it
+> failed without `DATABASE_URL` even though it never connects. Fixed with a
+> placeholder on that step. Worth knowing because nothing surfaced it for five
+> sessions — the build-status mirror found it within a minute of pointing at
+> the real repository, which is a fair argument for the feature.
+
 **Nothing named in the master plan, the PRD, the TRD, or the v2 scope list is
 outstanding.** Phases 1–9, compliance, and onboarding checklists are all built.
 What is left is the list below, the deployment database above, and whatever the
@@ -143,7 +151,6 @@ founder asks for next.
 - Conversations bound to a CRM contact — `Channel.recordType`/`recordId` support it; nothing creates one yet
 - Team workspaces (a per-team view aggregating that team's work)
 - Product/project update trackers
-- A CD half for the products themselves — build/deploy status mirrored onto a product page, now that `repoUrl` exists to hang it off
 - Customers are not yet linkable via `links.ts` `RESOLVERS`, and metrics deliberately are not (a snapshot is a reading, not a record you cross-reference)
 
 ### 3. The v2 scope list

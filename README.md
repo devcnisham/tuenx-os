@@ -85,7 +85,7 @@ server/
   tags.ts        Division-coded ID allocation
   github.ts      Issue sync — and the only place a repo URL is parsed
   http.ts        Error handling and body validation
-  routes/        29 routers
+  routes/        30 routers
 src/
   types.ts       Shared vocabulary — imported by client AND server
   lib/           API client, cache, per-resource loader, router, theme, layout

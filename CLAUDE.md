@@ -53,9 +53,9 @@ server/
   vercel-entry.ts  exports the app for the serverless bundle
   auth.ts     scrypt, sessions, require* gates
   tags.ts     division-coded ID allocation (transactional)
-  github.ts   issue sync — and the only place a repo URL is parsed
+  github.ts   issue + build sync — the only place a repo URL is parsed
   http.ts     error handling + hand-rolled body validation
-  routes/     29 routers
+  routes/     30 routers
 src/
   types.ts    shared vocabulary — imported by BOTH client and server
   lib/        api client, cache, useResource, router, theme, layout, divisions
@@ -175,6 +175,7 @@ to deploy one commit is how you get a half-deployed app.
 
 - **Login is bypassed on every route** — not just `#/team` and `#/client`. Guarded by `AUTH_BYPASS` and a loopback check, and off in the deployment. See `docs/HANDOFF.md`. Do not "fix" it without asking.
 - **Bugs, issues, and feature requests share one queue.** They compete for the same engineer; splitting them is how a bug list gets abandoned.
+- **Mirrored GitHub data is cached, not live.** Builds and issues are pulled by a deliberate sync, never on page load — unauthenticated GitHub allows 60 requests an hour, and one request per page view breaks the page as soon as two people open it.
 - **The GitHub sync is one-directional.** GitHub owns what it knows; nothing writes back. `parseRepo` restricting to github.com is a security boundary, not a convenience — `repoUrl` is user-editable.
 - **The client portal has no password** by the founder's explicit instruction. Flag it, don't silently harden it.
 - **Last-write-wins.** Two people editing one record clobber each other. The audit log records who won.

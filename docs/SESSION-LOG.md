@@ -413,3 +413,45 @@ template rewrite leaves runs alone, 403 for an out-of-division lead, 200 for a
 member ticking an item (items are deliberately open — onboarding steps are
 usually done by IT or finance for someone in another division), both validators
 reject, 401 anonymous, 7 calendar events, search finds the run.
+
+## CD status mirroring — and the CI failure it found
+
+The last item on the HANDOFF smaller list. `repoUrl` already existed and the
+issue sync had set the pattern, so most of the work was deciding what *not* to
+do.
+
+**Cached, not live.** Unauthenticated GitHub allows 60 requests an hour.
+Fetching on page load would break the page for everyone the moment two people
+opened a product at once, so runs are stored and refreshed by a deliberate
+Sync, and the panel states how stale it is. A CI panel quietly showing
+yesterday's green tick is worse than showing nothing.
+
+**No re-run button.** This app cannot re-run a workflow, and a button that
+half-triggers a deploy is worse than none. Read-only, one-directional, same as
+the issue sync.
+
+**Untagged** — third time this call has come up, after the audit log and
+checklist lines. A build is mirrored external data; nobody cites one by a Tuenx
+tag.
+
+**`parseRepo` reused rather than reimplemented**, so the host restriction still
+holds. Verified against a loopback URL, an unrelated host, and a
+`github.com.evil.com` prefix attack — all refused. That function is the security
+boundary of both GitHub features, and duplicating it would have meant two places
+to get it wrong.
+
+### The thing worth remembering
+
+Pointing the mirror at the real repository showed **11 runs, every one red**.
+CI had never passed in the repository's history — broken since the Postgres
+swap on 2026-08-03, because `npx prisma validate` resolves `env()` in the
+datasource block before it parses anything and so fails without `DATABASE_URL`,
+despite never opening a connection. The fix is a placeholder URL on that step.
+
+Five sessions had pushed to `main` without noticing, including four of mine.
+Nothing in the local loop catches it: `typecheck` and `build` both pass locally,
+and nobody had opened the Actions tab. The feature built to surface build status
+surfaced it within a minute of being pointed at real data — which is the best
+argument for it that could have been made.
+
+**Check CI after pushing.** `gh run list --limit 1` is two seconds.

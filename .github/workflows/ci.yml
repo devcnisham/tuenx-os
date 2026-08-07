@@ -44,5 +44,12 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      # Mechanical documentation checks. Catches the drift a person cannot be
+      # relied on to notice: counts quoted in prose, routers that exist but are
+      # never mounted, modules with no title, and the three link tables that
+      # have to agree with each other.
+      - name: Check the docs against the code
+        run: npm run check:docs
+
       - name: Build
         run: npm run build

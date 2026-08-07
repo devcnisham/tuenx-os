@@ -18,7 +18,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
     "create-admin": "tsx prisma/create-admin.ts",
-    "db:deploy": "prisma migrate deploy"
+    "db:deploy": "prisma migrate deploy",
+    "check:docs": "node scripts/check-docs.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

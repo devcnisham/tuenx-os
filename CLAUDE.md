@@ -200,6 +200,25 @@ Small, reviewable chunks per module — never one large commit. The body should 
 
 Commit messages containing backticks, double quotes, or `$` must be passed via `git commit -F <file>`; inline `-m` breaks on them.
 
+## Finishing a piece of work
+
+A change is not done when it typechecks. Before the commit:
+
+1. `npm run typecheck && npm run build`
+2. `npm run check:docs` — mechanical drift check, also runs in CI
+3. **Update `docs/HANDOFF.md` in the same commit as the work**, not afterwards.
+   A separate docs commit is how the two get out of step, and this repository
+   has already proved that twice
+4. Exercise the API, including the failure cases the route is meant to reject
+5. Push, then `gh run list --limit 1`. CI was red for this repository's entire
+   history and nothing local caught it
+
+`npm run check:docs` verifies what a script can: counts quoted in prose, routers
+that exist but are never mounted, modules with no title or no screen, and the
+three link tables that must agree. It cannot tell you whether the prose is
+*true* — that is still the job. If a check is wrong, fix the check; do not
+delete it.
+
 ## Keeping docs current
 
 Update `docs/HANDOFF.md` when a module is finished, a decision is reversed, or something is left half-built. Add a row to master plan §7 whenever a locked decision changes.

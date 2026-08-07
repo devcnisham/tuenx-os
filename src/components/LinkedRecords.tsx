@@ -76,6 +76,10 @@ const KIND_TO_LINK: Partial<Record<SearchHit['kind'], LinkType>> = {
   release: 'release',
   keyResult: 'keyResult',
   fund: 'fund',
+  objective: 'objective',
+  entry: 'entry',
+  plan: 'plan',
+  idea: 'idea',
 }
 
 /**

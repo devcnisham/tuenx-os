@@ -34,6 +34,10 @@ export interface SearchHit {
     | 'release'
     | 'keyResult'
     | 'fund'
+    | 'objective'
+    | 'entry'
+    | 'plan'
+    | 'idea'
   /** Hash route that opens the record's module. */
   route: string
 }
@@ -96,6 +100,10 @@ searchRouter.get(
       releases,
       keyResults,
       fundEntries,
+      objectives,
+      calendarEntries,
+      planItems,
+      ideas,
     ] = await Promise.all([
       prisma.task.findMany({
         where: byTitleOrTag('title'),
@@ -279,6 +287,29 @@ searchRouter.get(
         take: LIMIT_PER_KIND,
         orderBy: { date: 'desc' },
       }),
+      // These four were linkable long before they were findable: the picker
+      // searches this endpoint, so a resolver with no kind here could be shown
+      // on a record but never attached to one. Caught by scripts/check-docs.mjs.
+      prisma.objective.findMany({
+        where: byTitleOrTag('title'),
+        take: LIMIT_PER_KIND,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.calendarEntry.findMany({
+        where: byTitleOrTag('title'),
+        take: LIMIT_PER_KIND,
+        orderBy: { date: 'desc' },
+      }),
+      prisma.planItem.findMany({
+        where: byTitleOrTag('title'),
+        take: LIMIT_PER_KIND,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.idea.findMany({
+        where: byTitleOrTag('title'),
+        take: LIMIT_PER_KIND,
+        orderBy: { createdAt: 'desc' },
+      }),
     ])
 
     const hits: SearchHit[] = [
@@ -455,6 +486,38 @@ searchRouter.get(
         detail: `${f.type} · ${f.division}`,
         kind: 'fund' as const,
         route: '#/treasury',
+      })),
+      ...objectives.map((o) => ({
+        id: o.id,
+        tag: o.tag,
+        title: o.title,
+        detail: o.period,
+        kind: 'objective' as const,
+        route: '#/okrs',
+      })),
+      ...calendarEntries.map((e) => ({
+        id: e.id,
+        tag: e.tag,
+        title: e.title,
+        detail: e.kind,
+        kind: 'entry' as const,
+        route: '#/calendar',
+      })),
+      ...planItems.map((p) => ({
+        id: p.id,
+        tag: p.tag,
+        title: p.title,
+        detail: p.period,
+        kind: 'plan' as const,
+        route: '#/planner',
+      })),
+      ...ideas.map((i) => ({
+        id: i.id,
+        tag: i.tag,
+        title: i.title,
+        detail: i.status,
+        kind: 'idea' as const,
+        route: '#/brainstorms',
       })),
     ]
 

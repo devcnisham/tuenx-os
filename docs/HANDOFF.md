@@ -4,7 +4,7 @@
 re-reading the repository. Update it when a module is finished, a decision is
 reversed, or something is left half-built.
 
-**Last updated:** 2026-08-03 · every named module built · CI green · working tree clean
+**Last updated:** 2026-08-03 · every named module built · CI green · docs drift-checked in CI
 
 | | |
 |---|---|
@@ -144,7 +144,38 @@ the first account. `docs/DEPLOYING.md` has the detail.
 **A session cannot do this alone.** It needs the founder's Vercel or Supabase
 account and a secret. Ask; do not attempt a workaround.
 
-### 2. Smaller, all unblocked  ← pick from here
+### 2. Message threads and reactions  ← the founder asked for this next
+
+Requested 2026-08-03 as the next piece of work. Nothing is built yet.
+
+**What exists.** `Channel`, `ChannelMember`, and `Message` are real and in use
+— channels, DMs, and record-bound channels (`Channel.recordType`/`recordId`).
+`server/routes/messages.ts` has `POST /channels/:id/messages`, and the module is
+`src/modules/Messages.tsx`.
+
+**What it needs.** Roughly:
+
+- `Message.parentId` — a self-relation, same shape as `Task.parentId`. **Cap
+  nesting at one level**, as subtasks already do: a reply to a reply means the
+  thread should have been a channel
+- A `MessageReaction` model — `(messageId, memberId, emoji)` with a unique
+  constraint on all three, so one person cannot react twice with the same emoji
+- Reply counts and reaction counts aggregated in the list query, not fetched per
+  message — `messages.ts` already groups rather than N+1s and should keep doing
+  so
+- Untagged, both of them. A reply is part of a message and a reaction is not a
+  record at all — same test as audit rows and checklist lines: nobody cites one
+  by name
+
+**Mentions were also on the original list** and are a bigger question, because a
+mention wants a notification and this app has no notification anything. Worth
+splitting: threads and reactions first, mentions as a separate decision.
+
+**Before starting**, read the conventions below — a new model needs a migration
+made the `prisma migrate diff` way, and `MessageReaction` will need a
+`SCOPE_POLICY` entry or `npm run check:docs` will fail the build.
+
+### 3. Smaller, all unblocked
 
 > **CI was red for the repository's entire history until 2026-08-03.** `npx
 > prisma validate` resolves `env()` in the datasource before parsing, so it
@@ -159,12 +190,11 @@ What is left is the list below, the deployment database above, and whatever the
 founder asks for next.
 
 - Grid/list layouts on modules other than Tasks and Docs (`useRecordLayout` + `LayoutSwitch` already exist — a per-module wiring job)
-- Threads, reactions, and mentions in Messages
 - Conversations bound to a CRM contact — `Channel.recordType`/`recordId` support it; nothing creates one yet
 - Product/project update trackers
 - No test suite. Verification is by exercising the API and opening the app, which is honest but does not scale — if anything here grows, this is the gap that will hurt first
 
-### 3. The v2 scope list
+### 4. The v2 scope list
 
 `docs/tuenx-os-v2-scope.md` maps the founder's 38-system Business OS list and
 the workflow diagrams (2026-08-03) against what exists. §5 records what was
@@ -201,6 +231,27 @@ straight back out within the hour, both recorded in master plan §7.
 - ~~**CI/CD, half answered.**~~ **Fully answered 2026-08-03.** GitHub Actions runs typecheck, build, and `prisma validate` on every push; Vercel deploys from the same branch; and build status is now mirrored per product on the product page. Nothing outstanding here unless you want deploy status from Vercel too, which would need a Vercel token.
 - Agency's real name is still a placeholder.
 - Real Google Workspace integration (Meet/Docs/Chat) needs a Google Cloud project, OAuth credentials, and consent scopes. Nothing built toward it; internal equivalents exist instead.
+
+---
+
+## Drift is checked by a script now
+
+`npm run check:docs` runs in CI and fails the build on the mistakes that kept
+slipping through:
+
+- a count quoted in prose that no longer matches the filesystem
+- a router that exists but is never mounted
+- a module id with no title, or nothing rendering it
+- a search kind with no `KIND_TO_LINK` entry (ships a 400 into the picker), a
+  resolver reachable from no search kind (displayable but never creatable), or a
+  mapping pointing at a resolver that does not exist
+- a mounted route absent from `SCOPE_POLICY`, which silently makes it admin-only
+
+It found four live instances of the link bug the moment it was written —
+objectives, calendar entries, plan items, and ideas had been linkable but
+unfindable since they shipped. It cannot check whether the prose is *true*; that
+is still a judgement call, and `CLAUDE.md` now says HANDOFF is updated in the
+same commit as the work rather than after it.
 
 ---
 

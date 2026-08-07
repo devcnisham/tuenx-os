@@ -1498,6 +1498,10 @@ export interface SearchHit {
     | 'release'
     | 'keyResult'
     | 'fund'
+    | 'objective'
+    | 'entry'
+    | 'plan'
+    | 'idea'
   route: string
 }
 

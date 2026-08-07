@@ -1130,6 +1130,64 @@ export interface KpiDivisionRow {
 }
 
 // ---------------------------------------------------------------------------
+// CD — build status mirrored from GitHub Actions
+// ---------------------------------------------------------------------------
+
+/** GitHub's own vocabulary, kept verbatim rather than remapped. */
+export const RUN_CONCLUSIONS = [
+  'success',
+  'failure',
+  'cancelled',
+  'skipped',
+  'timed_out',
+  'action_required',
+  'neutral',
+] as const
+export type RunConclusion = (typeof RUN_CONCLUSIONS)[number]
+
+export const RUN_CONCLUSION_LABEL: Record<RunConclusion, string> = {
+  success: 'Passed',
+  failure: 'Failed',
+  cancelled: 'Cancelled',
+  skipped: 'Skipped',
+  timed_out: 'Timed out',
+  action_required: 'Needs approval',
+  neutral: 'Neutral',
+}
+
+export interface DeployRun {
+  id: string
+  productId: string
+  externalId: string
+  workflowName: string
+  event: string
+  branch: string
+  commitSha: string
+  title: string | null
+  actor: string | null
+  /** queued | in_progress | completed */
+  status: string
+  /** Null while still running — not the same as finishing with no result. */
+  conclusion: RunConclusion | null
+  url: string
+  startedAt: string
+  completedAt: string | null
+  /** When this app last pulled it. Drives the staleness note. */
+  syncedAt: string
+}
+
+export interface DeploySyncResult {
+  repo: string
+  created: number
+  updated: number
+  kept: number
+  totalOnGitHub: number
+  authenticated: boolean
+  /** False when the repository has no Actions at all — a normal state. */
+  actionsConfigured: boolean
+}
+
+// ---------------------------------------------------------------------------
 // Onboarding and offboarding checklists
 // ---------------------------------------------------------------------------
 

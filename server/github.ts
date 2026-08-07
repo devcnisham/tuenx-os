@@ -68,6 +68,78 @@ export function priorityFor(labels: { name: string }[]): 'low' | 'medium' | 'hig
   return 'medium'
 }
 
+/** One GitHub Actions run, as the API returns it. */
+export interface GithubWorkflowRun {
+  id: number
+  name: string | null
+  display_title: string | null
+  head_branch: string | null
+  head_sha: string
+  event: string
+  /** queued | in_progress | completed */
+  status: string
+  /** Null while the run is still going. */
+  conclusion: string | null
+  html_url: string
+  run_started_at: string | null
+  created_at: string
+  updated_at: string
+  actor: { login: string } | null
+}
+
+/**
+ * Shared request headers, and the shared reading of GitHub's failure codes.
+ *
+ * A 404 on a repository that plainly exists almost always means "private, and
+ * you have no token", so the message says so rather than insisting the
+ * repository is missing.
+ */
+function githubHeaders() {
+  const headers: Record<string, string> = {
+    accept: 'application/vnd.github+json',
+    'user-agent': 'tuenx-os',
+  }
+  if (process.env.GITHUB_TOKEN) headers.authorization = `Bearer ${process.env.GITHUB_TOKEN}`
+  return headers
+}
+
+function assertOk(res: Response) {
+  if (res.status === 404) {
+    throw badRequest(
+      process.env.GITHUB_TOKEN
+        ? 'That repository does not exist, or the token cannot see it'
+        : 'That repository does not exist, or is private — set GITHUB_TOKEN to read a private one',
+    )
+  }
+  if (res.status === 403 || res.status === 429) {
+    throw badRequest('GitHub rate limit reached. Set GITHUB_TOKEN, or try again later.')
+  }
+  if (!res.ok) throw badRequest(`GitHub said ${res.status}`)
+}
+
+/**
+ * The most recent Actions runs on a repository.
+ *
+ * One page, newest first. Build history is a rolling window — nobody scrolls
+ * to the four-hundredth run — so paging through it would spend rate limit on
+ * data nothing displays.
+ *
+ * A repository with Actions switched off returns an empty list rather than an
+ * error: having no CI is a normal state for a product still in planning, and
+ * making that an error would mean the sync button lies about being broken.
+ */
+export async function fetchWorkflowRuns(owner: string, repo: string, limit = 30) {
+  const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(
+    repo,
+  )}/actions/runs?per_page=${Math.min(limit, 100)}`
+
+  const res = await fetch(url, { headers: githubHeaders() })
+  assertOk(res)
+
+  const body = (await res.json()) as { total_count: number; workflow_runs?: GithubWorkflowRun[] }
+  return { runs: body.workflow_runs ?? [], totalCount: body.total_count ?? 0 }
+}
+
 /**
  * Every issue on a repository, newest first, pull requests excluded.
  *
@@ -77,11 +149,7 @@ export function priorityFor(labels: { name: string }[]): 'low' | 'medium' | 'hig
  * happen, and the cap is reported rather than hidden.
  */
 export async function fetchIssues(owner: string, repo: string) {
-  const headers: Record<string, string> = {
-    accept: 'application/vnd.github+json',
-    'user-agent': 'tuenx-os',
-  }
-  if (process.env.GITHUB_TOKEN) headers.authorization = `Bearer ${process.env.GITHUB_TOKEN}`
+  const headers = githubHeaders()
 
   const issues: GithubIssue[] = []
   let truncated = false
@@ -92,18 +160,7 @@ export async function fetchIssues(owner: string, repo: string) {
     )}/issues?state=all&per_page=100&page=${page}`
 
     const res = await fetch(url, { headers })
-
-    if (res.status === 404) {
-      throw badRequest(
-        process.env.GITHUB_TOKEN
-          ? 'That repository does not exist, or the token cannot see it'
-          : 'That repository does not exist, or is private — set GITHUB_TOKEN to read a private one',
-      )
-    }
-    if (res.status === 403 || res.status === 429) {
-      throw badRequest('GitHub rate limit reached. Set GITHUB_TOKEN, or try again later.')
-    }
-    if (!res.ok) throw badRequest(`GitHub said ${res.status}`)
+    assertOk(res)
 
     const batch = (await res.json()) as GithubIssue[]
     issues.push(...batch.filter((i) => !i.pull_request))

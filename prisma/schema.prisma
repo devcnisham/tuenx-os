@@ -279,6 +279,7 @@ model Product {
   planItems    PlanItem[]
 
   @@index([status])
+  deployRuns  DeployRun[]
 }
 
 /// TRD §3 Phase 2 RoadmapItem.
@@ -845,6 +846,63 @@ model Session {
   @@index([userAccountId])
   @@index([clientAccountId])
   @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// CD — build and deploy status mirrored from GitHub
+// ---------------------------------------------------------------------------
+
+/// One GitHub Actions run, mirrored onto the product it belongs to.
+///
+/// Cached rather than fetched live. Unauthenticated GitHub allows 60 requests
+/// an hour, so hitting it on every page load would break the page for everyone
+/// the moment two people opened a product. Storing the runs means the panel
+/// renders instantly, works with GitHub down, and costs one request per
+/// deliberate sync — the same bargain the issue sync already makes.
+///
+/// Untagged, like the audit log and checklist lines. A build is mirrored
+/// external data; nobody refers to one by a Tuenx tag, they quote the run
+/// number or click through to GitHub.
+///
+/// One-directional, like everything else touching GitHub. Nothing here can
+/// re-run, cancel, or approve a workflow — that is GitHub's job, and a button
+/// in this app that half-triggers a deploy is worse than no button.
+model DeployRun {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  /// GitHub's run id. Unique per product so a re-sync updates rather than
+  /// duplicates — the same shape as Ticket.externalId.
+  externalId String
+
+  workflowName String
+  /// push | pull_request | schedule | workflow_dispatch | …
+  event  String
+  branch String
+  /// Full SHA. Displayed short, stored whole — a short SHA is not a key.
+  commitSha String
+  /// The run's display title, which GitHub sets from the commit subject.
+  title String?
+  actor String?
+
+  /// queued | in_progress | completed
+  status String
+  /// success | failure | cancelled | skipped | timed_out | action_required |
+  /// neutral. Null while the run is still going — which is different from
+  /// having finished with no conclusion, and should stay tellable apart.
+  conclusion String?
+
+  url         String
+  startedAt   DateTime
+  completedAt DateTime?
+
+  syncedAt DateTime @default(now())
+
+  @@unique([productId, externalId])
+  @@index([productId])
+  @@index([branch])
+  @@index([startedAt])
 }
 
 // ---------------------------------------------------------------------------

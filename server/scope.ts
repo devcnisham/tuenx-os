@@ -100,6 +100,9 @@ const POLICY: Record<string, Policy> = {
   tickets: { model: 'ticket', division: 'gaphatch' },
   customers: { model: 'customer', division: 'gaphatch' },
   metrics: { model: 'metricSnapshot', division: 'gaphatch' },
+  // Mirrored build data. Syncing is a read from GitHub that happens to write
+  // here, so it is scoped like anything else Gaphatch owns.
+  deploys: { model: 'deployRun', division: 'gaphatch' },
 
   // Task depth
   'work/epics': { model: 'epic', division: 'record' },

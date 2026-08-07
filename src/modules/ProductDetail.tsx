@@ -40,6 +40,7 @@ import { Tag } from '../components/Tag.tsx'
 import { PRODUCT_STATUS_TONE, ProductForm, ProductLinks } from './Products.tsx'
 import { MoveButton } from './Tasks.tsx'
 import { Customers, Metrics } from './ProductMetrics.tsx'
+import { Builds } from './ProductBuilds.tsx'
 
 const ROADMAP_OPTIONS = ROADMAP_STATUSES.map((s) => ({ value: s, label: ROADMAP_STATUS_LABEL[s] }))
 
@@ -160,6 +161,8 @@ export function ProductDetail({ productId }: { productId: string }) {
       </section>
 
       <Issues productId={productId} repoUrl={p.repoUrl} />
+
+      <Builds productId={productId} repoUrl={p.repoUrl} />
 
       <Metrics productId={productId} />
 

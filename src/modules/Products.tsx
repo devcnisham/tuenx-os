@@ -6,6 +6,7 @@ import { pluralise } from '../lib/format.ts'
 import {
   PRODUCT_STATUSES,
   PRODUCT_STATUS_LABEL,
+  type DeployRun,
   type Product,
   type ProductStatus,
 } from '../types.ts'
@@ -23,6 +24,7 @@ import { Icon } from '../components/Icon.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
 import { ProductDetail } from './ProductDetail.tsx'
+import { BuildChip } from './ProductBuilds.tsx'
 
 export const PRODUCT_STATUS_OPTIONS = PRODUCT_STATUSES.map((s) => ({
   value: s,
@@ -49,6 +51,9 @@ export function Products({ productId }: { productId: string | null }) {
 function ProductList() {
   const [creating, setCreating] = useState(false)
   const products = useResource<Product[]>(() => api.get('/products'), [])
+  // Loaded separately so a GitHub-less product list still renders — and so one
+  // failing here never blanks the products themselves (TRD §6).
+  const builds = useResource<Record<string, DeployRun>>(() => api.get('/deploys/summary'), [])
 
   return (
     <>
@@ -75,7 +80,11 @@ function ProductList() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {products.data!.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              build={builds.data?.[product.id]}
+            />
           ))}
         </div>
       )}
@@ -94,7 +103,7 @@ function ProductList() {
   )
 }
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product, build }: { product: Product; build?: DeployRun }) {
   const { roadmapTotal, roadmapShipped, releases } = product.counts
   const progress = roadmapTotal === 0 ? 0 : (roadmapShipped / roadmapTotal) * 100
 
@@ -140,6 +149,12 @@ function ProductCard({ product }: { product: Product }) {
           <span className="label-mono order-0">Releases</span>
           <span className="order-2 font-mono text-[11px] tabular-nums text-ink">{releases}</span>
         </div>
+
+        {build && (
+          <div className="mt-3 border-t border-rule-soft pt-3">
+            <BuildChip run={build} />
+          </div>
+        )}
 
         <ProductLinks product={product} />
       </div>

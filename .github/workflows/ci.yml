@@ -33,6 +33,12 @@ jobs:
       - run: npx prisma generate
 
       - name: Validate the Prisma schema
+        # `prisma validate` resolves env() in the datasource block before it
+        # parses anything, so it fails without DATABASE_URL even though it
+        # never opens a connection. A placeholder is the whole fix — CI has no
+        # database and does not need one.
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
         run: npx prisma validate
 
       - name: Typecheck

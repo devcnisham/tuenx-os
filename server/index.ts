@@ -32,6 +32,7 @@ import { kpiRouter } from './routes/kpi'
 import { auditLogRouter } from './routes/audit-log'
 import { complianceRouter } from './routes/compliance'
 import { checklistsRouter } from './routes/checklists'
+import { deploysRouter } from './routes/deploys'
 
 /**
  * Tuenx OS API.
@@ -111,6 +112,8 @@ app.use('/api/okrs', okrsRouter)
 app.use('/api/tickets', ticketsRouter)
 app.use('/api/customers', customersRouter)
 app.use('/api/metrics', metricsRouter)
+// CD — build status mirrored from GitHub Actions onto the product.
+app.use('/api/deploys', deploysRouter)
 
 // Task depth — epics, sprints, time
 app.use('/api/work', workRouter)

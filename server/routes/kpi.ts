@@ -88,6 +88,7 @@ kpiRouter.get(
       overdueObligations,
       unownedObligations,
       overdueOnboarding,
+      failingBuilds,
     ] = await Promise.all([
       prisma.invoice.aggregate({ where: { status: 'paid' }, _sum: { amount: true } }),
       prisma.invoice.aggregate({
@@ -194,6 +195,15 @@ kpiRouter.get(
         include: { run: { select: { tag: true, personName: true } } },
         orderBy: { dueDate: 'asc' },
         take: 5,
+      }),
+      // Latest mirrored run per product, filtered to failures below. Only
+      // default-ish branches count — a red build on someone's feature branch
+      // is work in progress, not an incident.
+      prisma.deployRun.findMany({
+        where: { branch: { in: ['main', 'master'] }, status: 'completed' },
+        orderBy: { startedAt: 'desc' },
+        include: { product: { select: { id: true, name: true, tag: true } } },
+        take: 40,
       }),
     ])
 
@@ -348,6 +358,27 @@ kpiRouter.get(
         tone: 'alert',
         route: '#/compliance',
         records: overdueObligations.map((o) => ({ tag: o.tag, label: o.title })),
+      })
+    }
+
+    // One entry per product: only the most recent run on main tells you
+    // whether that product is currently broken. Older failures already showed
+    // up when they happened.
+    const latestPerProduct = new Map<string, (typeof failingBuilds)[number]>()
+    for (const run of failingBuilds) {
+      if (!latestPerProduct.has(run.productId)) latestPerProduct.set(run.productId, run)
+    }
+    const broken = [...latestPerProduct.values()].filter((r) => r.conclusion === 'failure')
+
+    if (broken.length > 0) {
+      health.push({
+        key: 'builds-failing',
+        label: 'Products with a failing build on main',
+        value: String(broken.length),
+        detail: broken.map((r) => r.product.name).join(', '),
+        tone: 'alert',
+        route: '#/products',
+        records: broken.map((r) => ({ tag: r.product.tag, label: r.workflowName })),
       })
     }
 

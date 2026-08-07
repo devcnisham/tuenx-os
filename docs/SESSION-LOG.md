@@ -460,3 +460,33 @@ surfaced it within a minute of being pointed at real data — which is the best
 argument for it that could have been made.
 
 **Check CI after pushing.** `gh run list --limit 1` is two seconds.
+
+## Making drift impossible instead of remembering not to cause it
+
+Last piece of the session, and the one prompted by a pattern rather than a
+request: documentation fell behind the code twice in a few hours, and both
+times it was caught by accident.
+
+`scripts/check-docs.mjs` now runs in CI and on a Stop hook. It checks only what
+a script can decide: counts quoted in prose, routers that exist but are never
+mounted, module ids with no title or no screen, mounted routes missing from
+`SCOPE_POLICY`, and the three link tables that have to agree with each other.
+
+**It found four live bugs on its first run.** `objective`, `entry`, `plan`, and
+`idea` had been linkable but unfindable since they shipped — the picker searches
+`/api/search`, so those four could be displayed on a record and never attached
+to one. Same class as the customer and onboarding bug fixed an hour earlier,
+which is what suggested writing the check at all. The lesson is not "write more
+checks"; it is that a rule spanning three files is one no reviewer reliably
+enforces, and that is exactly the kind of rule to hand to a script.
+
+The Stop hook has two severities, which matters more than it sounds. The
+mechanical check **blocks** — there is nothing to weigh up. "Source changed but
+the handoff did not" only **reminds**, because sometimes that is correct, and a
+gate people route around daily is a gate they stop reading.
+
+**What it deliberately cannot do:** tell you whether the prose is *true*. It can
+stop HANDOFF claiming 30 routers when there are 31; it cannot notice that a
+paragraph describes a design decision reversed last week. CLAUDE.md therefore
+still says the handoff is updated in the same commit as the work — the script is
+a backstop, not the process.

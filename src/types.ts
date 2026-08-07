@@ -81,6 +81,12 @@ export const TAG_TYPE = {
   // had to change — and `divisionFromTag` reads the first three characters,
   // which is the division prefix either way.
   compliance: 'CO',
+  // Onboarding. Two-letter, like compliance. `CT` template, `OB` run — a run
+  // is the thing people cite ("Sara's onboarding"), a template is the
+  // definition behind it. The individual lines are untagged: nobody ever says
+  // "TNX-??014 is blocked", and a tag on one would burn a scarce code.
+  checklistTemplate: 'CT',
+  checklistRun: 'OB',
 } as const
 export type TagType = (typeof TAG_TYPE)[keyof typeof TAG_TYPE]
 
@@ -1124,6 +1130,70 @@ export interface KpiDivisionRow {
 }
 
 // ---------------------------------------------------------------------------
+// Onboarding and offboarding checklists
+// ---------------------------------------------------------------------------
+
+export const CHECKLIST_KINDS = ['onboarding', 'offboarding'] as const
+export type ChecklistKind = (typeof CHECKLIST_KINDS)[number]
+
+export const CHECKLIST_KIND_LABEL: Record<ChecklistKind, string> = {
+  onboarding: 'Onboarding',
+  offboarding: 'Offboarding',
+}
+
+export interface ChecklistTemplateStep {
+  id: string
+  templateId: string
+  title: string
+  position: number
+  ownerHint: string | null
+  /** Days from the start date. Negative is before day one. */
+  dueOffsetDays: number
+}
+
+export interface ChecklistTemplate {
+  id: string
+  tag: string
+  name: string
+  kind: ChecklistKind
+  division: Division
+  notes: string | null
+  createdAt: string
+  steps: ChecklistTemplateStep[]
+  /** How many runs have used it — a template nobody uses is worth deleting. */
+  runCount: number
+}
+
+export interface ChecklistRunItem {
+  id: string
+  runId: string
+  title: string
+  position: number
+  ownerId: string | null
+  owner: Pick<TeamMember, 'id' | 'tag' | 'name'> | null
+  dueDate: string | null
+  doneAt: string | null
+}
+
+export interface ChecklistRun {
+  id: string
+  tag: string
+  templateId: string | null
+  memberId: string | null
+  member: Pick<TeamMember, 'id' | 'tag' | 'name' | 'division'> | null
+  /** Kept even once the member row is gone — an offboarding run outlives it. */
+  personName: string
+  kind: ChecklistKind
+  division: Division
+  startDate: string
+  completedAt: string | null
+  notes: string | null
+  createdAt: string
+  items: ChecklistRunItem[]
+  progress: { done: number; total: number; overdue: number }
+}
+
+// ---------------------------------------------------------------------------
 // Compliance register
 // ---------------------------------------------------------------------------
 
@@ -1303,6 +1373,7 @@ export interface SearchHit {
     | 'ticket'
     | 'customer'
     | 'compliance'
+    | 'onboarding'
   route: string
 }
 
@@ -1346,3 +1417,4 @@ export const isTicketStatus = oneOf(TICKET_STATUSES)
 export const isSubscriptionStatus = oneOf(SUBSCRIPTION_STATUSES)
 export const isComplianceCategory = oneOf(COMPLIANCE_CATEGORIES)
 export const isRecurrence = oneOf(RECURRENCES)
+export const isChecklistKind = oneOf(CHECKLIST_KINDS)

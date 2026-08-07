@@ -87,6 +87,7 @@ kpiRouter.get(
       liveCampaigns,
       overdueObligations,
       unownedObligations,
+      overdueOnboarding,
     ] = await Promise.all([
       prisma.invoice.aggregate({ where: { status: 'paid' }, _sum: { amount: true } }),
       prisma.invoice.aggregate({
@@ -186,6 +187,14 @@ kpiRouter.get(
         take: 5,
       }),
       prisma.complianceItem.count({ where: { retired: false, ownerId: null } }),
+      // Onboarding steps past their date. A laptop that was meant to arrive
+      // before someone's first day is a different kind of late from a task.
+      prisma.checklistRunItem.findMany({
+        where: { doneAt: null, dueDate: { lt: now }, run: { completedAt: null } },
+        include: { run: { select: { tag: true, personName: true } } },
+        orderBy: { dueDate: 'asc' },
+        take: 5,
+      }),
     ])
 
     /* ---------------------------------------------------------------- money */
@@ -339,6 +348,18 @@ kpiRouter.get(
         tone: 'alert',
         route: '#/compliance',
         records: overdueObligations.map((o) => ({ tag: o.tag, label: o.title })),
+      })
+    }
+
+    if (overdueOnboarding.length > 0) {
+      health.push({
+        key: 'onboarding-overdue',
+        label: 'Onboarding steps past their date',
+        value: String(overdueOnboarding.length),
+        detail: [...new Set(overdueOnboarding.map((i) => i.run.personName))].join(', '),
+        tone: 'alert',
+        route: '#/ops',
+        records: overdueOnboarding.map((i) => ({ tag: i.run.tag, label: i.title })),
       })
     }
 

@@ -31,6 +31,7 @@ import { searchRouter } from './routes/search'
 import { kpiRouter } from './routes/kpi'
 import { auditLogRouter } from './routes/audit-log'
 import { complianceRouter } from './routes/compliance'
+import { checklistsRouter } from './routes/checklists'
 
 /**
  * Tuenx OS API.
@@ -87,6 +88,8 @@ app.use('/api/ops', peopleOpsRouter)
 // Compliance — the fourth thing Tuenx handles for the group, after legal,
 // accounts, and finance.
 app.use('/api/compliance', complianceRouter)
+// Onboarding and offboarding checklists — the last Phase 6 item.
+app.use('/api/checklists', checklistsRouter)
 
 // Phase 2
 app.use('/api/products', productsRouter)

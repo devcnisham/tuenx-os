@@ -89,6 +89,13 @@ const POLICY: Record<string, Policy> = {
   // they sit in.
   compliance: { model: 'complianceItem', division: 'record', owners: ['ownerId'] },
 
+  // Onboarding. Items are owner-writable so whoever is assigned a step can
+  // tick it, whichever arm they sit in — most onboarding steps are done by IT
+  // or finance for someone in a different division.
+  'checklists/templates': { model: 'checklistTemplate', division: 'record' },
+  'checklists/runs': { model: 'checklistRun', division: 'record' },
+  'checklists/items': { model: 'checklistRunItem', division: 'record', owners: ['ownerId'], open: true },
+
   // Phase 7 — Gaphatch only
   tickets: { model: 'ticket', division: 'gaphatch' },
   customers: { model: 'customer', division: 'gaphatch' },

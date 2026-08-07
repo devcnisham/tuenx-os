@@ -51,6 +51,7 @@ import {
   openable,
 } from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextAreaField, TextField } from '../components/Field.tsx'
+import { Onboarding } from './Onboarding.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { LinkedRecords, type LinkType } from '../components/LinkedRecords.tsx'
 import { Tag } from '../components/Tag.tsx'
@@ -73,6 +74,7 @@ const DIVISION_OPTIONS = DIVISIONS.map((d) => ({ value: d, label: DIVISION_LABEL
 
 const TABS = [
   { id: 'hiring', label: 'Hiring' },
+  { id: 'onboarding', label: 'Onboarding' },
   { id: 'leave', label: 'Time off' },
   { id: 'vendors', label: 'Vendors' },
   { id: 'campaigns', label: 'Marketing' },
@@ -89,7 +91,7 @@ export function PeopleOps() {
       <PageHeader
         eyebrow="Tuenx · People & Ops"
         title="People & Ops"
-        description="Hiring, time off, what the company pays for, what it is running in market, and every signed contract in one repository."
+        description="Hiring, onboarding and offboarding, time off, what the company pays for, what it is running in market, and every signed contract in one repository."
       />
 
       <div
@@ -116,6 +118,7 @@ export function PeopleOps() {
       </div>
 
       {tab === 'hiring' && <Hiring />}
+      {tab === 'onboarding' && <Onboarding />}
       {tab === 'leave' && <TimeOff />}
       {tab === 'vendors' && <Vendors />}
       {tab === 'campaigns' && <Campaigns />}

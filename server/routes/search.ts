@@ -29,6 +29,7 @@ export interface SearchHit {
     | 'ticket'
     | 'customer'
     | 'compliance'
+    | 'onboarding'
   /** Hash route that opens the record's module. */
   route: string
 }
@@ -86,6 +87,7 @@ searchRouter.get(
       tickets,
       customers,
       obligations,
+      checklistRuns,
     ] = await Promise.all([
       prisma.task.findMany({
         where: byTitleOrTag('title'),
@@ -220,6 +222,17 @@ searchRouter.get(
         },
         take: LIMIT_PER_KIND,
         orderBy: { nextDueDate: 'asc' },
+      }),
+      // Onboarding runs, findable by whose they are.
+      prisma.checklistRun.findMany({
+        where: {
+          OR: [
+            { personName: { contains: term, mode: 'insensitive' } },
+            { tag: { contains: term.toUpperCase() } },
+          ],
+        },
+        take: LIMIT_PER_KIND,
+        orderBy: { startDate: 'desc' },
       }),
     ])
 
@@ -357,6 +370,14 @@ searchRouter.get(
         detail: o.authority ?? 'Compliance',
         kind: 'compliance' as const,
         route: '#/compliance',
+      })),
+      ...checklistRuns.map((r) => ({
+        id: r.id,
+        tag: r.tag,
+        title: `${r.personName} — ${r.kind}`,
+        detail: r.completedAt ? 'Complete' : 'In progress',
+        kind: 'onboarding' as const,
+        route: '#/ops',
       })),
     ]
 

@@ -60,6 +60,10 @@ async function main() {
   await prisma.fundEntry.deleteMany()
   // Phase 9. Cleared with everything else: an audit trail of records that no
   // longer exist is noise, and the seed is a wipe not a migration.
+  await prisma.checklistRunItem.deleteMany()
+  await prisma.checklistRun.deleteMany()
+  await prisma.checklistTemplateStep.deleteMany()
+  await prisma.checklistTemplate.deleteMany()
   await prisma.complianceItem.deleteMany()
   await prisma.auditEntry.deleteMany()
   await prisma.tagCounter.deleteMany()
@@ -1277,6 +1281,138 @@ tracked separately and does not count against runway.`,
         },
       })
     }
+    // -- Onboarding and offboarding -----------------------------------------
+    // Two templates and two live runs. The negative day offsets are the point:
+    // most of onboarding happens before day one, and a checklist that starts
+    // on the start date has already failed.
+    const templates: {
+      name: string
+      kind: string
+      division: Division
+      steps: { title: string; ownerHint?: string; dueOffsetDays: number }[]
+    }[] = [
+      {
+        name: 'Engineer onboarding',
+        kind: 'onboarding',
+        division: 'gaphatch',
+        steps: [
+          { title: 'Contract signed and returned', ownerHint: 'Finance', dueOffsetDays: -10 },
+          { title: 'Right to work check', ownerHint: 'Ops', dueOffsetDays: -7 },
+          { title: 'Laptop ordered', ownerHint: 'Ops', dueOffsetDays: -7 },
+          { title: 'Accounts created — email, repo, deploys', ownerHint: 'Engineering', dueOffsetDays: -2 },
+          { title: 'Added to payroll', ownerHint: 'Finance', dueOffsetDays: -1 },
+          { title: 'Day-one walkthrough of the codebase', ownerHint: 'Engineering', dueOffsetDays: 0 },
+          { title: 'Read the engineering handbook', dueOffsetDays: 2 },
+          { title: 'First pull request merged', dueOffsetDays: 7 },
+          { title: 'Two-week check-in', ownerHint: 'Their lead', dueOffsetDays: 14 },
+          { title: 'Probation review booked', ownerHint: 'Their lead', dueOffsetDays: 60 },
+        ],
+      },
+      {
+        name: 'Agency onboarding',
+        kind: 'onboarding',
+        division: 'agency',
+        steps: [
+          { title: 'Contract signed and returned', ownerHint: 'Finance', dueOffsetDays: -10 },
+          { title: 'Right to work check', ownerHint: 'Ops', dueOffsetDays: -7 },
+          { title: 'Laptop and design tooling', ownerHint: 'Ops', dueOffsetDays: -5 },
+          { title: 'Added to payroll', ownerHint: 'Finance', dueOffsetDays: -1 },
+          { title: 'Introduced to live clients', ownerHint: 'Agency lead', dueOffsetDays: 1 },
+          { title: 'Shadow a client call', dueOffsetDays: 5 },
+          { title: 'Two-week check-in', ownerHint: 'Agency lead', dueOffsetDays: 14 },
+        ],
+      },
+      {
+        name: 'Offboarding',
+        kind: 'offboarding',
+        division: 'tuenx',
+        steps: [
+          { title: 'Resignation or notice acknowledged in writing', ownerHint: 'Ops', dueOffsetDays: 0 },
+          { title: 'Handover document written', dueOffsetDays: 3 },
+          { title: 'Work reassigned', ownerHint: 'Their lead', dueOffsetDays: 5 },
+          { title: 'Final pay and expenses settled', ownerHint: 'Finance', dueOffsetDays: 7 },
+          { title: 'Accounts revoked — email, repo, deploys, password manager', ownerHint: 'Ops', dueOffsetDays: 7 },
+          { title: 'Laptop and access cards returned', ownerHint: 'Ops', dueOffsetDays: 7 },
+          { title: 'Client and supplier contacts told', ownerHint: 'Their lead', dueOffsetDays: 7 },
+          { title: 'Exit conversation', ownerHint: 'Founder', dueOffsetDays: 7 },
+        ],
+      },
+    ]
+
+    const templateIds: Record<string, string> = {}
+    for (const t of templates) {
+      const tag = await allocateTag(tx, t.division, TAG_TYPE.checklistTemplate)
+      const created = await tx.checklistTemplate.create({
+        data: {
+          tag,
+          name: t.name,
+          kind: t.kind,
+          division: t.division,
+          steps: {
+            create: t.steps.map((step, position) => ({
+              title: step.title,
+              position,
+              ownerHint: step.ownerHint ?? null,
+              dueOffsetDays: step.dueOffsetDays,
+            })),
+          },
+        },
+      })
+      templateIds[t.name] = created.id
+    }
+
+    // Live runs. One mid-flight with a couple of steps already overdue, one
+    // finished — so the tab shows both states on a fresh database.
+    const runs: {
+      template: string
+      person: string
+      member?: string
+      kind: string
+      division: Division
+      startInDays: number
+      doneUpTo: number
+    }[] = [
+      { template: 'Engineer onboarding', person: 'Rafa Okonkwo', kind: 'onboarding', division: 'gaphatch', startInDays: 5, doneUpTo: 3 },
+      { template: 'Agency onboarding', person: 'Priya Nair', member: 'Priya Nair', kind: 'onboarding', division: 'agency', startInDays: -40, doneUpTo: 99 },
+    ]
+
+    for (const r of runs) {
+      const template = await tx.checklistTemplate.findUnique({
+        where: { id: templateIds[r.template]! },
+        include: { steps: { orderBy: { position: 'asc' } } },
+      })
+      const start = daysOut(r.startInDays)
+      const tag = await allocateTag(tx, r.division, TAG_TYPE.checklistRun)
+
+      const items = (template?.steps ?? []).map((step, index) => {
+        const due = new Date(start)
+        due.setDate(due.getDate() + step.dueOffsetDays)
+        return {
+          title: step.title,
+          position: step.position,
+          dueDate: due,
+          doneAt: index < r.doneUpTo ? daysOut(-1) : null,
+          ownerId: r.member ? members[r.member] ?? null : null,
+        }
+      })
+
+      const allDone = items.length > 0 && items.every((i) => i.doneAt !== null)
+
+      await tx.checklistRun.create({
+        data: {
+          tag,
+          templateId: template?.id ?? null,
+          memberId: r.member ? members[r.member] ?? null : null,
+          personName: r.person,
+          kind: r.kind,
+          division: r.division,
+          startDate: start,
+          completedAt: allDone ? daysOut(-1) : null,
+          items: { create: items },
+        },
+      })
+    }
+
     // -- Compliance ---------------------------------------------------------
     // A plausible register for a small UK-shaped group: statutory filings,
     // the things insurers and regulators ask for, and one deliberately
@@ -1328,7 +1464,7 @@ tracked separately and does not count against runway.`,
   })
 
 
-  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount, msgCount, accountCount, candidateCount, vendorCount, contractCount, epicCount, sprintCount, timeCount, ticketCount, customerCount, metricCount, complianceCount] = await Promise.all([
+  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount, msgCount, accountCount, candidateCount, vendorCount, contractCount, epicCount, sprintCount, timeCount, ticketCount, customerCount, metricCount, complianceCount, runCount] = await Promise.all([
     prisma.teamMember.count(),
     prisma.task.count(),
     prisma.contact.count(),
@@ -1349,10 +1485,11 @@ tracked separately and does not count against runway.`,
     prisma.customer.count(),
     prisma.metricSnapshot.count(),
     prisma.complianceItem.count(),
+    prisma.checklistRun.count(),
   ])
 
   console.log(
-    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries, ${msgCount} messages, ${accountCount} accounts, ${candidateCount} candidates, ${vendorCount} vendors, ${contractCount} contracts, ${epicCount} epics, ${sprintCount} sprints, ${timeCount} time entries, ${ticketCount} issues, ${customerCount} customers, ${metricCount} metric snapshots, ${complianceCount} compliance obligations.`,
+    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries, ${msgCount} messages, ${accountCount} accounts, ${candidateCount} candidates, ${vendorCount} vendors, ${contractCount} contracts, ${epicCount} epics, ${sprintCount} sprints, ${timeCount} time entries, ${ticketCount} issues, ${customerCount} customers, ${metricCount} metric snapshots, ${complianceCount} compliance obligations, ${runCount} checklist runs.`,
   )
 }
 

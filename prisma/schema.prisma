@@ -245,6 +245,8 @@ model TeamMember {
 
   @@index([division])
   complianceItems ComplianceItem[]
+  checklistRuns      ChecklistRun[]
+  checklistRunItems  ChecklistRunItem[]
 }
 
 // ---------------------------------------------------------------------------
@@ -843,6 +845,107 @@ model Session {
   @@index([userAccountId])
   @@index([clientAccountId])
   @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Onboarding and offboarding checklists
+// ---------------------------------------------------------------------------
+
+/// A reusable checklist — "Engineer onboarding", "Offboarding".
+///
+/// Templates exist so twelve steps are not retyped for every hire. They are
+/// definitions, not work: nothing on a template is ever ticked.
+model ChecklistTemplate {
+  id       String @id @default(cuid())
+  tag      String @unique
+  name     String
+  /// onboarding | offboarding
+  kind     String
+  division String // tuenx | agency | gaphatch
+  notes    String?
+
+  createdAt DateTime @default(now())
+
+  steps ChecklistTemplateStep[]
+  runs  ChecklistRun[]
+
+  @@index([kind])
+  @@index([division])
+}
+
+/// One line on a template. Deliberately untagged — see ChecklistRunItem.
+model ChecklistTemplateStep {
+  id         String            @id @default(cuid())
+  templateId String
+  template   ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  title      String
+  position   Int
+  /// Who usually does it — "IT", "the hiring manager". Free text, because the
+  /// answer is a role this app does not model.
+  ownerHint  String?
+  /// Days relative to the start date. Negative is before day one, which is
+  /// where the useful half of onboarding actually happens — laptop ordered,
+  /// accounts created, contract signed.
+  dueOffsetDays Int @default(0)
+
+  @@index([templateId])
+}
+
+/// One person going through one checklist.
+///
+/// Items are **copied** from the template at creation rather than referenced.
+/// A template edited next year must not silently rewrite what someone was
+/// actually asked to do last year — the run is a record of what happened.
+model ChecklistRun {
+  id         String             @id @default(cuid())
+  tag        String             @unique
+  templateId String?
+  template   ChecklistTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  memberId String?
+  member   TeamMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  /// Kept even when the member record goes. An offboarding run outlives the
+  /// person's row by design — deleting the member is often the last step.
+  personName String
+
+  kind      String // onboarding | offboarding
+  division  String
+  startDate DateTime
+  /// Set when the last item is ticked. Null while anything is outstanding.
+  completedAt DateTime?
+  notes       String?
+
+  createdAt DateTime @default(now())
+
+  items ChecklistRunItem[]
+
+  @@index([kind])
+  @@index([division])
+  @@index([memberId])
+}
+
+/// One line on a run. The only thing here that is ever ticked.
+///
+/// Untagged on purpose. Every other record carries a tag because people cite it
+/// by name; nobody says "TNX-??014 is blocked". A checklist line is only ever
+/// read inside its run, and giving it a tag would burn a scarce two-letter code
+/// on something no one will ever quote.
+model ChecklistRunItem {
+  id       String       @id @default(cuid())
+  runId    String
+  run      ChecklistRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  title    String
+  position Int
+
+  ownerId String?
+  owner   TeamMember? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  dueDate DateTime?
+  doneAt  DateTime?
+
+  @@index([runId])
+  @@index([ownerId])
+  @@index([dueDate])
 }
 
 // ---------------------------------------------------------------------------

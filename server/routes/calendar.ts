@@ -32,6 +32,7 @@ export const CALENDAR_KINDS = [
   'release',
   'contract',
   'compliance',
+  'onboarding',
   'entry',
 ] as const
 export type CalendarKind = (typeof CALENDAR_KINDS)[number]
@@ -86,7 +87,8 @@ calendarRouter.get(
 
     const range = { gte: start, lte: end }
 
-    const [tasks, projects, invoices, releases, contracts, obligations, entries] = await Promise.all([
+    const [tasks, projects, invoices, releases, contracts, obligations, checklistItems, entries] =
+      await Promise.all([
       prisma.task.findMany({
         where: { dueDate: range },
         include: { assignee: { select: { name: true } } },
@@ -112,6 +114,12 @@ calendarRouter.get(
       prisma.complianceItem.findMany({
         where: { nextDueDate: range, retired: false },
         include: { owner: { select: { name: true } } },
+      }),
+      // Outstanding checklist steps. Done ones are history, and a step with no
+      // date was never a deadline.
+      prisma.checklistRunItem.findMany({
+        where: { dueDate: range, doneAt: null },
+        include: { run: { select: { tag: true, personName: true, division: true, kind: true } } },
       }),
       // Entries people created themselves. A multi-day entry counts as
       // overlapping the window if either end falls inside it.
@@ -195,6 +203,19 @@ calendarRouter.get(
         // Meeting it moves the date rather than closing the record.
         open: true,
         route: '#/compliance',
+      })),
+      ...checklistItems.map((i) => ({
+        id: i.id,
+        // The run's tag, not the item's — items are untagged by design, and the
+        // run is the thing anyone would go and open.
+        tag: i.run.tag,
+        date: day(i.dueDate!),
+        title: i.title,
+        detail: i.run.personName,
+        kind: 'onboarding' as const,
+        division: i.run.division,
+        open: true,
+        route: '#/ops',
       })),
       ...entries.flatMap((e) => {
         // A multi-day entry occupies every day it spans, so it reads as a band

@@ -69,7 +69,7 @@ There is no test suite. Verification is done by running the app and exercising t
 
 Beyond the original phases: Calendar, Planner, Brainstorms, Messages, Users administration, cross-record links, global search, the client portal, and task depth (epics, sprints, subtasks, time, workload).
 
-**Every phase in the original plan is complete**, plus the compliance register. Onboarding checklists are the one named gap left.
+**Every phase in the original plan is complete**, plus the compliance register and onboarding checklists. Nothing named in the planning docs is outstanding.
 
 ## Shape of the code
 
@@ -85,7 +85,7 @@ server/
   tags.ts        Division-coded ID allocation
   github.ts      Issue sync — and the only place a repo URL is parsed
   http.ts        Error handling and body validation
-  routes/        28 routers
+  routes/        29 routers
 src/
   types.ts       Shared vocabulary — imported by client AND server
   lib/           API client, cache, per-resource loader, router, theme, layout
@@ -113,7 +113,8 @@ Every record carries a division-coded tag — `AGY-T003`, `GPH-C012`.
 | `H` candidate (hire) | `L` leave | `N` vendor | `G` campaign |
 | `A` contract (agreement) | `S` ticket (support) | `Z` metric | `U` customer |
 | `B` idea (brainstorm) | `Q` plan item (quarter) | `E` calendar entry | `X` channel |
-| `Y` epic | `W` sprint | `CO` compliance | |
+| `Y` epic | `W` sprint | `CO` compliance | `CT` checklist template |
+| `OB` checklist run | | | |
 
 Several letters are non-obvious because the intuitive one was taken — `J` for project because `P` is the product, `Z` for metric because `M` is member and `E` is a calendar entry.
 

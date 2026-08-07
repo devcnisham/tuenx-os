@@ -4,7 +4,7 @@
 re-reading the repository. Update it when a module is finished, a decision is
 reversed, or something is left half-built.
 
-**Last updated:** 2026-08-03 · Phases 1–9 and compliance complete · working tree clean
+**Last updated:** 2026-08-03 · every named module built · working tree clean
 
 | | |
 |---|---|
@@ -106,6 +106,7 @@ remove it from git history.
 | Role scoping | ✅ | — | Phase 9. Middleware below requireTeam; fails closed |
 | Audit log | ✅ | ✅ | Phase 9. Admin-only, read-only, field-level diffs |
 | Compliance | ✅ | ✅ | Obligations register. Recurrence rolls forward, not closed |
+| Onboarding | ✅ | ✅ | Templates + runs, in People & Ops. Runs copy their steps |
 | Client portal | ✅ | ✅ | Read-only, scoped. **No password by design** |
 | Links | ✅ | ✅ | Any record to any other |
 | Search | ✅ | ✅ | Global, `/` to focus |
@@ -130,9 +131,10 @@ account and a secret. Ask; do not attempt a workaround.
 
 ### 2. Smaller, all unblocked  ← pick from here
 
-Every phase in the original plan is built, and so is compliance. Nothing named
-in the master plan or the v2 scope list is outstanding except the items below
-and the deployment database above.
+**Nothing named in the master plan, the PRD, the TRD, or the v2 scope list is
+outstanding.** Phases 1–9, compliance, and onboarding checklists are all built.
+What is left is the list below, the deployment database above, and whatever the
+founder asks for next.
 
 
 

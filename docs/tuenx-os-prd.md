@@ -65,7 +65,10 @@ Tuenx OS is the internal operating system for Tuenx Technologies — a single pl
 
 ### Phase 6 — People, ops, marketing *(built 2026-08-03, one gap)*
 - Hiring pipeline (open roles → candidates → stage) ✅
-- Onboarding/offboarding checklists — **not built**, the one gap
+- Onboarding/offboarding checklists ✅ — reusable templates, and runs that copy
+  their steps so a later template edit cannot rewrite what someone was actually
+  asked to do. Day offsets are relative to the start date and usually negative,
+  because most of onboarding happens before day one
 - Time-off tracking ✅
 - Vendor & subscription tracker (what's paid for, renewal dates, owner) ✅
 - Marketing (campaigns/content calendar), shared across Agency and Gaphatch ✅

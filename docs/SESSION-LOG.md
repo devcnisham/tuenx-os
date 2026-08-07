@@ -373,3 +373,43 @@ one-off retires and refuses a second completion; scoping holds (403 for an
 out-of-division lead and for a non-owning member, 200 admin, 401 anonymous);
 both enum validators reject; calendar returns 6 events in-window; KPI returns
 both health rows; search finds it by title.
+
+## Onboarding checklists — the last named gap
+
+Built last, and the last thing named anywhere in the planning docs.
+
+**Two models, not one.** A template is a reusable definition and is never
+ticked; a run is one person going through it and is the only thing with state.
+The important part is that a run **copies** its steps at creation. A template
+edited next year must not silently rewrite what someone was asked to do last
+year — the run is the record of what actually happened, which is the entire
+reason to keep one. Verified by rewriting a template down to a single step and
+confirming the in-progress run still held its eleven items.
+
+**Day offsets are relative and usually negative.** Contract signed, right to
+work checked, laptop ordered, accounts created — most of onboarding happens
+before day one. The seeded engineer template runs from −10 to +60. A checklist
+that starts on the start date has already failed, and modelling the offset
+rather than an absolute date is what makes the template reusable at all.
+
+**Completion is derived, never set by the client.** `completedAt` is
+recomputed from the items inside the same transaction on every change, and
+un-ticking a step reopens the run. A run that stays "complete" after someone
+reopens a line is lying; letting the client set the flag directly is how one
+ends up marked done with three things outstanding.
+
+**Lines are untagged, deliberately** — the second time this decision has come
+up, after the audit log. The test is whether anyone would ever cite the thing
+by name. Nobody says "TNX-??014 is blocked", they say "Rafa's onboarding". The
+run gets `OB`, the template gets `CT`, and the lines get nothing.
+
+`personName` is denormalised on the run so an offboarding run outlives the
+member row — deleting the member is often the last step on the list. Same
+reasoning as `actorName` on the audit entry.
+
+**Verified:** negative offsets land on the right dates, ticking the last item
+completes the run and un-ticking reopens it, steps can be added mid-run, a
+template rewrite leaves runs alone, 403 for an out-of-division lead, 200 for a
+member ticking an item (items are deliberately open — onboarding steps are
+usually done by IT or finance for someone in another division), both validators
+reject, 401 anonymous, 7 calendar events, search finds the run.

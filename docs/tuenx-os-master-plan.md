@@ -55,7 +55,7 @@ Team: 6–15 people. Mixed model — some people are dedicated to one division, 
 | OKRs/Goals | Tuenx (scoped to division/product) | ✅ Built |
 | Docs/Knowledge base | Tuenx (scoped to division) | ✅ Built |
 | Hiring pipeline | Tuenx (People/HR) | ✅ Built |
-| Onboarding/offboarding | Tuenx (People/HR) | ❌ Not built — the one Phase 6 item with no home |
+| Onboarding/offboarding | Tuenx (People/HR) | ✅ Built 2026-08-03 — templates + runs, in People & Ops |
 | Time-off tracking | Tuenx (People/HR) | ✅ Built |
 | Vendor & subscription tracker | Tuenx (Ops) | ✅ Built |
 | Marketing (campaigns/content calendar) | Tuenx, serves Agency + Gaphatch | ✅ Built |
@@ -78,7 +78,7 @@ Team: 6–15 people. Mixed model — some people are dedicated to one division, 
 3. **✅ Done** — Agency contract fields + Projects + Invoicing
 4. **✅ Done** — Tuenx Fund/Treasury
 5. **✅ Done** — OKRs/Goals + Docs/Knowledge base
-6. **✅ Done bar onboarding checklists** — People/HR + Vendor tracker + Marketing + Contracts repository
+6. **✅ Done** — People/HR + Vendor tracker + Marketing + Contracts repository + onboarding/offboarding checklists
 7. **Partial** — Support/helpdesk built (bugs, issues, feature requests, GitHub sync). Metrics and the customer base are schema only
 8. Company-wide KPI dashboard — not started, and wants Phase 7's metrics to exist first
 9. **Partial** — auth, sessions, and roles are real; `lead` and `member` are still identical, and there is no audit log

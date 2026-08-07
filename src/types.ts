@@ -922,6 +922,65 @@ export interface Ticket {
   createdAt: string
 }
 
+/**
+ * A paying account on one product. Deliberately not a CRM `Contact` — a
+ * Contact is a deal someone is working, a Customer already subscribes. Merging
+ * them would drop every self-serve signup into the sales pipeline.
+ */
+export interface Customer {
+  id: string
+  tag: string
+  productId: string
+  product: Pick<Product, 'id' | 'tag' | 'name'>
+  name: string
+  email: string | null
+  subscriptionStatus: SubscriptionStatus
+  since: string
+  createdAt: string
+  counts: { tickets: number }
+}
+
+/** One product's numbers on one date. One row per product per date. */
+export interface MetricSnapshot {
+  id: string
+  tag: string
+  productId: string
+  product: Pick<Product, 'id' | 'tag' | 'name'>
+  date: string
+  mrr: number
+  activeUsers: number
+  /** Percentage, 0–100. */
+  churnRate: number
+  createdAt: string
+}
+
+/** Latest reading per product with the change since the one before it. */
+export interface MetricsSummary {
+  summaries: {
+    product: Pick<Product, 'id' | 'tag' | 'name' | 'status'>
+    latest: MetricSnapshot | null
+    previous: MetricSnapshot | null
+    change: {
+      mrr: number | null
+      activeUsers: number | null
+      churnRate: number | null
+    }
+  }[]
+  totals: { mrr: number; activeUsers: number }
+}
+
+/**
+ * What the subscriber base can tell us without inventing a price. Returned by
+ * `GET /api/metrics/derive/:productId` to prefill a snapshot form.
+ */
+export interface DerivedMetrics {
+  activeUsers: number
+  trialUsers: number
+  churnedUsers: number
+  churnRate: number
+  basis: string
+}
+
 export interface FundEntry {
   id: string
   tag: string
@@ -1036,6 +1095,7 @@ export interface SearchHit {
     | 'epic'
     | 'sprint'
     | 'ticket'
+    | 'customer'
   route: string
 }
 

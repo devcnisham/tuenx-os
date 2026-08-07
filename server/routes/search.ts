@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { prisma } from '../db'
 import { route } from '../http'
+import { SUBSCRIPTION_STATUS_LABEL, type SubscriptionStatus } from '../../src/types'
 
 export const searchRouter = Router()
 
@@ -26,6 +27,7 @@ export interface SearchHit {
     | 'epic'
     | 'sprint'
     | 'ticket'
+    | 'customer'
   /** Hash route that opens the record's module. */
   route: string
 }
@@ -81,6 +83,7 @@ searchRouter.get(
       epics,
       sprints,
       tickets,
+      customers,
     ] = await Promise.all([
       prisma.task.findMany({
         where: byTitleOrTag('title'),
@@ -190,6 +193,19 @@ searchRouter.get(
         take: LIMIT_PER_KIND,
         include: { product: { select: { id: true, name: true } } },
         orderBy: { createdAt: 'desc' },
+      }),
+      // Phase 7. A subscriber is looked up by name or the email they wrote in.
+      prisma.customer.findMany({
+        where: {
+          OR: [
+            { name: { contains: term, mode: 'insensitive' } },
+            { email: { contains: term, mode: 'insensitive' } },
+            { tag: { contains: term.toUpperCase() } },
+          ],
+        },
+        take: LIMIT_PER_KIND,
+        include: { product: { select: { id: true, name: true } } },
+        orderBy: { since: 'desc' },
       }),
     ])
 
@@ -311,6 +327,14 @@ searchRouter.get(
         detail: `${t.kind} · ${t.product.name}`,
         kind: 'ticket' as const,
         route: `#/products/${t.productId}`,
+      })),
+      ...customers.map((c) => ({
+        id: c.id,
+        tag: c.tag,
+        title: c.name,
+        detail: `${SUBSCRIPTION_STATUS_LABEL[c.subscriptionStatus as SubscriptionStatus]} · ${c.product.name}`,
+        kind: 'customer' as const,
+        route: `#/products/${c.productId}`,
       })),
     ]
 

@@ -537,6 +537,8 @@ tracked separately and does not count against runway.`,
       roadmap: { title: string; status: string }[]
       releases: { version: string; notes: string; date: Date }[]
       tickets?: { subject: string; kind: string; status: string; priority: string; reporter?: string; body?: string }[]
+      customers?: { name: string; email: string; subscriptionStatus: string; sinceDays: number }[]
+      metrics?: { daysAgo: number; mrr: number; activeUsers: number; churnRate: number }[]
     }[] = [
       {
         name: 'Scholr',
@@ -551,6 +553,25 @@ tracked separately and does not count against runway.`,
           { subject: 'Export grades to CSV', kind: 'feature', status: 'open', priority: 'medium', reporter: 'Lattice Tutoring', body: 'Asked for twice. Worth a roadmap item if a third person asks.' },
           { subject: 'Dark mode', kind: 'feature', status: 'open', priority: 'low', reporter: 'beta tester #4' },
           { subject: 'Dashboard slow above 200 assignments', kind: 'bug', status: 'resolved', priority: 'medium', body: 'Fixed in 0.3.0 — the projection query was running per row.' },
+        ],
+        // Scholr is in beta, so the base is mostly trials with a paying
+        // pilot and a couple who left — the shape a pre-launch product
+        // actually has, rather than a clean growth curve.
+        customers: [
+          { name: 'Ashfield College', email: 'a.diallo@ashfield.edu', subscriptionStatus: 'active', sinceDays: 96 },
+          { name: 'Lattice Tutoring', email: 'jonah@latticetutoring.com', subscriptionStatus: 'trial', sinceDays: 21 },
+          { name: 'Marcy Feld', email: 'marcy.feld@gmail.com', subscriptionStatus: 'active', sinceDays: 74 },
+          { name: 'Ridgeway Sixth Form', email: 'admin@ridgeway.sch.uk', subscriptionStatus: 'trial', sinceDays: 12 },
+          { name: 'Tomas Beck', email: 'tbeck@fastmail.com', subscriptionStatus: 'churned', sinceDays: 130 },
+          { name: 'Halvorsen Tutors', email: 'post@halvorsen.no', subscriptionStatus: 'churned', sinceDays: 152 },
+          { name: 'Priya Kapoor', email: 'p.kapoor@outlook.com', subscriptionStatus: 'active', sinceDays: 40 },
+        ],
+        // Month-end readings. MRR climbs, churn eases as the beta settles.
+        metrics: [
+          { daysAgo: 92, mrr: 240, activeUsers: 2, churnRate: 0 },
+          { daysAgo: 61, mrr: 460, activeUsers: 3, churnRate: 25 },
+          { daysAgo: 31, mrr: 720, activeUsers: 3, churnRate: 40 },
+          { daysAgo: 2, mrr: 980, activeUsers: 3, churnRate: 40 },
         ],
         roadmap: [
           { title: 'Assignment tracker', status: 'shipped' },
@@ -604,19 +625,58 @@ tracked separately and does not count against runway.`,
 
       productIds[spec.name] = product.id
 
+      // Phase 7. The subscriber base comes first, so the tickets below can
+      // resolve a reporter to a real customer instead of leaving free text.
+      const customerByEmail: Record<string, string> = {}
+      for (const customer of spec.customers ?? []) {
+        const tag = await allocateTag(tx, 'gaphatch', TAG_TYPE.customer)
+        const created = await tx.customer.create({
+          data: {
+            tag,
+            productId: product.id,
+            name: customer.name,
+            email: customer.email,
+            subscriptionStatus: customer.subscriptionStatus,
+            since: daysOut(-customer.sinceDays),
+          },
+        })
+        customerByEmail[customer.email.toLowerCase()] = created.id
+        customerByEmail[customer.name.toLowerCase()] = created.id
+      }
+
+      for (const metric of spec.metrics ?? []) {
+        const tag = await allocateTag(tx, 'gaphatch', TAG_TYPE.metric)
+        await tx.metricSnapshot.create({
+          data: {
+            tag,
+            productId: product.id,
+            date: daysOut(-metric.daysAgo),
+            mrr: metric.mrr,
+            activeUsers: metric.activeUsers,
+            churnRate: metric.churnRate,
+          },
+        })
+      }
+
       // Phase 7. Bugs, issues, and feature requests share one queue.
       for (const ticket of spec.tickets ?? []) {
         const tag = await allocateTag(tx, 'gaphatch', TAG_TYPE.ticket)
+        // A reporter who turns out to be a tracked subscriber gets the real
+        // link; anyone else keeps the free-text line they were reported under.
+        const customerId = ticket.reporter
+          ? (customerByEmail[ticket.reporter.toLowerCase()] ?? null)
+          : null
         await tx.ticket.create({
           data: {
             tag,
             productId: product.id,
+            customerId,
             subject: ticket.subject,
             body: ticket.body ?? null,
             kind: ticket.kind,
             status: ticket.status,
             priority: ticket.priority,
-            customerContact: ticket.reporter ?? null,
+            customerContact: customerId ? null : (ticket.reporter ?? null),
           },
         })
       }
@@ -1215,7 +1275,7 @@ tracked separately and does not count against runway.`,
     }
   })
 
-  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount, msgCount, accountCount, candidateCount, vendorCount, contractCount, epicCount, sprintCount, timeCount, ticketCount] = await Promise.all([
+  const [team, tasks, contacts, products, docCount, plans, ideaCount, entryCount, msgCount, accountCount, candidateCount, vendorCount, contractCount, epicCount, sprintCount, timeCount, ticketCount, customerCount, metricCount] = await Promise.all([
     prisma.teamMember.count(),
     prisma.task.count(),
     prisma.contact.count(),
@@ -1233,10 +1293,12 @@ tracked separately and does not count against runway.`,
     prisma.sprint.count(),
     prisma.timeEntry.count(),
     prisma.ticket.count(),
+    prisma.customer.count(),
+    prisma.metricSnapshot.count(),
   ])
 
   console.log(
-    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries, ${msgCount} messages, ${accountCount} accounts, ${candidateCount} candidates, ${vendorCount} vendors, ${contractCount} contracts, ${epicCount} epics, ${sprintCount} sprints, ${timeCount} time entries, ${ticketCount} issues.`,
+    `Seeded: ${team} team members, ${tasks} tasks, ${contacts} contacts, ${products} products, ${docCount} docs, ${plans} plan items, ${ideaCount} ideas, ${entryCount} calendar entries, ${msgCount} messages, ${accountCount} accounts, ${candidateCount} candidates, ${vendorCount} vendors, ${contractCount} contracts, ${epicCount} epics, ${sprintCount} sprints, ${timeCount} time entries, ${ticketCount} issues, ${customerCount} customers, ${metricCount} metric snapshots.`,
   )
 }
 

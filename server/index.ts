@@ -22,6 +22,8 @@ import { plannerRouter } from './routes/planner'
 import { linksRouter } from './routes/links'
 import { messagesRouter } from './routes/messages'
 import { ticketsRouter } from './routes/tickets'
+import { customersRouter } from './routes/customers'
+import { metricsRouter } from './routes/metrics'
 import { workRouter } from './routes/work'
 import { searchRouter } from './routes/search'
 
@@ -86,8 +88,10 @@ app.use('/api/treasury', treasuryRouter)
 app.use('/api/docs', docsRouter)
 app.use('/api/okrs', okrsRouter)
 
-// Phase 7 — bugs, issues, and feature requests per product
+// Phase 7 — support, subscriber base, and product metrics
 app.use('/api/tickets', ticketsRouter)
+app.use('/api/customers', customersRouter)
+app.use('/api/metrics', metricsRouter)
 
 // Task depth — epics, sprints, time
 app.use('/api/work', workRouter)

@@ -55,7 +55,7 @@ server/
   tags.ts     division-coded ID allocation (transactional)
   github.ts   issue + build sync — the only place a repo URL is parsed
   http.ts     error handling + hand-rolled body validation
-  routes/     30 routers
+  routes/     31 routers
 src/
   types.ts    shared vocabulary — imported by BOTH client and server
   lib/        api client, cache, useResource, router, theme, layout, divisions

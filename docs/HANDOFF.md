@@ -103,7 +103,7 @@ remove it from git history.
 | Projects | ✅ | ✅ | Board by status, inherits client's division |
 | Invoices | ✅ | ✅ | Ledger, request-time overdue sweep |
 | Treasury | ✅ | ✅ | Allocations excluded from balance/burn |
-| Team | ✅ | ✅ | Roster, grouped by division |
+| Team | ✅ | ✅ | Directory, plus per-team workspaces at `#/team?q=engineering` |
 | Users | ✅ | ✅ | Admin-only. Accounts, roles, teams, workload, live sessions |
 | Products | ✅ | ✅ | Roadmap, releases, live/repo links, issues queue, GitHub issue + build sync |
 | Customers | ✅ | ✅ | Per product. Reporters on tickets resolve to a real subscriber |
@@ -161,7 +161,6 @@ founder asks for next.
 - Grid/list layouts on modules other than Tasks and Docs (`useRecordLayout` + `LayoutSwitch` already exist — a per-module wiring job)
 - Threads, reactions, and mentions in Messages
 - Conversations bound to a CRM contact — `Channel.recordType`/`recordId` support it; nothing creates one yet
-- Team workspaces (a per-team view aggregating that team's work)
 - Product/project update trackers
 - No test suite. Verification is by exercising the API and opening the app, which is honest but does not scale — if anything here grows, this is the gap that will hurt first
 

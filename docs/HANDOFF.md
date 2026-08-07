@@ -4,7 +4,7 @@
 re-reading the repository. Update it when a module is finished, a decision is
 reversed, or something is left half-built.
 
-**Last updated:** 2026-08-03 · 62 commits · working tree clean
+**Last updated:** 2026-08-03 · Phase 7 complete · working tree clean
 
 | | |
 |---|---|
@@ -92,6 +92,8 @@ remove it from git history.
 | Team | ✅ | ✅ | Roster, grouped by division |
 | Users | ✅ | ✅ | Admin-only. Accounts, roles, teams, workload, live sessions |
 | Products | ✅ | ✅ | Roadmap, releases, live/repo links, issues queue, GitHub sync |
+| Customers | ✅ | ✅ | Per product. Reporters on tickets resolve to a real subscriber |
+| Metrics | ✅ | ✅ | MRR/actives/churn snapshots, one per product per date |
 | Docs | ✅ | ✅ | Body-searchable, staleness flag at 3 months |
 | OKRs | ✅ | ✅ | Progress derived from key results |
 | Calendar | ✅ | ✅ | Time grid + mini-month, drag to reschedule, meeting planner |
@@ -116,21 +118,33 @@ Supabase project's **pooled** string (port 6543; the direct port runs out of
 connections under serverless). Then redeploy, and `npm run create-admin` for
 the first account. `docs/DEPLOYING.md` has the detail.
 
-### 2. Phase 7, the other two thirds
+### 2. Phase 8 — the KPI dashboard
 
-`Ticket` is done — routes, UI, seed, and a GitHub issue sync.
-**`MetricSnapshot` and `Customer` still have schema and migrations only**, so
-MRR, churn, and the subscriber base do not exist. Tag letters are reserved:
-`Z` metric, `U` customer.
+Phase 7 is **done** as of 2026-08-03: tickets, customers, and metrics all have
+routes, UI, seed, and search. Nothing in phases 1–7 is outstanding.
 
-Until customers exist, a ticket's reporter is free text.
+Phase 8 adds no new records — it is a read-only aggregation across every module
+already built, so it needs no tag letter. That makes it the cheapest remaining
+phase and the obvious next one.
 
-### 3. Compliance has no home
+**One thing to know about metrics before extending them:** MRR is typed, never
+derived. A `Customer` carries no price, so `GET /metrics/derive/:productId`
+returns only active users and churn, and prints its own basis — that churn is a
+share of all non-trial subscribers all-time, not a period rate. A period rate
+needs a subscription-history table, which does not exist. Do not quietly invent
+a seat price to fill in revenue.
+
+### 3. Compliance has no home — and needs a tag-letter decision first
 
 The founder confirmed Tuenx handles legal, accounts, finance, **and
 compliance** for the group. The first three have modules. Compliance has
 nothing — no register of obligations, filings, or their deadlines. Smallest
 useful version is in `docs/tuenx-os-v2-scope.md` §6.
+
+**Blocked on a decision, not on effort.** All twenty-six tag letters are
+taken, so a compliance record needs either a two-letter code or a shared
+letter. Per CLAUDE.md that is a call to make before starting the module
+rather than halfway through it.
 
 ### 4. Smaller
 
@@ -139,7 +153,6 @@ useful version is in `docs/tuenx-os-v2-scope.md` §6.
 - Conversations bound to a CRM contact — `Channel.recordType`/`recordId` support it; nothing creates one yet
 - Team workspaces (a per-team view aggregating that team's work)
 - Product/project update trackers
-- Phase 8 KPI dashboard
 - Phase 9 proper: real role scoping, audit log
 - A CD half for the products themselves — build/deploy status mirrored onto a product page, now that `repoUrl` exists to hang it off
 

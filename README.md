@@ -64,12 +64,12 @@ There is no test suite. Verification is done by running the app and exercising t
 | 5 | OKRs, Docs | ✅ | ✅ |
 | 6 | Hiring, leave, vendors, campaigns, contracts | ✅ | ✅ |
 | 7 | Tickets, customers, metrics | ✅ | ✅ |
-| 8 | KPI dashboard | ✗ | ✗ |
+| 8 | KPI dashboard | ✅ | ✅ |
 | 9 | Auth, permissions, audit log | Partial | Partial |
 
 Beyond the original phases: Calendar, Planner, Brainstorms, Messages, Users administration, cross-record links, global search, the client portal, and task depth (epics, sprints, subtasks, time, workload).
 
-Phases 1–7 are complete. Onboarding checklists, a compliance register, the Phase 8 KPI dashboard, and the Phase 9 audit log and role scoping are the named gaps. Compliance is blocked on a decision rather than effort — all twenty-six record-tag letters are taken, so it needs a two-letter code or a shared one.
+Phases 1–8 are complete. Onboarding checklists, a compliance register, and the Phase 9 audit log and role scoping are the named gaps. Compliance is blocked on a decision rather than effort — all twenty-six record-tag letters are taken, so it needs a two-letter code or a shared one.
 
 ## Shape of the code
 
@@ -85,7 +85,7 @@ server/
   tags.ts        Division-coded ID allocation
   github.ts      Issue sync — and the only place a repo URL is parsed
   http.ts        Error handling and body validation
-  routes/        25 routers
+  routes/        26 routers
 src/
   types.ts       Shared vocabulary — imported by client AND server
   lib/           API client, cache, per-resource loader, router, theme, layout

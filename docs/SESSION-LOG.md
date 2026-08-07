@@ -241,3 +241,40 @@ session preferred to land Phase 7 verified over leaving two things half-built.
 Compliance was raised with the founder as a tag-letter decision — all 26 letters
 are taken — and the question was **dismissed without a choice**, so it remains
 open and blocking. See HANDOFF "Pick these up first" §3.
+
+## Phase 8 — the KPI dashboard
+
+Built the same session, straight after Phase 7. TRD §3 Phase 8 asks for "no new
+storage, computed views pulling from every module, read-only" — so no table, no
+migration, and no tag letter, which is what made it the cheapest phase left.
+
+**Kept distinct from Overview on purpose.** Overview answers "how do the three
+divisions compare right now". KPIs answers "how is the company doing, and what
+needs attention". Building a second division ledger would have been the easy
+version and would have made both pages worth skipping.
+
+**The health list only speaks when it has something to say.** Nine passing
+checks rendered as green ticks is a board people stop reading, so "all clear" is
+one line and each real warning names the records behind it by tag. Covers
+overdue invoices, missed task dates, unresolved high-priority bugs, key results
+off track or at risk, held projects, contracts inside 60 days, rising churn,
+unassigned work, and stale docs.
+
+**Two refusals worth keeping:**
+
+- Allocations stay out of cash, burn, and net-by-division, matching
+  `treasury.ts` so the two can never disagree. A negative net on a product arm
+  is that arm being funded — the footnote says so rather than colouring it red
+  and implying a problem.
+- Income and spend share one scale on the trend chart. Separate scales would
+  make a thin month of income look like a fat one, which is the most common way
+  a chart of this shape lies.
+
+**One defect found by looking rather than reasoning.** The chart first rendered
+completely empty: `h-full` inside an auto-height flex column resolves to zero,
+so every percentage bar height collapsed. The legend totals were correct the
+whole time, which is exactly why reading the code would not have caught it.
+
+Also worth knowing: **a new export in `router.ts` cannot fast-refresh.** The
+route rendered Overview under a `#/kpi` hash until a full reload. Not a bug —
+but it looks exactly like one, and cost a few minutes here.

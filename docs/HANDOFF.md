@@ -4,7 +4,7 @@
 re-reading the repository. Update it when a module is finished, a decision is
 reversed, or something is left half-built.
 
-**Last updated:** 2026-08-03 · Phases 1–7 complete · working tree clean
+**Last updated:** 2026-08-03 · Phases 1–8 complete · working tree clean
 
 | | |
 |---|---|
@@ -94,6 +94,7 @@ remove it from git history.
 | Products | ✅ | ✅ | Roadmap, releases, live/repo links, issues queue, GitHub sync |
 | Customers | ✅ | ✅ | Per product. Reporters on tickets resolve to a real subscriber |
 | Metrics | ✅ | ✅ | MRR/actives/churn snapshots, one per product per date |
+| KPIs | ✅ | ✅ | Phase 8. Read-only rollup, health list, 12-month trend |
 | Docs | ✅ | ✅ | Body-searchable, staleness flag at 3 months |
 | OKRs | ✅ | ✅ | Progress derived from key results |
 | Calendar | ✅ | ✅ | Time grid + mini-month, drag to reschedule, meeting planner |
@@ -124,34 +125,25 @@ the first account. `docs/DEPLOYING.md` has the detail.
 **A session cannot do this alone.** It needs the founder's Vercel or Supabase
 account and a secret. Ask; do not attempt a workaround.
 
-### 2. Phase 8 — the KPI dashboard  ← start here
+### 2. Phase 9 proper — role scoping and audit log  ← start here
 
-The cheapest remaining phase and the obvious next one. It adds **no new
-records**, so it needs no tag letter and no migration: a read-only aggregation
-across every module already built.
+Phase 8 shipped 2026-08-03. Phases 1–8 have nothing outstanding.
 
-Everything it needs already exists. `server/routes/overview.ts` is the closest
-model — it aggregates in SQL rather than pulling whole tables and reducing in
-the client, and Phase 8 should do the same or it will get slow the moment the
-tables fill up.
+Auth, sessions, and `requireAdmin` exist. What does not:
 
-Sources to pull from, all already built:
+- **Real role scoping.** `lead` and `member` are identical today; only `admin`
+  is enforced. Whether they *should* differ is an open question for the founder
+  — settle that before building the scoping, or it gets built twice.
+- **Audit log.** Nothing records who changed what; last-write-wins throughout.
+  A new table, and it does **not** need a division tag — an audit row is not a
+  record anyone refers to by name, so it sidesteps the tag-letter problem.
+- **Turn the login bypass off by default.** `AUTH_BYPASS` plus a loopback check
+  guards it and production already sets it false, but local defaults to on.
 
-| Area | Where the numbers are |
-|---|---|
-| Work | `/api/overview`, `/api/work` (epics, sprints, workload) |
-| Sales | `/api/contacts` — pipeline by stage, `isContactOpen` excludes closed and lost |
-| Delivery | `/api/projects` — board by status, `onHold` is a flag not a stage |
-| Cash | `/api/invoices`, `/api/treasury` — **allocations are excluded from balance, burn, and runway** |
-| Product | `/api/metrics/summary` — latest reading per product with deltas |
-| Support | `/api/tickets` — one queue for bugs, issues, and features |
-
-**Before extending metrics:** MRR is typed, never derived. A `Customer` carries
-no price, so `GET /metrics/derive/:productId` returns only active users and
-churn, and prints its own basis — that churn is a share of all non-trial
-subscribers all-time, not a period rate. A period rate needs a
-subscription-history table, which does not exist. Do not quietly invent a seat
-price to fill in revenue on a dashboard.
+**Before touching the KPI route:** it deliberately holds no state. Every figure
+is derived, and allocations stay out of cash, burn, and net-by-division so it
+can never disagree with `treasury.ts`. If a number there looks wrong, the bug is
+almost certainly in the module that owns the record, not in `kpi.ts`.
 
 ### 3. Compliance — blocked on a tag-letter decision
 
@@ -177,20 +169,7 @@ before starting the module, not halfway through — tags are identity and are
 never reissued, so a wrong choice is permanent for every record created under
 it.
 
-### 4. Phase 9 proper — role scoping and audit log
-
-Auth, sessions, and `requireAdmin` exist. What does not:
-
-- **Real role scoping.** `lead` and `member` are identical today; only `admin`
-  is enforced. Whether they *should* differ is an open question for the founder
-  (see below) — settle that before building the scoping.
-- **Audit log.** Nothing records who changed what. Last-write-wins throughout.
-  A new table, and it does not obviously need a division tag — an audit row is
-  not a record someone refers to by name.
-- **Turn off the login bypass.** `AUTH_BYPASS` plus a loopback check guards it
-  and production already sets it false, but the local default is on.
-
-### 5. Smaller, all unblocked
+### 4. Smaller, all unblocked
 
 - Grid/list layouts on modules other than Tasks and Docs (`useRecordLayout` + `LayoutSwitch` already exist — a per-module wiring job)
 - Threads, reactions, and mentions in Messages
@@ -200,7 +179,7 @@ Auth, sessions, and `requireAdmin` exist. What does not:
 - A CD half for the products themselves — build/deploy status mirrored onto a product page, now that `repoUrl` exists to hang it off
 - Customers are not yet linkable via `links.ts` `RESOLVERS`, and metrics deliberately are not (a snapshot is a reading, not a record you cross-reference)
 
-### 6. The v2 scope list
+### 5. The v2 scope list
 
 `docs/tuenx-os-v2-scope.md` maps the founder's 38-system Business OS list and
 the workflow diagrams (2026-08-03) against what exists. §5 records what was

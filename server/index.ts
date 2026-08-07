@@ -26,6 +26,7 @@ import { customersRouter } from './routes/customers'
 import { metricsRouter } from './routes/metrics'
 import { workRouter } from './routes/work'
 import { searchRouter } from './routes/search'
+import { kpiRouter } from './routes/kpi'
 
 /**
  * Tuenx OS API.
@@ -104,6 +105,9 @@ app.use('/api/planner', plannerRouter)
 app.use('/api/links', linksRouter)
 app.use('/api/messages', messagesRouter)
 app.use('/api/search', searchRouter)
+
+// Phase 8 — read-only aggregation across every module above
+app.use('/api/kpi', kpiRouter)
 
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'Unknown endpoint' })

@@ -11,6 +11,7 @@ import { TopBar } from './components/shell/TopBar.tsx'
 import { RightRail } from './components/shell/RightRail.tsx'
 import { StatusBar } from './components/shell/StatusBar.tsx'
 import { Overview } from './modules/Overview.tsx'
+import { Kpi } from './modules/Kpi.tsx'
 import { Tasks } from './modules/Tasks.tsx'
 import { Crm } from './modules/Crm.tsx'
 import { Projects } from './modules/Projects.tsx'
@@ -44,6 +45,7 @@ const NAV: {
     group: 'Group',
     items: [
       { id: 'overview', label: 'Overview', owner: 'tuenx', icon: 'overview' },
+      { id: 'kpi', label: 'KPIs', owner: 'tuenx', icon: 'okrs' },
       { id: 'tasks', label: 'Tasks', owner: 'tuenx', icon: 'tasks' },
       { id: 'work', label: 'Sprints & Epics', owner: 'tuenx', icon: 'layoutBoard' },
       { id: 'crm', label: 'CRM', owner: 'tuenx', icon: 'crm' },
@@ -307,6 +309,7 @@ function Dashboard({ viewer, onSignOut }: { viewer: Viewer; onSignOut: () => voi
         <main className="min-w-0 flex-1 overflow-y-auto">
           <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
             {route.module === 'overview' && <Overview />}
+            {route.module === 'kpi' && <Kpi />}
             {route.module === 'tasks' && <Tasks />}
             {route.module === 'crm' && <Crm />}
             {route.module === 'projects' && <Projects />}

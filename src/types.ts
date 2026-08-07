@@ -1074,6 +1074,75 @@ export interface Overview {
   needsAttention: Task[]
 }
 
+// ---------------------------------------------------------------------------
+// Phase 8 — company-wide KPI dashboard
+//
+// Read-only. Every figure is derived from records another module owns, so
+// there is no KPI table to drift out of sync with its sources (TRD §3
+// Phase 8).
+// ---------------------------------------------------------------------------
+
+/** One warning on the health list. Emitted only when it has something to say. */
+export interface KpiHealthItem {
+  key: string
+  label: string
+  value: string
+  detail: string
+  tone: 'alert' | 'watch'
+  /** Hash route to the module that owns the underlying records. */
+  route: string
+  /** A few of the actual records behind the number, named by tag. */
+  records: { tag: string; label: string }[]
+  /** Money behind the number, when there is any. Formatted client-side. */
+  amount?: number
+}
+
+/** One month of the trailing series. `month` is `2026-08`, so it sorts. */
+export interface KpiTrendPoint {
+  month: string
+  income: number
+  expense: number
+  /** Everything billed that month except drafts — a draft claims nothing yet. */
+  invoiced: number
+  collected: number
+}
+
+export interface KpiDivisionRow {
+  division: Division
+  openTasks: number
+  overdueTasks: number
+  pipelineValue: number
+  headcount: number
+  /** Income minus expenses for this division; allocations excluded. */
+  netCash: number
+}
+
+export interface Kpi {
+  generatedAt: string
+  headline: {
+    revenueCollected: number
+    outstandingInvoiced: number
+    /** Sum of the latest snapshot per product. */
+    mrr: number
+    /** Against the previous snapshot; null when there is no prior reading. */
+    mrrChange: number | null
+    activeUsers: number
+    cashBalance: number
+    /** Null when the trailing window is net positive — nothing to burn. */
+    monthlyBurn: number | null
+    runwayMonths: number | null
+    openPipeline: number
+    headcount: number
+    openCandidates: number
+    liveCampaigns: number
+    productsLive: number
+    productsBuilding: number
+  }
+  divisions: KpiDivisionRow[]
+  trend: KpiTrendPoint[]
+  health: KpiHealthItem[]
+}
+
 /** Cross-module search hit — mirrors the server's SearchHit. */
 export interface SearchHit {
   id: string

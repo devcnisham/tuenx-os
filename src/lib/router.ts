@@ -96,11 +96,18 @@ export function useRoute(): Route {
   return route
 }
 
-export const href = (module: ModuleId, productId?: string) =>
-  productId ? `#/${module}/${productId}` : `#/${module}`
+export const href = (module: ModuleId, productId?: string, query?: Record<string, string>) => {
+  const path = productId ? `#/${module}/${productId}` : `#/${module}`
+  const search = new URLSearchParams(query ?? {}).toString()
+  return search ? `${path}?${search}` : path
+}
 
-export const navigate = (module: ModuleId, productId?: string) => {
-  window.location.hash = href(module, productId)
+export const navigate = (
+  module: ModuleId,
+  productId?: string,
+  query?: Record<string, string>,
+) => {
+  window.location.hash = href(module, productId, query)
 }
 
 /** Jumps to a module with a search term prefilled, from a global search hit. */

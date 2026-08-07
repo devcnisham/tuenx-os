@@ -486,6 +486,68 @@ export const TEAM_LABEL: Record<Team, string> = {
 }
 
 // ---------------------------------------------------------------------------
+// Team workspaces
+//
+// A question asked of records that already exist — no storage, no tag. Team is
+// orthogonal to division, so a workspace crosses the divisions on purpose.
+// ---------------------------------------------------------------------------
+
+export interface WorkspaceSummary {
+  team: Team
+  headcount: number
+  openTasks: number
+  overdueTasks: number
+}
+
+export interface WorkspaceIndex {
+  teams: WorkspaceSummary[]
+  /** People with no team set. They appear on no workspace, so this is surfaced. */
+  unassigned: number
+}
+
+export interface WorkspaceMember {
+  id: string
+  tag: string
+  name: string
+  role: string
+  division: Division
+  openTasks: number
+  overdueTasks: number
+  hoursLogged: number
+}
+
+export interface WorkspaceContainer {
+  id: string
+  tag: string
+  status: string
+  openTasks: number
+}
+
+export interface Workspace {
+  team: Team
+  members: WorkspaceMember[]
+  totals: { headcount: number; openTasks: number; overdueTasks: number; hoursLogged: number }
+  hoursWindowDays: number
+  byStatus: { status: TaskStatus; count: number }[]
+  sprints: (WorkspaceContainer & { name: string; endDate: string })[]
+  epics: (WorkspaceContainer & { title: string })[]
+  projects: (WorkspaceContainer & {
+    title: string
+    onHold: boolean
+    contact: { name: string; company: string | null }
+  })[]
+  away: {
+    id: string
+    tag: string
+    startDate: string
+    endDate: string
+    status: string
+    member: Pick<TeamMember, 'id' | 'tag' | 'name'>
+  }[]
+  needsAttention: Task[]
+}
+
+// ---------------------------------------------------------------------------
 // Messaging
 //
 // Was an explicit non-goal until the founder reversed it — see master plan §7.

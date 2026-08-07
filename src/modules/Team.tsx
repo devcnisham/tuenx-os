@@ -3,17 +3,45 @@ import { api } from '../lib/api.ts'
 import { useResource } from '../lib/useResource.ts'
 import { mark } from '../lib/divisions.ts'
 import { pluralise } from '../lib/format.ts'
-import { DIVISIONS, DIVISION_LABEL, type Division, type TeamMember } from '../types.ts'
+import {
+  DIVISIONS,
+  DIVISION_LABEL,
+  isTeam,
+  type Division,
+  type Team as TeamName,
+  type TeamMember,
+} from '../types.ts'
 import { PageHeader, Toolbar } from '../components/PageHeader.tsx'
 import { Button, EmptyState, ErrorState, Panel, Skeleton } from '../components/ui.tsx'
 import { FilterSelect, SelectField, TextField } from '../components/Field.tsx'
 import { RecordView, RecordFooter } from '../components/RecordView.tsx'
 import { Tag } from '../components/Tag.tsx'
+import { Workspaces, WorkspaceToggle } from './Workspaces.tsx'
+import { useRoute, navigate } from '../lib/router.ts'
 
 const DIVISION_OPTIONS = DIVISIONS.map((d) => ({ value: d, label: DIVISION_LABEL[d] }))
 
-/** PRD §6 Phase 1: roster with role and division tag. Dense — it's a directory. */
+/**
+ * The directory, and the per-team workspaces that sit beside it.
+ *
+ * Two views of the same people. The directory answers "who works here", a
+ * workspace answers "what is my team on the hook for" — different questions,
+ * so a toggle rather than one crowded page.
+ *
+ * The chosen team rides in the hash (`#/team?q=engineering`), which is what
+ * makes "look at the engineering workspace" something you can send someone.
+ */
 export function Team() {
+  const route = useRoute()
+  const selected = isTeam(route.query) ? route.query : null
+  const [view, setView] = useState<'directory' | 'workspaces'>(
+    // A link that names a team opens on that team, not on the directory.
+    selected ? 'workspaces' : 'directory',
+  )
+
+  const pickTeam = (team: TeamName | null) =>
+    navigate('team', undefined, team ? { q: team } : {})
+
   const [division, setDivision] = useState<Division | ''>('')
   const [editing, setEditing] = useState<TeamMember | 'new' | null>(null)
 
@@ -35,15 +63,36 @@ export function Team() {
   return (
     <>
       <PageHeader
-        eyebrow="Tuenx · Directory"
+        eyebrow={view === 'directory' ? 'Tuenx · Directory' : 'Tuenx · Workspaces'}
         title="Team"
-        description="Everyone in the group, by the division they belong to. Anyone shared across both divisions sits under Tuenx, the parent entity."
+        description={
+          view === 'directory'
+            ? 'Everyone in the group, by the division they belong to. Anyone shared across both divisions sits under Tuenx, the parent entity.'
+            : 'What each functional team has on. Teams cross divisions on purpose — the same craft in different arms.'
+        }
         actions={
-          <Button variant="primary" onClick={() => setEditing('new')}>
-            + Add person
-          </Button>
+          view === 'directory' ? (
+            <Button variant="primary" onClick={() => setEditing('new')}>
+              + Add person
+            </Button>
+          ) : null
         }
       />
+
+      <WorkspaceToggle
+        view={view}
+        onChange={(next) => {
+          setView(next)
+          // Leaving workspaces drops the team from the URL, so the link never
+          // says "engineering" while showing the directory.
+          if (next === 'directory' && selected) pickTeam(null)
+        }}
+      />
+
+      {view === 'workspaces' ? (
+        <Workspaces team={selected} onPickTeam={pickTeam} />
+      ) : (
+      <>
 
       <Toolbar>
         <FilterSelect
@@ -91,6 +140,9 @@ export function Team() {
             </Panel>
           ))}
         </div>
+      )}
+
+      </>
       )}
 
       {editing && (

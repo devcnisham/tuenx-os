@@ -33,6 +33,7 @@ import { auditLogRouter } from './routes/audit-log'
 import { complianceRouter } from './routes/compliance'
 import { checklistsRouter } from './routes/checklists'
 import { deploysRouter } from './routes/deploys'
+import { workspacesRouter } from './routes/workspaces'
 
 /**
  * Tuenx OS API.
@@ -84,6 +85,9 @@ app.use('/api/overview', overviewRouter)
 app.use('/api/tasks', tasksRouter)
 app.use('/api/contacts', contactsRouter)
 app.use('/api/team', teamRouter)
+// Team workspaces. Plural path on purpose — /api/team is the directory, and a
+// singular/plural pair one letter apart is a trap.
+app.use('/api/workspaces', workspacesRouter)
 app.use('/api/people', peopleRouter)
 app.use('/api/ops', peopleOpsRouter)
 // Compliance — the fourth thing Tuenx handles for the group, after legal,

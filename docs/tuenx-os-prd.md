@@ -34,7 +34,7 @@ Tuenx OS is the internal operating system for Tuenx Technologies — a single pl
 | Division lead | Full access within their division, read access to company-wide rollups |
 | Team member | Scoped to what's assigned to them (their tasks, their deals, their projects) |
 
-*(Updated 2026-08-02: per-user login now exists. Team members sign in with email or username and a scrypt-hashed password. `admin` is enforced for account management; the fuller division-lead and member scoping is still Phase 9 work. Clients sign in with an email address and no password — see master plan §7.)*
+*(Updated 2026-08-03: per-user login exists, and the three roles now differ as described. A lead writes inside their own division; a member writes only records assigned to them. Clients sign in with an email address and no password — see master plan §7.)*
 
 ## 6. Scope by phase
 
@@ -82,18 +82,26 @@ than doing the work.
 - Support/helpdesk ✅ — one queue for bugs, issues, and feature requests, on
   the product they belong to. Pulls issues from the product's GitHub
   repository, one-directionally
-- Metrics: MRR, active users, churn, per product — **schema only**
-- Customer/subscriber base, per product — **schema only**
+- Metrics: MRR, active users, churn, per product ✅ — snapshots, one per product
+  per date. MRR is typed, never derived: a customer carries no price, so the
+  database cannot know what anyone pays
+- Customer/subscriber base, per product ✅ — deliberately not CRM contacts. A
+  contact is a deal someone is working; a customer already pays
 
 ### Phase 8 — Reporting
-- Company-wide KPI dashboard aggregating every module above
+- Company-wide KPI dashboard aggregating every module above ✅ — read-only, no
+  new storage. Headline figures, a twelve-month trend, a per-division
+  scorecard, and a health list that names the records behind each warning
 
-### Phase 9 — Access & security *(partial)*
+### Phase 9 — Access & security ✅
 - Individual logins per person ✅ — scrypt, server-side sessions, httpOnly
   cookies. **Bypassed locally on request; off in the deployment**
-- Role-based permissions (Admin / Division lead / Member) — partial. `admin` is
-  enforced; `lead` and `member` are still identical
-- Audit log of who changed what — **not started**. The last piece of Phase 9
+- Role-based permissions (Admin / Division lead / Member) ✅ — implemented as
+  written above: a lead writes inside their own division, a member writes only
+  records assigned to them. Enforced as middleware below `requireTeam`, and it
+  fails closed
+- Audit log of who changed what ✅ — every create, update, and delete with a
+  field-level diff, plus sign-ins and failed sign-ins. Admin-only and read-only
 
 ## 7. Key workflows
 
@@ -113,6 +121,6 @@ than doing the work.
 ## 9. Risks & open questions
 
 - ~~**No auth today.**~~ Built 2026-08-03. Two caveats replace it: the login bypass is on locally for every route, and **the client portal has no password** — confirmed deliberate and deployed that way.
-- **No audit log.** Last-write-wins, and no record of who changed what. The one part of Phase 9 not started.
+- **Last-write-wins.** Two people editing one record still clobber each other; there is no locking or merge. The audit log now records who won, which is not the same as preventing it.
 - **OKRs and Docs are only as useful as the discipline to keep them updated.** Worth revisiting after a month of real use — if they go stale, reconsider scope.
 - **Agency's name is still a placeholder.** Cosmetic now, but worth resolving before the tool is used daily.

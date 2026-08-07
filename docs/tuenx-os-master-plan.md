@@ -28,9 +28,9 @@ Tuenx Technologies — parent / holding / management entity
 > This is already how the app is built — Treasury, Invoices, Docs, and the
 > contracts repository are all Tuenx-owned, and every record carries the
 > division it *relates to* rather than the division that files it. The one
-> thing it adds is that **compliance has no home yet**: there is no register of
-> obligations, filings, or deadlines. Not built, not scheduled — see
-> `docs/tuenx-os-v2-scope.md` §6.
+> The one thing it added at the time was that compliance had no home. **Built
+> 2026-08-03**: a register of obligations with an owner, a recurrence, and a
+> next-due date, on the calendar alongside every other deadline.
 >
 > Payroll and tax filing stay out regardless (§4). Handling the finance
 > function is not the same as becoming the filing software for it.
@@ -60,16 +60,16 @@ Team: 6–15 people. Mixed model — some people are dedicated to one division, 
 | Vendor & subscription tracker | Tuenx (Ops) | ✅ Built |
 | Marketing (campaigns/content calendar) | Tuenx, serves Agency + Gaphatch | ✅ Built |
 | Support/helpdesk | Gaphatch | ✅ Built — bugs, issues, feature requests, with GitHub sync |
-| Metrics (MRR, users, churn) | Gaphatch, per product | Schema only — Phase 7 |
-| Customer base | Gaphatch, per product | Schema only — Phase 7 |
+| Metrics (MRR, users, churn) | Gaphatch, per product | ✅ Built 2026-08-03 — snapshots, one per product per date |
+| Customer base | Gaphatch, per product | ✅ Built 2026-08-03 — ticket reporters resolve to real subscribers |
 | Contracts repository (company-wide) | Tuenx | ✅ Built |
-| Company-wide KPI dashboard | Tuenx | Planned — Phase 8 |
-| Real backend (auth, permissions, audit log) | Tuenx | Partial — auth ✅, roles partial, **audit log absent** |
+| Company-wide KPI dashboard | Tuenx | ✅ Built 2026-08-03 — read-only rollup, health list, 12-month trend |
+| Real backend (auth, permissions, audit log) | Tuenx | ✅ Built — auth, division-scoped roles, and a field-level audit log |
 | Epics, sprints, subtasks, time, workload | Tuenx (cross-division) | ✅ Built — not in the original map |
 | Messaging (channels + DMs) | Tuenx | ✅ Built — reversed into scope, §7 |
 | Client portal | Agency | ✅ Built — reversed into scope, §7 |
 | Calendar, Planner, Brainstorms, Links, Search | Tuenx | ✅ Built — not in the original map |
-| Compliance register | Tuenx | ❌ Not built — see the 2026-08-03 clarification in §1 |
+| Compliance register | Tuenx | ✅ Built 2026-08-03 — obligations, recurrence, next-due |
 
 ## 3. Build phases
 
@@ -79,17 +79,20 @@ Team: 6–15 people. Mixed model — some people are dedicated to one division, 
 4. **✅ Done** — Tuenx Fund/Treasury
 5. **✅ Done** — OKRs/Goals + Docs/Knowledge base
 6. **✅ Done** — People/HR + Vendor tracker + Marketing + Contracts repository + onboarding/offboarding checklists
-7. **Partial** — Support/helpdesk built (bugs, issues, feature requests, GitHub sync). Metrics and the customer base are schema only
-8. Company-wide KPI dashboard — not started, and wants Phase 7's metrics to exist first
-9. **Partial** — auth, sessions, and roles are real; `lead` and `member` are still identical, and there is no audit log
+7. **✅ Done** — Support/helpdesk (bugs, issues, feature requests, GitHub sync), plus the subscriber base and MRR/churn snapshots
+8. **✅ Done** — company-wide KPI dashboard. No new records: a read-only aggregation across every module above
+9. **✅ Done** — auth, sessions, division-scoped roles per PRD §5, and an audit log with field-level diffs
 
 Built and never in this list: epics/sprints/subtasks/time, Calendar, Planner,
 Brainstorms, cross-record Links, global Search, Messaging, the client portal.
 The last two were reversals (§7); the rest were asked for as the build went.
 
-**Deployed 2026-08-03** to `tuenx-os.vercel.app`, on Postgres. Phase 9's
-"real backend" is therefore half-answered: it runs on one, but the audit log
-and division-scoped roles are still outstanding.
+**Deployed 2026-08-03** to `tuenx-os.vercel.app`, on Postgres — still waiting
+on a `DATABASE_URL` before anything that touches data will work there.
+
+**Every phase is now complete**, plus the compliance register and onboarding
+checklists. Nothing named in this document, the PRD, the TRD, or the v2 scope
+list is outstanding.
 
 ## 4. Explicit scope decisions
 
@@ -110,12 +113,12 @@ and division-scoped roles are still outstanding.
 - Whether OKRs/Docs need any structure beyond what's in the TRD once actually in use
 - ~~Exact trigger point for the Phase 9 backend migration~~ — **settled 2026-08-03.** The trigger turned out to be deployment, not team size: Vercel cannot hold a SQLite file, so Postgres arrived with the deploy
 - Whether the client portal gets a password. Confirmed deliberate on 2026-08-03 and deployed open; revisit before real clients are given the link
-- **Compliance** — Tuenx owns it (§1) and nothing tracks it
+- ~~**Compliance** — Tuenx owns it (§1) and nothing tracks it~~ — **built 2026-08-03.** Obligations with an owner, a recurrence, and a next-due date, projected onto the calendar
 
 ## 6. Status log
 
 - **v1 shipped:** Overview, Tasks (kanban by status, filterable by division), CRM (pipeline by stage, filterable by division), Team roster. Built as a single-file React artifact using shared `window.storage` — anyone with the artifact link reads/writes the same data.
-- **v2, 2026-08-02/03:** rebuilt on React + Vite + TypeScript + Express + Prisma. Every phase through 6 complete, Phase 7 partial, auth real. See `docs/HANDOFF.md` for live state and `docs/SESSION-LOG.md` for how it went.
+- **v2, 2026-08-02/03:** rebuilt on React + Vite + TypeScript + Express + Prisma. All nine phases complete, plus compliance and onboarding checklists. See `docs/HANDOFF.md` for live state and `docs/SESSION-LOG.md` for how it went.
 - **Deployed 2026-08-03** to `tuenx-os.vercel.app` on Postgres, from `github.com/devcnisham/tuenx-os`. Live and awaiting a `DATABASE_URL`.
 
 ## 7. Scope reversals

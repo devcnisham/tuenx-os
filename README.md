@@ -65,11 +65,11 @@ There is no test suite. Verification is done by running the app and exercising t
 | 6 | Hiring, leave, vendors, campaigns, contracts | ✅ | ✅ |
 | 7 | Tickets, customers, metrics | ✅ | ✅ |
 | 8 | KPI dashboard | ✅ | ✅ |
-| 9 | Auth, permissions, audit log | Partial | Partial |
+| 9 | Auth, permissions, audit log | ✅ | ✅ |
 
 Beyond the original phases: Calendar, Planner, Brainstorms, Messages, Users administration, cross-record links, global search, the client portal, and task depth (epics, sprints, subtasks, time, workload).
 
-Phases 1–8 are complete. Onboarding checklists, a compliance register, and the Phase 9 audit log and role scoping are the named gaps. Compliance is blocked on a decision rather than effort — all twenty-six record-tag letters are taken, so it needs a two-letter code or a shared one.
+**Every phase in the original plan is complete.** Onboarding checklists and a compliance register are the named gaps. Compliance is unblocked as of 2026-08-03: new record types get two-letter tag codes (`TNX-CO001`), since all twenty-six single letters are taken.
 
 ## Shape of the code
 
@@ -85,7 +85,7 @@ server/
   tags.ts        Division-coded ID allocation
   github.ts      Issue sync — and the only place a repo URL is parsed
   http.ts        Error handling and body validation
-  routes/        26 routers
+  routes/        27 routers
 src/
   types.ts       Shared vocabulary — imported by client AND server
   lib/           API client, cache, per-resource loader, router, theme, layout
@@ -140,7 +140,7 @@ Read this before exposing anything beyond localhost.
 | **Client portal has no password** | An email address is the entire credential. Anyone who knows a client's address can read that client's invoices and contract value. Confirmed deliberate on 2026-08-03 and deployed that way. |
 | **Seed passwords are in this public repo** | `tuenx1234` and `11223344`. Local demo data only — but if either is a real password anywhere, change it there. |
 | **Session cookie needs `COOKIE_SECURE=true`** | Added automatically when that or `NODE_ENV=production` is set. It cannot be unconditional: on `http://localhost` a Secure cookie is never set at all. |
-| **No audit trail** | Nothing records who changed what. Phase 9. |
+| **Audit trail** | Every create, update, and delete is recorded with a field-level diff, plus sign-ins and failed sign-ins. Admin-only, read-only, no write route. |
 | **Last write wins** | Two people editing one record will clobber each other. |
 
 Passwords themselves are handled properly: scrypt at the OWASP work factor, constant-time comparison, and a password change or deactivation deletes that account's sessions.

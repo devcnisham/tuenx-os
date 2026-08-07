@@ -278,3 +278,57 @@ whole time, which is exactly why reading the code would not have caught it.
 Also worth knowing: **a new export in `router.ts` cannot fast-refresh.** The
 route rendered Overview under a `#/kpi` hash until a full reload. Not a bug —
 but it looks exactly like one, and cost a few minutes here.
+
+## Phase 9 — role scoping and the audit trail
+
+The last two gaps in the original plan, built the same session.
+
+**Both went in as middleware below `requireTeam`, not as calls inside routers.**
+26 routers is 26 chances to forget, and the point of a security boundary being a
+*position* is that a router added next month cannot opt out of something it
+never opted into. Scope runs first, so a refused write is never recorded as one
+that happened.
+
+**Scoping fails closed.** `server/scope.ts` holds a policy table mapping each
+resource to how its division is resolved — own column, Gaphatch by construction,
+or inherited via contact or objective. A resource missing from that table is
+denied to anyone but an admin. An omission therefore surfaces as a visible 403
+rather than as a silent hole, which is the failure mode worth having.
+
+Shared surfaces — messages, links, calendar, planner, your own logged hours —
+are explicitly open. Scoping those by division would stop a Gaphatch engineer
+replying in an Agency channel, which is the opposite of what a cross-division
+company needs.
+
+**The audit log has no division tag, deliberately.** Every other record carries
+one because people cite it by name; nobody says "go and look at TNX-?012". An
+audit row is evidence, not a record — which also sidesteps the exhausted
+tag-letter alphabet entirely. Actor name and role are denormalised for a
+related reason: "account 7f3a deleted the Halcyon contract" is worthless once
+7f3a is gone, and deleting the account is exactly what someone covering their
+tracks would do.
+
+**The diff bug worth remembering.** First version diffed the union of the
+database row and the API response. The response carries joined relations and
+computed extras, so every single update claimed that `subtasks`, `counts`,
+`assignee`, and `loggedHours` had changed. Caught by reading the output, not the
+code. The fix is to iterate the *before* row's keys only — those are the real
+columns. A log that reports changes nobody made is worse than no log, because
+people believe it.
+
+Also fixed on the way through: `prisma/migrations/migration_lock.toml` was
+missing, so `prisma migrate diff` refused to run at all ("could not determine
+the connector"). Creating it with `provider = "postgresql"` was the whole fix,
+and a shadow database is needed for the diff — `createdb tuenx_os_shadow`.
+
+**Verified, not assumed:** 13 scoping cases against the running API, all
+passing — lead writes in-division and 403s out of it, member writes own records
+and 403s on others and on contacts, admin unrestricted, reads open to everyone,
+`/api/audit` 403s for both member and lead. Audit rows confirmed for
+create/update/delete with a clean three-field diff, and for sign-in and
+sign-in-failed.
+
+**Left open for the founder:** whether a lead and a member should really be this
+strict. PRD §5 was implemented literally, so a member cannot fix a typo on
+someone else's task. That may be wrong for a 9-person team — worth a week of use
+before deciding.

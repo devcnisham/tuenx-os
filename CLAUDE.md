@@ -55,7 +55,7 @@ server/
   tags.ts     division-coded ID allocation (transactional)
   github.ts   issue sync — and the only place a repo URL is parsed
   http.ts     error handling + hand-rolled body validation
-  routes/     26 routers
+  routes/     27 routers
 src/
   types.ts    shared vocabulary — imported by BOTH client and server
   lib/        api client, cache, useResource, router, theme, layout, divisions
@@ -76,7 +76,19 @@ app.use('/api', requireTeam)
 
 **Position is the boundary.** A router mounted below that line is default-deny; mounting one above it has to be a deliberate act. When adding a route, put it below unless there is a reason not to, and say why in the diff if not.
 
-`requireAdmin` gates account management and `/api/people`.
+`requireAdmin` gates account management, `/api/people`, and `/api/audit`.
+
+Two more middlewares sit directly below the `requireTeam` line, in this order:
+
+```
+app.use('/api', requireWriteAccess)   // scope.ts — role scoping, fails closed
+app.use('/api', auditWrites)          // audit.ts — records successful writes
+```
+
+Scope first, so a refused write is never logged as one that happened. **Adding
+a router means adding it to `SCOPE_POLICY` in `server/scope.ts`** — a resource
+missing from that table is denied to everyone but an admin, deliberately, so
+the omission shows up as a 403 rather than a hole.
 
 ### `src/types.ts` is shared
 
@@ -161,7 +173,7 @@ to deploy one commit is how you get a half-deployed app.
 - **Bugs, issues, and feature requests share one queue.** They compete for the same engineer; splitting them is how a bug list gets abandoned.
 - **The GitHub sync is one-directional.** GitHub owns what it knows; nothing writes back. `parseRepo` restricting to github.com is a security boundary, not a convenience — `repoUrl` is user-editable.
 - **The client portal has no password** by the founder's explicit instruction. Flag it, don't silently harden it.
-- **No audit trail, last-write-wins.** Phase 9.
+- **Last-write-wins.** Two people editing one record clobber each other. The audit log records who won.
 - **Divisions are hardcoded**, no multi-tenancy. Master plan §4 — permanent.
 - **Not payroll, not tax filing.** Master plan §4 — permanent.
 - **`on_hold` is a project flag, not a stage** — ADR-0002. Work stalls *from* a stage and returns to it.

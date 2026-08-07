@@ -4,7 +4,7 @@
 re-reading the repository. Update it when a module is finished, a decision is
 reversed, or something is left half-built.
 
-**Last updated:** 2026-08-03 · Phases 1–8 complete · working tree clean
+**Last updated:** 2026-08-03 · Phases 1–9 complete · working tree clean
 
 | | |
 |---|---|
@@ -103,6 +103,8 @@ remove it from git history.
 | People & Ops | ✅ | ✅ | Phase 6 — hiring, time off, vendors, marketing, contracts, in five tabs |
 | Messages | ✅ | ✅ | Channels + DMs; record-bound channels are the point |
 | Sign-in | ✅ | ✅ | scrypt, server-side sessions. **Currently bypassed** |
+| Role scoping | ✅ | — | Phase 9. Middleware below requireTeam; fails closed |
+| Audit log | ✅ | ✅ | Phase 9. Admin-only, read-only, field-level diffs |
 | Client portal | ✅ | ✅ | Read-only, scoped. **No password by design** |
 | Links | ✅ | ✅ | Any record to any other |
 | Search | ✅ | ✅ | Global, `/` to focus |
@@ -125,37 +127,21 @@ the first account. `docs/DEPLOYING.md` has the detail.
 **A session cannot do this alone.** It needs the founder's Vercel or Supabase
 account and a secret. Ask; do not attempt a workaround.
 
-### 2. Phase 9 proper — role scoping and audit log  ← start here
+### 2. Compliance — the last named module  ← start here
 
-Phase 8 shipped 2026-08-03. Phases 1–8 have nothing outstanding.
-
-Auth, sessions, and `requireAdmin` exist. What does not:
-
-- **Real role scoping.** `lead` and `member` are identical today; only `admin`
-  is enforced. Whether they *should* differ is an open question for the founder
-  — settle that before building the scoping, or it gets built twice.
-- **Audit log.** Nothing records who changed what; last-write-wins throughout.
-  A new table, and it does **not** need a division tag — an audit row is not a
-  record anyone refers to by name, so it sidesteps the tag-letter problem.
-- **Turn the login bypass off by default.** `AUTH_BYPASS` plus a loopback check
-  guards it and production already sets it false, but local defaults to on.
-
-**Before touching the KPI route:** it deliberately holds no state. Every figure
-is derived, and allocations stay out of cash, burn, and net-by-division so it
-can never disagree with `treasury.ts`. If a number there looks wrong, the bug is
-almost certainly in the module that owns the record, not in `kpi.ts`.
-
-### 3. Compliance — blocked on a tag-letter decision
+Phases 1–9 shipped 2026-08-03. Nothing in the original plan is outstanding, so
+this is the next real piece of work.
 
 The founder confirmed Tuenx handles legal, accounts, finance, **and
 compliance** for the group. The first three have modules. Compliance has
 nothing — no register of obligations, filings, or their deadlines. Smallest
 useful version is in `docs/tuenx-os-v2-scope.md` §6.
 
-**Blocked on a decision, not on effort.** All twenty-six tag letters are taken,
-so a compliance record needs a scheme. The four options were put to the founder
-on 2026-08-03 and **none was chosen** — the question was dismissed, so it is
-still open:
+**Decided 2026-08-03: two-letter codes for new record types.** All twenty-six
+single letters are taken, so anything new gets two — compliance is `CO`,
+producing `TNX-CO001`. Existing tags keep their single letter and are never
+reissued; only the parser has to handle both widths. The alternatives and what
+each would have cost:
 
 | Option | Cost |
 |---|---|
@@ -164,12 +150,13 @@ still open:
 | Fold compliance into `Contract` | No tag cost, but filings and statutory deadlines are not agreements |
 | Defer compliance entirely | Wait for a real obligation register to model against |
 
-Raise it again before writing any code. Per CLAUDE.md this is a call to make
-before starting the module, not halfway through — tags are identity and are
-never reissued, so a wrong choice is permanent for every record created under
-it.
+`server/tags.ts` allocates on a `(division, type)` pair and does not care how
+many characters `type` is, so the work is the `TAG_TYPE` entry in
+`src/types.ts` and the prefix parser in `src/lib/divisions.ts` — not the
+allocator. Tags are identity and are never reissued, so the format is
+permanent for every record created under it.
 
-### 4. Smaller, all unblocked
+### 3. Smaller, all unblocked
 
 - Grid/list layouts on modules other than Tasks and Docs (`useRecordLayout` + `LayoutSwitch` already exist — a per-module wiring job)
 - Threads, reactions, and mentions in Messages
@@ -179,7 +166,7 @@ it.
 - A CD half for the products themselves — build/deploy status mirrored onto a product page, now that `repoUrl` exists to hang it off
 - Customers are not yet linkable via `links.ts` `RESOLVERS`, and metrics deliberately are not (a snapshot is a reading, not a record you cross-reference)
 
-### 5. The v2 scope list
+### 4. The v2 scope list
 
 `docs/tuenx-os-v2-scope.md` maps the founder's 38-system Business OS list and
 the workflow diagrams (2026-08-03) against what exists. §5 records what was
@@ -207,7 +194,7 @@ straight back out within the hour, both recorded in master plan §7.
 
 ## Open questions for the founder
 
-- **How should compliance records be tagged?** All 26 letters are taken. Four options were put on 2026-08-03 and the question was dismissed without a choice. Compliance cannot start until this is settled — see "Pick these up first" §3.
+- **Do `lead` and `member` now behave as you want?** Phase 9 implemented PRD §5 literally: a lead writes only inside their own division, a member writes only records assigned to them. That is stricter than a 9-person team may want in practice — a member cannot currently fix a typo on someone else's task. Worth a week of real use before deciding.
 - **CI/CD, half answered.** GitHub Actions runs typecheck, build, and `prisma validate` on every push; Vercel deploys from the same branch. The other reading — build and deploy status *mirrored into Tuenx OS per product* — is not built. `repoUrl` exists to hang it off.
 - Agency's real name is still a placeholder.
 - Real Google Workspace integration (Meet/Docs/Chat) needs a Google Cloud project, OAuth credentials, and consent scopes. Nothing built toward it; internal equivalents exist instead.

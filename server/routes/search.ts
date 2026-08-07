@@ -30,6 +30,10 @@ export interface SearchHit {
     | 'customer'
     | 'compliance'
     | 'onboarding'
+    | 'roadmap'
+    | 'release'
+    | 'keyResult'
+    | 'fund'
   /** Hash route that opens the record's module. */
   route: string
 }
@@ -88,6 +92,10 @@ searchRouter.get(
       customers,
       obligations,
       checklistRuns,
+      roadmapItems,
+      releases,
+      keyResults,
+      fundEntries,
     ] = await Promise.all([
       prisma.task.findMany({
         where: byTitleOrTag('title'),
@@ -234,6 +242,43 @@ searchRouter.get(
         take: LIMIT_PER_KIND,
         orderBy: { startDate: 'desc' },
       }),
+      // These four exist here mainly so they can be *linked*: the link picker
+      // finds candidates through this endpoint, so a type absent from search
+      // is one nobody can attach to anything.
+      prisma.roadmapItem.findMany({
+        where: byTitleOrTag('title'),
+        take: LIMIT_PER_KIND,
+        include: { product: { select: { name: true } } },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.release.findMany({
+        where: {
+          OR: [
+            { version: { contains: term, mode: 'insensitive' } },
+            { tag: { contains: term.toUpperCase() } },
+          ],
+        },
+        take: LIMIT_PER_KIND,
+        include: { product: { select: { name: true } } },
+        orderBy: { date: 'desc' },
+      }),
+      prisma.keyResult.findMany({
+        where: byTitleOrTag('title'),
+        take: LIMIT_PER_KIND,
+        include: { objective: { select: { title: true } } },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.fundEntry.findMany({
+        where: {
+          OR: [
+            { category: { contains: term, mode: 'insensitive' } },
+            { notes: { contains: term, mode: 'insensitive' } },
+            { tag: { contains: term.toUpperCase() } },
+          ],
+        },
+        take: LIMIT_PER_KIND,
+        orderBy: { date: 'desc' },
+      }),
     ])
 
     const hits: SearchHit[] = [
@@ -378,6 +423,38 @@ searchRouter.get(
         detail: r.completedAt ? 'Complete' : 'In progress',
         kind: 'onboarding' as const,
         route: '#/ops',
+      })),
+      ...roadmapItems.map((r) => ({
+        id: r.id,
+        tag: r.tag,
+        title: r.title,
+        detail: `${r.status} · ${r.product.name}`,
+        kind: 'roadmap' as const,
+        route: `#/products/${r.productId}`,
+      })),
+      ...releases.map((r) => ({
+        id: r.id,
+        tag: r.tag,
+        title: `${r.product.name} ${r.version}`,
+        detail: 'Release',
+        kind: 'release' as const,
+        route: `#/products/${r.productId}`,
+      })),
+      ...keyResults.map((k) => ({
+        id: k.id,
+        tag: k.tag,
+        title: k.title,
+        detail: k.objective.title,
+        kind: 'keyResult' as const,
+        route: '#/okrs',
+      })),
+      ...fundEntries.map((f) => ({
+        id: f.id,
+        tag: f.tag,
+        title: f.category,
+        detail: `${f.type} · ${f.division}`,
+        kind: 'fund' as const,
+        route: '#/treasury',
       })),
     ]
 

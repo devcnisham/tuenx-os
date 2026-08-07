@@ -22,6 +22,10 @@ const KIND_LABEL: Record<SearchHit['kind'], string> = {
   customer: 'Customer',
   compliance: 'Obligation',
   onboarding: 'Checklist',
+  roadmap: 'Roadmap',
+  release: 'Release',
+  keyResult: 'Key result',
+  fund: 'Treasury',
 }
 
 /**

@@ -123,7 +123,7 @@ remove it from git history.
 | Onboarding | ✅ | ✅ | Templates + runs, a tab in People & Ops. Runs copy their steps |
 | Builds (CD) | ✅ | ✅ | GitHub Actions mirrored per product. Cached, one-directional |
 | Client portal | ✅ | ✅ | Read-only, scoped. **No password by design** |
-| Links | ✅ | ✅ | Any record to any other |
+| Links | ✅ | ✅ | 25 linkable types. Four tagged records are deliberately excluded — see `links.ts` |
 | Search | ✅ | ✅ | Global, `/` to focus |
 
 ---
@@ -163,7 +163,6 @@ founder asks for next.
 - Conversations bound to a CRM contact — `Channel.recordType`/`recordId` support it; nothing creates one yet
 - Team workspaces (a per-team view aggregating that team's work)
 - Product/project update trackers
-- **Customers, checklist runs, and builds are not in `links.ts` `RESOLVERS`** — a per-type entry each, roughly ten lines. Metrics and audit rows deliberately stay out: a snapshot is a reading and an audit row is evidence, neither is a record anyone cross-references
 - No test suite. Verification is by exercising the API and opening the app, which is honest but does not scale — if anything here grows, this is the gap that will hurt first
 
 ### 3. The v2 scope list

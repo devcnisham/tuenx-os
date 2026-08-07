@@ -133,7 +133,7 @@ This started as a SQLite constraint and turned out to be the decision that made 
 
 ### Cross-cutting pieces
 
-- **`links.ts`** — polymorphic links between any two records. The database cannot enforce a polymorphic target, so the API validates both ends on write and reads drop anything since deleted.
+- **`links.ts`** — polymorphic links between any two records. Adding a linkable type means **three** edits, not one: the `RESOLVERS` entry, a kind in `search.ts` (the picker finds candidates there), and a `KIND_TO_LINK` entry in `LinkedRecords.tsx`. Miss the second and the type can be shown but never created; miss the third and picking one 400s. The database cannot enforce a polymorphic target, so the API validates both ends on write and reads drop anything since deleted.
 - **`calendar.ts`** — projects deadlines out of tasks/projects/invoices/releases/contracts, read-only, plus user-created entries. Never store a duplicate date; derive it.
 - **`search.ts`** — one lookup across every record type.
 - **`checklists.ts`** — a run copies its steps from the template at creation. Editing a template must never change a run already in progress; the run is the record of what was actually asked for.

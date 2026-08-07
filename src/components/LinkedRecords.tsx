@@ -27,6 +27,12 @@ export type LinkType =
   | 'sprint'
   | 'ticket'
   | 'compliance'
+  | 'roadmap'
+  | 'release'
+  | 'customer'
+  | 'keyResult'
+  | 'fund'
+  | 'checklistRun'
 
 interface Link {
   linkId: string
@@ -39,7 +45,15 @@ interface Link {
   route: string
 }
 
-/** Global search returns its own kinds; map them onto link types. */
+/**
+ * Global search returns its own kinds; map them onto link types.
+ *
+ * A search kind missing from this table used to be pickable and then fail —
+ * the picker sent `toType: undefined` and the API rejected it, which read as
+ * "linking is broken" rather than "that type is not linkable". The picker now
+ * hides unmapped kinds, so an omission here means "cannot be linked" rather
+ * than a 400 in someone's face.
+ */
 const KIND_TO_LINK: Partial<Record<SearchHit['kind'], LinkType>> = {
   task: 'task',
   contact: 'contact',
@@ -56,6 +70,12 @@ const KIND_TO_LINK: Partial<Record<SearchHit['kind'], LinkType>> = {
   sprint: 'sprint',
   ticket: 'ticket',
   compliance: 'compliance',
+  customer: 'customer',
+  onboarding: 'checklistRun',
+  roadmap: 'roadmap',
+  release: 'release',
+  keyResult: 'keyResult',
+  fund: 'fund',
 }
 
 /**
@@ -167,7 +187,10 @@ function LinkPicker({
           // Can't link a record to itself.
           setHits(
             result.hits.filter(
-              (h) => !(KIND_TO_LINK[h.kind] === excludeType && h.id === excludeId),
+              (h) =>
+                // Unlinkable kinds are not offered at all — see KIND_TO_LINK.
+                KIND_TO_LINK[h.kind] !== undefined &&
+                !(KIND_TO_LINK[h.kind] === excludeType && h.id === excludeId),
             ),
           )
         })

@@ -1432,6 +1432,10 @@ export interface SearchHit {
     | 'customer'
     | 'compliance'
     | 'onboarding'
+    | 'roadmap'
+    | 'release'
+    | 'keyResult'
+    | 'fund'
   route: string
 }
 
